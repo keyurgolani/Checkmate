@@ -1,0 +1,735 @@
+[
+  {
+    "name": "users",
+    "type": "auth",
+    "schema": [
+      {
+        "name": "displayName",
+        "type": "text",
+        "required": false,
+        "options": {
+          "min": null,
+          "max": 100,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "avatarUrl",
+        "type": "url",
+        "required": false,
+        "options": {
+          "exceptDomains": [],
+          "onlyDomains": []
+        }
+      },
+      {
+        "name": "preferences",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      },
+      {
+        "name": "failedLoginAttempts",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "lastFailedLogin",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      },
+      {
+        "name": "lockedUntil",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      }
+    ],
+    "options": {
+      "allowEmailAuth": true,
+      "allowOAuth2Auth": true,
+      "allowUsernameAuth": false,
+      "exceptEmailDomains": [],
+      "manageRule": null,
+      "minPasswordLength": 8,
+      "onlyEmailDomains": [],
+      "onlyVerified": false,
+      "requireEmail": true
+    },
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "id = @request.auth.id",
+    "deleteRule": "id = @request.auth.id"
+  },
+  {
+    "name": "workspaces",
+    "type": "base",
+    "schema": [
+      {
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 100,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "required": false,
+        "options": {
+          "min": null,
+          "max": 500,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "settings",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      },
+      {
+        "name": "isArchived",
+        "type": "bool",
+        "required": false,
+        "options": {}
+      }
+    ],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "name": "blueprints",
+    "type": "base",
+    "schema": [
+      {
+        "name": "workspace",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "workspaces",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["name"]
+        }
+      },
+      {
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "title",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 200,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "description",
+        "type": "editor",
+        "required": false,
+        "options": {
+          "convertUrls": false
+        }
+      },
+      {
+        "name": "visibility",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": ["private", "public", "shared"]
+        }
+      },
+      {
+        "name": "category",
+        "type": "text",
+        "required": false,
+        "options": {
+          "min": null,
+          "max": 50,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "tags",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 2000
+        }
+      },
+      {
+        "name": "version",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 1,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "instanceCount",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "ratingSum",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "ratingCount",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "questions",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 50000
+        }
+      }
+    ],
+    "listRule": "visibility = 'public' || owner = @request.auth.id || (visibility = 'shared' && @collection.collaborators.blueprint = id && @collection.collaborators.user = @request.auth.id && @collection.collaborators.acceptedAt != '')",
+    "viewRule": "visibility = 'public' || owner = @request.auth.id || (visibility = 'shared' && @collection.collaborators.blueprint = id && @collection.collaborators.user = @request.auth.id && @collection.collaborators.acceptedAt != '')",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "owner = @request.auth.id || (@collection.collaborators.blueprint = id && @collection.collaborators.user = @request.auth.id && @collection.collaborators.permissionLevel ~ 'editor|admin' && @collection.collaborators.acceptedAt != '')",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "name": "items",
+    "type": "base",
+    "schema": [
+      {
+        "name": "blueprint",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "blueprints",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["title"]
+        }
+      },
+      {
+        "name": "parent",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "items",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["content"]
+        }
+      },
+      {
+        "name": "path",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 500,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "itemType",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": ["task", "reference"]
+        }
+      },
+      {
+        "name": "content",
+        "type": "editor",
+        "required": true,
+        "options": {
+          "convertUrls": false
+        }
+      },
+      {
+        "name": "reference",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "blueprints",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["title"]
+        }
+      },
+      {
+        "name": "position",
+        "type": "number",
+        "required": true,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "name": "metadata",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      }
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id != ''",
+    "deleteRule": "@request.auth.id != ''"
+  },
+  {
+    "name": "collaborators",
+    "type": "base",
+    "schema": [
+      {
+        "name": "blueprint",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "blueprints",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["title"]
+        }
+      },
+      {
+        "name": "user",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "permissionLevel",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": ["viewer", "editor", "admin"]
+        }
+      },
+      {
+        "name": "invitedAt",
+        "type": "date",
+        "required": true,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      },
+      {
+        "name": "acceptedAt",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_collaborators_unique ON collaborators (blueprint, user)"
+    ],
+    "listRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)",
+    "viewRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)",
+    "createRule": "@request.auth.id != '' && @collection.blueprints.id = blueprint && @collection.blueprints.owner = @request.auth.id",
+    "updateRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || (user = @request.auth.id && @request.data.acceptedAt:isset))",
+    "deleteRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)"
+  },
+  {
+    "name": "instances",
+    "type": "base",
+    "schema": [
+      {
+        "name": "blueprint",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "blueprints",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["title"]
+        }
+      },
+      {
+        "name": "user",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 200,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "isSynced",
+        "type": "bool",
+        "required": false,
+        "options": {}
+      },
+      {
+        "name": "progress",
+        "type": "number",
+        "required": false,
+        "options": {
+          "min": 0,
+          "max": 100,
+          "noDecimal": false
+        }
+      },
+      {
+        "name": "completedAt",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      }
+    ],
+    "listRule": "user = @request.auth.id",
+    "viewRule": "user = @request.auth.id",
+    "createRule": "@request.auth.id != '' && user = @request.auth.id",
+    "updateRule": "user = @request.auth.id",
+    "deleteRule": "user = @request.auth.id"
+  },
+  {
+    "name": "instanceItems",
+    "type": "base",
+    "schema": [
+      {
+        "name": "instance",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "instances",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["name"]
+        }
+      },
+      {
+        "name": "sourceItem",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "items",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["content"]
+        }
+      },
+      {
+        "name": "parent",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "instanceItems",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["content"]
+        }
+      },
+      {
+        "name": "path",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 500,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "content",
+        "type": "editor",
+        "required": true,
+        "options": {
+          "convertUrls": false
+        }
+      },
+      {
+        "name": "isCompleted",
+        "type": "bool",
+        "required": false,
+        "options": {}
+      },
+      {
+        "name": "completedAt",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      },
+      {
+        "name": "isCustom",
+        "type": "bool",
+        "required": false,
+        "options": {}
+      },
+      {
+        "name": "position",
+        "type": "number",
+        "required": true,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      }
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id != ''",
+    "deleteRule": "@request.auth.id != ''"
+  },
+  {
+    "name": "notifications",
+    "type": "base",
+    "schema": [
+      {
+        "name": "user",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "type",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": [
+            "collaboration_invite",
+            "collaboration_accepted",
+            "collaboration_revoked",
+            "blueprint_updated",
+            "instance_reminder",
+            "system"
+          ]
+        }
+      },
+      {
+        "name": "title",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 200,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "message",
+        "type": "text",
+        "required": false,
+        "options": {
+          "min": null,
+          "max": 1000,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "data",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      },
+      {
+        "name": "isRead",
+        "type": "bool",
+        "required": false,
+        "options": {}
+      }
+    ],
+    "listRule": "user = @request.auth.id",
+    "viewRule": "user = @request.auth.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "user = @request.auth.id",
+    "deleteRule": "user = @request.auth.id"
+  },
+  {
+    "name": "activityLog",
+    "type": "base",
+    "schema": [
+      {
+        "name": "user",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": ["displayName", "email"]
+        }
+      },
+      {
+        "name": "resourceType",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": [
+            "blueprint",
+            "item",
+            "instance",
+            "instanceItem",
+            "collaborator",
+            "workspace"
+          ]
+        }
+      },
+      {
+        "name": "resourceId",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 50,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "action",
+        "type": "select",
+        "required": true,
+        "options": {
+          "maxSelect": 1,
+          "values": [
+            "create",
+            "update",
+            "delete",
+            "complete",
+            "uncomplete",
+            "invite",
+            "accept",
+            "revoke"
+          ]
+        }
+      },
+      {
+        "name": "metadata",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      }
+    ],
+    "listRule": "user = @request.auth.id || (@collection.blueprints.id = resourceId && @collection.blueprints.visibility = 'shared' && @collection.collaborators.blueprint = resourceId && @collection.collaborators.user = @request.auth.id && @collection.collaborators.acceptedAt != '')",
+    "viewRule": "user = @request.auth.id || (@collection.blueprints.id = resourceId && @collection.blueprints.visibility = 'shared' && @collection.collaborators.blueprint = resourceId && @collection.collaborators.user = @request.auth.id && @collection.collaborators.acceptedAt != '')",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": null,
+    "deleteRule": "user = @request.auth.id"
+  }
+]

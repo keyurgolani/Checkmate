@@ -1,0 +1,55 @@
+# Docker Compose with Cloudflare Tunnel for Homelab Deployment
+# Extends the base docker-compose.yml with Cloudflare Tunnel for secure public access
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
+#
+# Prerequisites:
+#   1. Create a Cloudflare account (free): https://dash.cloudflare.com/sign-up
+#   2. Add your domain to Cloudflare (or use a free *.cfargotunnel.com subdomain)
+#   3. Go to Cloudflare Zero Trust dashboard: https://one.dash.cloudflare.com/
+#   4. Navigate to Networks > Tunnels > Create a tunnel
+#   5. Choose "Cloudflared" connector type
+#   6. Name your tunnel (e.g., "checkmate")
+#   7. Copy the tunnel token and add to .env as CLOUDFLARE_TUNNEL_TOKEN
+#   8. Configure public hostnames in Cloudflare dashboard:
+#      - checkmate.yourdomain.com -> http://nextjs:3000
+#      - api.checkmate.yourdomain.com -> http://pocketbase:8090
+#
+# See: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+
+services:
+  # Cloudflare Tunnel daemon
+  # This creates an outbound-only connection to Cloudflare's edge network
+  # No port forwarding or firewall changes required on your router
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: checkmate-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      nextjs:
+        condition: service_healthy
+      pocketbase:
+        condition: service_healthy
+    networks:
+      - checkmate-network
+    # Health check for the tunnel
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "info"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Override Next.js to not expose ports publicly when using tunnel
+  # Traffic flows: Internet -> Cloudflare -> Tunnel -> nextjs:3000
+  nextjs:
+    ports: []
+
+  # Override PocketBase to not expose ports publicly when using tunnel
+  # Traffic flows: Internet -> Cloudflare -> Tunnel -> pocketbase:8090
+  pocketbase:
+    ports: []

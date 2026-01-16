@@ -1,0 +1,705 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-heading: var(--font-outfit);
+  --font-sans: var(--font-plus-jakarta);
+}
+
+:root {
+  /* Vibrant & Fun Light Mode */
+  --background: oklch(0.99 0.01 240);
+  --foreground: oklch(0.2 0.02 240);
+
+  --card: oklch(1 0 0 / 0.8);
+  --card-foreground: oklch(0.2 0.02 240);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 240);
+
+  /* Electric Indigo */
+  --primary: oklch(0.55 0.25 260);
+  --primary-foreground: oklch(0.98 0 0);
+
+  /* Vibrant Coral */
+  --secondary: oklch(0.7 0.15 20);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.96 0.01 240);
+  --muted-foreground: oklch(0.6 0.02 240);
+
+  --accent: oklch(0.94 0.03 260);
+  --accent-foreground: oklch(0.55 0.25 260);
+
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.85 0.02 240);
+  --input: oklch(0.85 0.02 240);
+  --ring: oklch(0.55 0.25 260 / 0.3);
+
+  /* Unified radius - using 0.75rem (12px) as base for modern, consistent look */
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.98 0.01 240);
+  --sidebar-foreground: oklch(0.2 0.02 240);
+}
+
+.dark {
+  /* Deep Rich Navy Dark Mode */
+  --background: oklch(0.15 0.05 260);
+  --foreground: oklch(0.98 0.01 240);
+
+  --card: oklch(0.2 0.05 260 / 0.5);
+  --card-foreground: oklch(0.98 0.01 240);
+
+  --popover: oklch(0.18 0.05 260);
+  --popover-foreground: oklch(0.98 0.01 240);
+
+  --primary: oklch(0.65 0.2 260);
+  --primary-foreground: oklch(0.98 0 0);
+
+  --secondary: oklch(0.75 0.15 20);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.25 0.05 260);
+  --muted-foreground: oklch(0.7 0.05 260);
+
+  --accent: oklch(0.3 0.1 260);
+  --accent-foreground: oklch(0.98 0.01 240);
+
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.3 0.05 260);
+  --input: oklch(0.3 0.05 260);
+  --ring: oklch(0.65 0.2 260 / 0.3);
+
+  --sidebar: oklch(0.18 0.05 260);
+  --sidebar-foreground: oklch(0.98 0.01 240);
+}
+
+[data-theme="material-expressive"] {
+  --background: oklch(0.96 0.01 280);
+  --foreground: oklch(0.2 0.02 280);
+  --card: oklch(0.98 0 0);
+  --card-foreground: oklch(0.2 0.02 280);
+  --popover: oklch(0.98 0 0);
+  --popover-foreground: oklch(0.2 0.02 280);
+  --primary: oklch(0.6 0.18 290);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.85 0.1 290);
+  --secondary-foreground: oklch(0.2 0.05 290);
+  --muted: oklch(0.92 0.02 280);
+  --muted-foreground: oklch(0.4 0.05 280);
+  --accent: oklch(0.8 0.15 290);
+  --accent-foreground: oklch(0.2 0.05 290);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.8 0.02 280);
+  --input: oklch(0.8 0.02 280);
+  --ring: oklch(0.6 0.18 290 / 0.3);
+  --radius: 1rem;
+}
+
+[data-theme="glassmorphism"] {
+  --background: oklch(0.94 0.05 220); /* Blurred heavy background feels */
+  --foreground: oklch(0.15 0.05 220);
+  --card: oklch(1 0 0 / 0.4); /* Very transparent */
+  --card-foreground: oklch(0.15 0.05 220);
+  --popover: oklch(1 0 0 / 0.6);
+  --popover-foreground: oklch(0.15 0.05 220);
+  --primary: oklch(0.6 0.15 220);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.8 0.1 220 / 0.5);
+  --secondary-foreground: oklch(0.2 0.05 220);
+  --muted: oklch(0.8 0.05 220 / 0.3);
+  --muted-foreground: oklch(0.4 0.05 220);
+  --accent: oklch(0.7 0.1 220 / 0.4);
+  --accent-foreground: oklch(0.15 0.05 220);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 0.3);
+  --input: oklch(1 0 0 / 0.3);
+  --ring: oklch(0.6 0.15 220 / 0.4);
+  --radius: 1.5rem;
+}
+
+[data-theme="chakra"] {
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.2 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0 0);
+  --primary: oklch(0.5 0.15 180); /* Teal-ish */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9 0.05 180);
+  --secondary-foreground: oklch(0.2 0.05 180);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --accent: oklch(0.9 0.05 180);
+  --accent-foreground: oklch(0.2 0.05 180);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.5 0.15 180 / 0.3);
+  --radius: 0.375rem;
+}
+
+[data-theme="neuromorphism"] {
+  --background: #e0e5ec;
+  --foreground: #4a5568;
+  --card: #e0e5ec;
+  --card-foreground: #4a5568;
+  --popover: #e0e5ec;
+  --popover-foreground: #4a5568;
+  --primary: #4a5568;
+  --primary-foreground: #e0e5ec;
+  --secondary: #e0e5ec;
+  --secondary-foreground: #4a5568;
+  --muted: #dde1e7;
+  --muted-foreground: #a0aec0;
+  --accent: #d1d9e6;
+  --accent-foreground: #4a5568;
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: #e0e5ec;
+  --border: #d1d9e6;
+  --input: #e0e5ec;
+  --ring: #a0aec0;
+  --radius: 1rem;
+  /* Special shadows for neuromorphism would be handled via utility classes or specific component overrides, 
+     but we can set base vars here */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    transition: background-color var(--duration-normal, 0.3s)
+        cubic-bezier(0.4, 0, 0.2, 1),
+      color var(--duration-normal, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), system-ui, sans-serif;
+  }
+
+  /* Responsive text scaling for large screens */
+  @media (min-width: 1920px) {
+    html {
+      font-size: 18px;
+    }
+  }
+  @media (min-width: 2560px) {
+    html {
+      font-size: 20px;
+    }
+  }
+
+  /* Mobile text scaling */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  /* Tablet text scaling */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    html {
+      font-size: 15px;
+    }
+  }
+}
+
+/* Hide scrollbar globally */
+@layer base {
+  * {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Shimmer animation for progress bars */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Smooth page transitions */
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .dark .glass {
+    @apply bg-black/10 border-white/10;
+  }
+}
+
+/* Unified animation keyframes */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Utility animation classes */
+.animate-shimmer {
+  animation: shimmer calc(2s / var(--animation-speed, 1)) infinite linear;
+  background-size: 200% 100%;
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-fast, 0.2s) ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-normal, 0.3s) ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in var(--duration-fast, 0.2s) ease-out;
+}
+
+/* Consistent focus ring styles */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* Consistent card hover effect */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:border-primary/20;
+}
+
+/* Consistent interactive element styles */
+.interactive {
+  @apply transition-colors duration-150 cursor-pointer;
+}
+
+/* Custom Sheet Animations */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right var(--duration-normal, 0.35s)
+    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right var(--duration-normal, 0.3s)
+    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-out {
+  animation: fade-out var(--duration-fast, 0.2s) ease-out;
+}
+
+@media print {
+  @page {
+    margin: 0.5in;
+    size: auto;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide UI elements */
+  nav,
+  aside,
+  button,
+  .no-print,
+  [role="dialog"],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  main,
+  div[class*="pl-72"], /* Sidebar offset */
+  div[class*="pt-16"] /* Header offset */ {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  /* Container adjustments */
+  .container,
+  div[class*="max-w-"] {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Card styling for print */
+  div[class*="rounded-"],
+  div[class*="border"] {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Ensure text is readable */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  div {
+    color: black !important;
+    text-shadow: none !important;
+  }
+
+  /* Checklist specific */
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid black !important;
+    background: white !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+  }
+
+  input[type="checkbox"]:checked {
+    background: black !important;
+    box-shadow: inset 0 0 0 2px white !important;
+  }
+}
+
+/* ============================================
+   THEME ENGINE - Design Language Styles
+   ============================================ */
+
+/* Default effect variables */
+:root {
+  --glass-opacity: 0.9;
+  --glass-blur: 0px;
+  --shadow-strength: 0.25;
+  --shadow-spread: 6px;
+  --glow-strength: 0.3;
+  --glow-spread: 8px;
+  --border-width: 1px;
+  --animation-speed: 1;
+  --animation-intensity: 0.5;
+  --grain-opacity: 0;
+  --grain-size: 1;
+  --neumo-intensity: 0;
+  --neumo-distance: 8px;
+  --bg-pattern-opacity: 0.1;
+}
+
+/* Animation duration variables */
+:root {
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+}
+
+/* Glass effect utilities */
+.glass-effect {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--glass-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 8px));
+  border: var(--border-width) solid
+    var(--glass-border, rgba(255, 255, 255, 0.2));
+}
+
+/* Glow effect utilities */
+.glow-effect {
+  box-shadow: 0 0 var(--glow-spread)
+    var(--glow-primary, rgba(102, 126, 234, 0.3));
+}
+
+/* Dynamic shadow based on theme */
+.dynamic-shadow {
+  box-shadow: 0 var(--shadow-spread) calc(var(--shadow-spread) * 2)
+    var(--shadow, rgba(0, 0, 0, 0.1));
+}
+
+/* Neumorphism utilities */
+[data-design="neumorphism"] .neumo-raised {
+  box-shadow: var(--neumo-distance) var(--neumo-distance)
+      calc(var(--neumo-distance) * 2)
+      rgba(0, 0, 0, calc(var(--neumo-intensity) * 0.15)),
+    calc(var(--neumo-distance) * -1) calc(var(--neumo-distance) * -1)
+      calc(var(--neumo-distance) * 2)
+      rgba(255, 255, 255, calc(var(--neumo-intensity) * 0.8));
+}
+
+[data-design="neumorphism"] .neumo-inset {
+  box-shadow: inset var(--neumo-distance) var(--neumo-distance)
+      calc(var(--neumo-distance) * 2)
+      rgba(0, 0, 0, calc(var(--neumo-intensity) * 0.15)),
+    inset calc(var(--neumo-distance) * -1) calc(var(--neumo-distance) * -1)
+      calc(var(--neumo-distance) * 2)
+      rgba(255, 255, 255, calc(var(--neumo-intensity) * 0.8));
+}
+
+.dark[data-design="neumorphism"] .neumo-raised {
+  box-shadow: var(--neumo-distance) var(--neumo-distance)
+      calc(var(--neumo-distance) * 2)
+      rgba(0, 0, 0, calc(var(--neumo-intensity) * 0.5)),
+    calc(var(--neumo-distance) * -1) calc(var(--neumo-distance) * -1)
+      calc(var(--neumo-distance) * 2)
+      rgba(255, 255, 255, calc(var(--neumo-intensity) * 0.05));
+}
+
+/* Brutalist design overrides */
+[data-design="brutalist"] * {
+  border-radius: 0 !important;
+}
+
+[data-design="brutalist"] .card,
+[data-design="brutalist"] [data-slot="card"] {
+  border: 3px solid var(--foreground);
+  box-shadow: 4px 4px 0 var(--foreground);
+}
+
+[data-design="brutalist"] button:not([disabled]):hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 currentColor;
+}
+
+[data-design="brutalist"] button:not([disabled]):active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 currentColor;
+}
+
+/* ============================================
+   BASE CARD STYLES - Dynamic Effects
+   ============================================ */
+
+/* Base card styles using CSS variables */
+.card,
+[data-slot="card"] {
+  border-radius: var(--radius, 0.75rem);
+  box-shadow: 0
+    calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 2)
+    calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 4)
+    rgba(0, 0, 0, calc(var(--shadow-strength, 0.25) * 0.3));
+  transition: box-shadow var(--duration-normal, 0.3s) ease,
+    transform var(--duration-normal, 0.3s) ease,
+    border-color var(--duration-normal, 0.3s) ease;
+}
+
+.card:hover,
+[data-slot="card"]:hover {
+  box-shadow: 0
+    calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 3)
+    calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 6)
+    rgba(0, 0, 0, calc(var(--shadow-strength, 0.25) * 0.4));
+}
+
+/* Glow effect on focus/hover for cards */
+.card:focus-within,
+[data-slot="card"]:focus-within {
+  box-shadow: 0
+      calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 2)
+      calc(var(--shadow-spread, 6px) * var(--shadow-strength, 0.25) * 4)
+      rgba(0, 0, 0, calc(var(--shadow-strength, 0.25) * 0.3)),
+    0 0 calc(var(--glow-spread, 8px) * var(--glow-strength, 0.3) * 2)
+      var(--glow-primary, rgba(102, 126, 234, 0.3));
+}
+
+/* Glass blur effect for cards with backdrop-blur class */
+.card.backdrop-blur-sm,
+[data-slot="card"].backdrop-blur-sm {
+  backdrop-filter: blur(var(--glass-blur, 4px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 4px));
+}
+
+/* Aurora glow animation */
+@keyframes aurora-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+[data-design="aurora"] .aurora-glow {
+  animation: aurora-pulse calc(3s * var(--animation-speed)) ease-in-out infinite;
+}
+
+/* Glassmorphism card styles */
+[data-design="glassmorphism"] .card,
+[data-design="glassmorphism"] [data-slot="card"] {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* Material Expressive elevation */
+[data-design="material-expressive"] .card,
+[data-design="material-expressive"] [data-slot="card"] {
+  transition: box-shadow var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
+}
+
+[data-design="material-expressive"] .card:hover,
+[data-design="material-expressive"] [data-slot="card"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px -4px var(--shadow);
+}
+
+/* Chakra focus styles */
+[data-design="chakra"] *:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Theme transition */
+* {
+  transition-property: background-color, border-color, color, fill, stroke,
+    box-shadow;
+  transition-duration: var(--duration-normal);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transitions for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

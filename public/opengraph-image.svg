@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#0F172A"/>
+  
+  <!-- Logo -->
+  <rect x="520" y="180" width="80" height="80" rx="16" fill="#10B981"/>
+  <path d="M540 220L555 235L580 210" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Brand Name -->
+  <text x="600" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="white" text-anchor="middle">CheckMate</text>
+  
+  <!-- Tagline -->
+  <text x="600" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94A3B8" text-anchor="middle">Create, share, and track checklist blueprints</text>
+  
+  <!-- Decorative checklist items -->
+  <g transform="translate(350, 440)">
+    <rect width="24" height="24" rx="4" stroke="#10B981" stroke-width="2" fill="none"/>
+    <path d="M6 12L10 16L18 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="36" y="18" font-family="system-ui, sans-serif" font-size="20" fill="#64748B">Reusable templates</text>
+  </g>
+  
+  <g transform="translate(550, 440)">
+    <rect width="24" height="24" rx="4" stroke="#10B981" stroke-width="2" fill="none"/>
+    <path d="M6 12L10 16L18 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="36" y="18" font-family="system-ui, sans-serif" font-size="20" fill="#64748B">Progress tracking</text>
+  </g>
+  
+  <g transform="translate(750, 440)">
+    <rect width="24" height="24" rx="4" stroke="#10B981" stroke-width="2" fill="none"/>
+    <path d="M6 12L10 16L18 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="36" y="18" font-family="system-ui, sans-serif" font-size="20" fill="#64748B">Collaboration</text>
+  </g>
+</svg>

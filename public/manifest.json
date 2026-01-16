@@ -1,0 +1,24 @@
+{
+  "name": "CheckMate",
+  "short_name": "CheckMate",
+  "description": "Create, share, and track checklist blueprints for any life event",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#10B981",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "orientation": "portrait-primary"
+}

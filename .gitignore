@@ -1,0 +1,84 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+*.test.js.snap
+*.test.ts.snap
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+!.env.local.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.backup
+test_*.txt
+test_*.md
+
+# docker
+docker-compose.override.yml
+
+# PocketBase
+/pb_data
+/pb_migrations

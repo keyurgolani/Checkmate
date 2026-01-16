@@ -1,0 +1,76 @@
+# Production Docker Compose for CheckMate
+# Includes Next.js frontend and PocketBase backend
+#
+# Usage:
+#   docker compose up -d
+#
+# For homelab deployment with Cloudflare Tunnel, see docker-compose.tunnel.yml
+
+services:
+  # Next.js Application (Production)
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: checkmate-app
+    restart: unless-stopped
+    ports:
+      - "${NEXTJS_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_POCKETBASE_URL=${NEXT_PUBLIC_POCKETBASE_URL:-http://pocketbase:8090}
+      - POCKETBASE_URL=${POCKETBASE_URL:-http://pocketbase:8090}
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - checkmate-network
+
+  # PocketBase Backend
+  pocketbase:
+    build:
+      context: ./docker/pocketbase
+      dockerfile: Dockerfile
+    container_name: checkmate-pocketbase
+    restart: unless-stopped
+    ports:
+      - "${POCKETBASE_PORT:-8090}:8090"
+    volumes:
+      # Persistent volume for PocketBase data (SQLite database, uploads, etc.)
+      - pocketbase_data:/pb/pb_data
+      # Optional: Mount migrations/hooks if needed
+      # - ./docker/pocketbase/pb_migrations:/pb/pb_migrations
+      # - ./docker/pocketbase/pb_hooks:/pb/pb_hooks
+    environment:
+      # PocketBase admin credentials (set on first run)
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL:-}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - checkmate-network
+
+# Persistent volumes
+volumes:
+  pocketbase_data:
+    driver: local
+    # For production, consider using a named volume with backup strategy
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /path/to/your/data/pocketbase
+
+# Internal network for service communication
+networks:
+  checkmate-network:
+    driver: bridge

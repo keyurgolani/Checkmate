@@ -1,0 +1,104 @@
+import { notFound } from "next/navigation";
+import { getServerAuth } from "@/lib/server-auth";
+import { ChecklistService } from "@/lib/services/checklist";
+import { TemplateService } from "@/lib/services/template";
+import { ChecklistDetailClient } from "./checklist-detail-client";
+
+/**
+ * Checklist Detail Page - Server Component
+ *
+ * Displays a single checklist with items for tracking completion.
+ * Uses the ChecklistTracker component for displaying items with checkboxes.
+ *
+ * Requirements: 6.1, 7.1
+ */
+
+interface ChecklistDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function ChecklistDetailPage({
+  params,
+}: ChecklistDetailPageProps) {
+  const { id } = await params;
+  const { isAuthenticated, user, pb } = await getServerAuth();
+
+  if (!isAuthenticated || !user) {
+    notFound();
+  }
+
+  // Initialize services with the authenticated PocketBase client
+  const checklistService = new ChecklistService(pb);
+  const templateService = new TemplateService(pb);
+
+  // Get the checklist
+  const checklistResult = await checklistService.getById(id, "blueprint");
+
+  if (!checklistResult.success || !checklistResult.checklist) {
+    notFound();
+  }
+
+  const checklist = checklistResult.checklist;
+
+  // Verify user owns this checklist
+  if (checklist.user !== user.id) {
+    notFound();
+  }
+
+  // Get blueprint title
+  let blueprintTitle = "Unknown Template";
+  // @ts-ignore - Runtime uses blueprint, types say template
+  const expandedBlueprint = checklist.expand?.template || (checklist.expand as any)?.blueprint;
+  
+  if (expandedBlueprint) {
+    blueprintTitle = expandedBlueprint.title;
+  } else {
+    // @ts-ignore - Runtime uses blueprint
+    const blueprintId = checklist.template || (checklist as any).blueprint;
+    const templateResult = await templateService.getById(blueprintId);
+    if (templateResult.success && templateResult.template) {
+      blueprintTitle = templateResult.template.title;
+    }
+  }
+
+  // Get tasks
+  const tasks = await checklistService.getTasks(id, {
+    sort: "path,position",
+  });
+
+  // Transform tasks to the format expected by ChecklistTracker
+  const trackerTasks = tasks.map((task) => ({
+    id: task.id,
+    checklistId: task.instance,
+    sourceItemId: task.sourceItem,
+    parentId: task.parent,
+    path: task.path,
+    content: task.content,
+    isCompleted: task.isCompleted,
+    completedAt: task.completedAt,
+    isCustom: task.isCustom,
+    position: task.position,
+  }));
+
+  // Calculate progress
+  const progress = await checklistService.calculateProgress(id);
+
+  return (
+    <ChecklistDetailClient
+      checklist={{
+        id: checklist.id,
+        name: checklist.name,
+        blueprintId: checklist.blueprint,
+        blueprintTitle,
+        progress: progress.percentage,
+        totalItems: progress.totalItems,
+        completedItems: progress.completedItems,
+        isSynced: checklist.isSynced,
+        completedAt: checklist.completedAt,
+        createdAt: checklist.created,
+        updatedAt: checklist.updated,
+      }}
+      tasks={trackerTasks}
+    />
+  );
+}

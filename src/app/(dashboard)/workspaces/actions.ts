@@ -1,0 +1,112 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getServerAuth } from "@/lib/server-auth";
+import { WorkspaceService } from "@/lib/services/workspace";
+
+export interface CreateWorkspaceInput {
+  name: string;
+  description?: string;
+}
+
+export interface WorkspaceActionResult {
+  success: boolean;
+  error?: string;
+  workspaceId?: string;
+}
+
+export async function createWorkspace(input: CreateWorkspaceInput): Promise<WorkspaceActionResult> {
+  const { isAuthenticated, pb } = await getServerAuth();
+  
+  if (!isAuthenticated) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const workspaceService = new WorkspaceService(pb);
+  const result = await workspaceService.create({
+    name: input.name,
+    description: input.description,
+  });
+
+  if (!result.success || !result.workspace) {
+    return { success: false, error: result.error?.message || "Failed to create workspace" };
+  }
+
+  revalidatePath("/workspaces");
+  return { success: true, workspaceId: result.workspace.id };
+}
+
+export async function updateWorkspace(
+  id: string, 
+  input: { name?: string; description?: string }
+): Promise<WorkspaceActionResult> {
+  const { isAuthenticated, pb } = await getServerAuth();
+  
+  if (!isAuthenticated) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const workspaceService = new WorkspaceService(pb);
+  const result = await workspaceService.update(id, input);
+
+  if (!result.success) {
+    return { success: false, error: result.error?.message || "Failed to update workspace" };
+  }
+
+  revalidatePath("/workspaces");
+  return { success: true, workspaceId: id };
+}
+
+export async function archiveWorkspace(id: string): Promise<WorkspaceActionResult> {
+  const { isAuthenticated, pb } = await getServerAuth();
+  
+  if (!isAuthenticated) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const workspaceService = new WorkspaceService(pb);
+  const result = await workspaceService.archive(id);
+
+  if (!result.success) {
+    return { success: false, error: result.error?.message || "Failed to archive workspace" };
+  }
+
+  revalidatePath("/workspaces");
+  return { success: true, workspaceId: id };
+}
+
+export async function unarchiveWorkspace(id: string): Promise<WorkspaceActionResult> {
+  const { isAuthenticated, pb } = await getServerAuth();
+  
+  if (!isAuthenticated) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const workspaceService = new WorkspaceService(pb);
+  const result = await workspaceService.unarchive(id);
+
+  if (!result.success) {
+    return { success: false, error: result.error?.message || "Failed to unarchive workspace" };
+  }
+
+  revalidatePath("/workspaces");
+  return { success: true, workspaceId: id };
+}
+
+export async function deleteWorkspace(id: string): Promise<WorkspaceActionResult> {
+  const { isAuthenticated, pb } = await getServerAuth();
+  
+  if (!isAuthenticated) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const workspaceService = new WorkspaceService(pb);
+  const result = await workspaceService.delete(id);
+
+  if (!result.success) {
+    return { success: false, error: result.error?.message || "Failed to delete workspace" };
+  }
+
+  revalidatePath("/workspaces");
+  return { success: true };
+}

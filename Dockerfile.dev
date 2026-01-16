@@ -1,0 +1,28 @@
+# Development Dockerfile for Next.js with Docker Watch
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for native modules and file watching
+RUN apk add --no-cache libc6-compat
+
+# Copy package files first for better layer caching
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy all source files
+COPY . .
+
+# Expose Next.js dev server port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+# Enable polling for file watching in containers
+ENV WATCHPACK_POLLING=true
+
+# Start development server with turbopack for faster HMR
+CMD ["npm", "run", "dev"]

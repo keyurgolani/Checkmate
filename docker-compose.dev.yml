@@ -1,0 +1,88 @@
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: checkmate-nextjs
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      # Client-side URL (browser) - must use host-accessible URL
+      - NEXT_PUBLIC_POCKETBASE_URL=http://localhost:8090
+      # Server-side URL (container-to-container)
+      - POCKETBASE_URL=http://pocketbase:8090
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    develop:
+      watch:
+        # Sync source files for hot reload
+        - action: sync
+          path: ./src
+          target: /app/src
+          ignore:
+            - "**/*.test.ts"
+            - "**/*.test.tsx"
+            - "**/__tests__"
+        # Sync public assets
+        - action: sync
+          path: ./public
+          target: /app/public
+        # Rebuild on config changes
+        - action: rebuild
+          path: ./next.config.ts
+        - action: rebuild
+          path: ./tsconfig.json
+        - action: rebuild
+          path: ./postcss.config.mjs
+        # Reinstall deps on package changes
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+
+  pocketbase:
+    build:
+      context: ./docker/pocketbase
+      dockerfile: Dockerfile
+    container_name: checkmate-pocketbase
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - pocketbase_data:/pb/pb_data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8090/api/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  pocketbase_data:
+    driver: local

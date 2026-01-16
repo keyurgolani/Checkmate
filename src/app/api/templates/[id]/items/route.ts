@@ -1,0 +1,163 @@
+/**
+ * Template Items API Routes
+ * 
+ * GET /api/templates/[id]/items - Get all items for a template
+ * POST /api/templates/[id]/items - Create a new item in a template
+ * 
+ * Requirements: 3.2, 3.3
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerAuth } from '@/lib/server-auth';
+import { ItemService, ItemErrorCodes } from '@/lib/services/item';
+import { TemplateService, TemplateErrorCodes } from '@/lib/services/template';
+import { CollaborationService } from '@/lib/services/collaboration';
+import { Visibility, PermissionLevel, ItemType } from '@/lib/pocketbase-types';
+import type { Item, ItemMetadata } from '@/lib/pocketbase-types';
+
+interface CreateItemRequestBody {
+  parentId?: string;
+  itemType: ItemType;
+  content: string;
+  referenceId?: string;
+  position?: number;
+  metadata?: ItemMetadata;
+}
+
+interface FormattedItem {
+  id: string;
+  templateId: string;
+  parentId: string | null;
+  path: string;
+  itemType: string;
+  content: string;
+  referenceId: string | null;
+  position: number;
+  metadata: ItemMetadata | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ItemResponse {
+  success: boolean;
+  item?: FormattedItem;
+  items?: FormattedItem[];
+  error?: { code: string; message: string; details?: Record<string, unknown>; timestamp: string };
+}
+
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+function getStatusCodeForError(errorCode: string | undefined): number {
+  switch (errorCode) {
+    case ItemErrorCodes.CONTENT_REQUIRED:
+    case ItemErrorCodes.INVALID_ITEM_TYPE:
+    case ItemErrorCodes.REFERENCE_REQUIRED:
+    case ItemErrorCodes.VALIDATION_ERROR:
+    case ItemErrorCodes.MAX_DEPTH_EXCEEDED:
+    case ItemErrorCodes.CIRCULAR_REFERENCE: return 400;
+    case ItemErrorCodes.PERMISSION_DENIED: return 403;
+    case ItemErrorCodes.NOT_FOUND:
+    case ItemErrorCodes.TEMPLATE_NOT_FOUND:
+    case ItemErrorCodes.PARENT_NOT_FOUND:
+    case ItemErrorCodes.REFERENCE_NOT_FOUND: return 404;
+    default: return 500;
+  }
+}
+
+function formatItem(item: Item): FormattedItem {
+  return { id: item.id, templateId: item.blueprint, parentId: item.parent, path: item.path, itemType: item.itemType, content: item.content, referenceId: item.reference, position: item.position, metadata: item.metadata, createdAt: item.created, updatedAt: item.updated };
+}
+
+
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse<ItemResponse>> {
+  try {
+    const { id: templateId } = await context.params;
+    const { isAuthenticated, user, pb } = await getServerAuth();
+
+    const templateService = new TemplateService(pb);
+    const collaborationService = new CollaborationService(pb);
+    const itemService = new ItemService(pb);
+
+    const templateResult = await templateService.getById(templateId);
+    if (!templateResult.success || !templateResult.template) {
+      return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+    }
+
+    const template = templateResult.template;
+
+    if (template.visibility === Visibility.PRIVATE) {
+      if (!isAuthenticated || !user || template.owner !== user.id) {
+        return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+      }
+    } else if (template.visibility === Visibility.SHARED) {
+      if (!isAuthenticated || !user) {
+        return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+      }
+      const isOwner = template.owner === user.id;
+      const hasAccess = isOwner || await collaborationService.hasPermission(templateId, user.id, PermissionLevel.VIEWER);
+      if (!hasAccess) {
+        return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+      }
+    }
+
+    const { searchParams } = new URL(request.url);
+    const expand = searchParams.get('expand') ?? undefined;
+    const items = await itemService.getByBlueprint(templateId, { expand });
+
+    return NextResponse.json({ success: true, items: items.map(formatItem) });
+  } catch (error) {
+    console.error('Get template items error:', error);
+    return NextResponse.json({ success: false, error: { code: ItemErrorCodes.UNKNOWN_ERROR, message: 'An unexpected error occurred', timestamp: new Date().toISOString() } }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest, context: RouteContext): Promise<NextResponse<ItemResponse>> {
+  try {
+    const { id: templateId } = await context.params;
+    const { isAuthenticated, user, pb } = await getServerAuth();
+
+    if (!isAuthenticated || !user) {
+      return NextResponse.json({ success: false, error: { code: ItemErrorCodes.PERMISSION_DENIED, message: 'Authentication required', timestamp: new Date().toISOString() } }, { status: 401 });
+    }
+
+    const body = await request.json() as CreateItemRequestBody;
+
+    if (!body.content) {
+      return NextResponse.json({ success: false, error: { code: ItemErrorCodes.CONTENT_REQUIRED, message: 'content is required', timestamp: new Date().toISOString() } }, { status: 400 });
+    }
+    if (!body.itemType) {
+      return NextResponse.json({ success: false, error: { code: ItemErrorCodes.INVALID_ITEM_TYPE, message: 'itemType is required', timestamp: new Date().toISOString() } }, { status: 400 });
+    }
+
+    const templateService = new TemplateService(pb);
+    const collaborationService = new CollaborationService(pb);
+    const itemService = new ItemService(pb);
+
+    const templateResult = await templateService.getById(templateId);
+    if (!templateResult.success || !templateResult.template) {
+      return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+    }
+
+    const template = templateResult.template;
+    const isOwner = template.owner === user.id;
+    const hasEditPermission = isOwner || await collaborationService.hasPermission(templateId, user.id, PermissionLevel.EDITOR);
+
+    if (!hasEditPermission) {
+      return NextResponse.json({ success: false, error: { code: ItemErrorCodes.PERMISSION_DENIED, message: 'You do not have permission to add items to this template', timestamp: new Date().toISOString() } }, { status: 403 });
+    }
+
+    const result = await itemService.create({ templateId: templateId, parentId: body.parentId, itemType: body.itemType, content: body.content, referenceId: body.referenceId, position: body.position, metadata: body.metadata });
+
+    if (!result.success || !result.item) {
+      const statusCode = getStatusCodeForError(result.error?.code);
+      return NextResponse.json({ success: false, error: { code: result.error?.code ?? ItemErrorCodes.UNKNOWN_ERROR, message: result.error?.message ?? 'Failed to create item', details: result.error?.details, timestamp: new Date().toISOString() } }, { status: statusCode });
+    }
+
+    return NextResponse.json({ success: true, item: formatItem(result.item) }, { status: 201 });
+  } catch (error) {
+    console.error('Create item error:', error);
+    return NextResponse.json({ success: false, error: { code: ItemErrorCodes.UNKNOWN_ERROR, message: 'An unexpected error occurred', timestamp: new Date().toISOString() } }, { status: 500 });
+  }
+}
