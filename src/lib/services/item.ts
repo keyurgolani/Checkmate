@@ -14,6 +14,7 @@ import type {
   ItemCreate,
   ItemUpdate,
   ItemMetadata,
+  ResourceLink,
 } from '../pocketbase-types';
 import { Collections, ItemType } from '../pocketbase-types';
 import {
@@ -33,6 +34,8 @@ export interface CreateItemInput {
   parentId?: string;
   itemType: ItemType;
   content: string;
+  description?: string;
+  resources?: ResourceLink[];
   referenceId?: string;
   position?: number;
   metadata?: ItemMetadata;
@@ -44,6 +47,8 @@ export interface CreateItemInput {
 export interface UpdateItemInput {
   parentId?: string | null;
   content?: string;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
   itemType?: ItemType;
   referenceId?: string | null;
   position?: number;
@@ -394,6 +399,8 @@ export class ItemService {
         path,
         itemType: input.itemType,
         content: input.content.trim(),
+        description: input.description,
+        resources: input.resources,
         reference: input.itemType === ItemType.REFERENCE ? input.referenceId : undefined,
         position,
         metadata: input.metadata,
@@ -481,6 +488,12 @@ export class ItemService {
       }
       if (input.metadata !== undefined) {
         updateData.metadata = input.metadata;
+      }
+      if (input.description !== undefined) {
+        updateData.description = input.description;
+      }
+      if (input.resources !== undefined) {
+        updateData.resources = input.resources;
       }
       if (input.position !== undefined) {
         updateData.position = input.position;

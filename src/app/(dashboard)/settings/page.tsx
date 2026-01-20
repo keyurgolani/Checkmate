@@ -24,6 +24,7 @@ export default async function SettingsPage() {
           id: user.id,
           email: user.email,
           displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
           created: user.created,
         }}
       />

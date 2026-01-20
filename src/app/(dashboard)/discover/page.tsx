@@ -27,6 +27,7 @@ interface SearchResponse {
     id: string;
     workspaceId: string;
     ownerId: string;
+    ownerName: string | null;
     title: string;
     description: string | null;
     visibility: string;
@@ -89,6 +90,7 @@ function DiscoverPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -127,6 +129,22 @@ function DiscoverPageContent() {
     fetchCategories();
   }, []);
 
+  // Fetch current user ID for ownership display
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      try {
+        const response = await fetch("/api/auth/session");
+        const data = await response.json();
+        if (data.authenticated && data.user?.id) {
+          setCurrentUserId(data.user.id);
+        }
+      } catch (err) {
+        console.error("Failed to fetch current user:", err);
+      }
+    }
+    fetchCurrentUser();
+  }, []);
+
   const performSearch = useCallback(async (query: string, currentFilters: FilterState, page: number = 1) => {
     setIsLoading(true);
     setError(null);
@@ -156,6 +174,8 @@ function DiscoverPageContent() {
           rating: b.rating,
           createdAt: b.createdAt,
           updatedAt: b.updatedAt,
+          ownerId: b.ownerId,
+          ownerName: b.ownerName,
         })));
         if (data.pagination) setPagination(data.pagination);
       } else {
@@ -324,7 +344,7 @@ function DiscoverPageContent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      <TemplateCard template={template} linkPrefix="/discover" />
+                      <TemplateCard template={template} linkPrefix="/discover" currentUserId={currentUserId} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

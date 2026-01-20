@@ -129,6 +129,19 @@ export interface ConditionAnswers {
 }
 
 // ============================================================================
+// Resource Link Type
+// ============================================================================
+
+export interface ResourceLink {
+  /** Display title for the resource */
+  title: string;
+  /** URL of the resource */
+  url: string;
+  /** Optional description of what this resource provides */
+  description?: string;
+}
+
+// ============================================================================
 // Item Metadata
 // ============================================================================
 
@@ -285,6 +298,8 @@ export interface Item extends BaseRecord {
   path: string; // Hierarchical path (e.g., "1.2.3")
   itemType: ItemType;
   content: string;
+  description: string | null; // Detailed description of how to perform this step
+  resources: ResourceLink[] | null; // Helpful resource links
   reference: string | null; // Template ID (for reference items)
   position: number;
   metadata: ItemMetadata | null;
@@ -302,6 +317,8 @@ export interface ItemCreate {
   path: string;
   itemType: ItemType;
   content: string;
+  description?: string;
+  resources?: ResourceLink[];
   reference?: string;
   position: number;
   metadata?: ItemMetadata;
@@ -312,6 +329,8 @@ export interface ItemUpdate {
   path?: string;
   itemType?: ItemType;
   content?: string;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
   reference?: string | null;
   position?: number;
   metadata?: ItemMetadata;
@@ -398,6 +417,8 @@ export interface ChecklistItem extends BaseRecord {
   parent: string | null; // ChecklistItem ID (self-relation for hierarchy)
   path: string; // Hierarchical path
   content: string;
+  description: string | null; // Detailed description of how to perform this step
+  resources: ResourceLink[] | null; // Helpful resource links
   isCompleted: boolean;
   completedAt: string | null;
   isCustom: boolean;
@@ -416,6 +437,8 @@ export interface ChecklistItemCreate {
   parent?: string;
   path: string;
   content: string;
+  description?: string;
+  resources?: ResourceLink[];
   isCompleted?: boolean;
   completedAt?: string;
   isCustom?: boolean;
@@ -426,6 +449,8 @@ export interface ChecklistItemUpdate {
   parent?: string | null;
   path?: string;
   content?: string;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
   isCompleted?: boolean;
   completedAt?: string | null;
   isCustom?: boolean;

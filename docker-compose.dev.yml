@@ -6,7 +6,7 @@ services:
     container_name: checkmate-nextjs
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3002:3000"
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true

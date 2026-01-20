@@ -21,6 +21,7 @@ interface SearchResponse {
     id: string;
     workspaceId: string;
     ownerId: string;
+    ownerName: string | null;
     title: string;
     description: string | null;
     visibility: string;
@@ -88,13 +89,24 @@ function formatBlueprint(
     ratingCount: number;
     created: string;
     updated: string;
+    expand?: {
+      owner?: {
+        displayName: string | null;
+        email: string;
+      };
+    };
   },
   stepCount: number
 ) {
+  // Get owner name from expanded relation, fallback to email prefix
+  const ownerData = blueprint.expand?.owner;
+  const ownerName = ownerData?.displayName || ownerData?.email?.split('@')[0] || null;
+
   return {
     id: blueprint.id,
     workspaceId: blueprint.workspace,
     ownerId: blueprint.owner,
+    ownerName,
     title: blueprint.title,
     description: blueprint.description,
     visibility: blueprint.visibility,

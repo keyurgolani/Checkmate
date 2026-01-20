@@ -28,12 +28,18 @@ export interface TemplateCardData {
   rating?: number | null;
   createdAt: string;
   updatedAt: string;
+  /** Owner user ID - used to determine if current user owns this template */
+  ownerId?: string;
+  /** Owner display name - shown for templates not owned by current user */
+  ownerName?: string | null;
 }
 
 interface TemplateCardProps {
   template: TemplateCardData;
   viewMode?: "grid" | "list";
   linkPrefix?: string;
+  /** Current user ID - if provided and different from ownerId, shows owner prefix */
+  currentUserId?: string | null;
 }
 
 function VisibilityBadge({ visibility }: { visibility: Visibility | string }) {
@@ -86,8 +92,39 @@ function RatingDisplay({ rating }: { rating: number | null | undefined }) {
   );
 }
 
-export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templates" }: TemplateCardProps) {
+/**
+ * Formats the template title with owner prefix for non-owned templates.
+ * Format: "Owner Name / ...last4id - Template Title"
+ */
+function formatTemplateTitle(
+  title: string,
+  templateId: string,
+  ownerId?: string,
+  ownerName?: string | null,
+  currentUserId?: string | null
+): { displayTitle: string; ownerPrefix: string | null } {
+  // If no owner info or user owns the template, just show the title
+  if (!ownerId || !currentUserId || ownerId === currentUserId) {
+    return { displayTitle: title, ownerPrefix: null };
+  }
+
+  // Get last 4 characters of template ID
+  const idSuffix = templateId.slice(-4);
+  const ownerDisplay = ownerName || "Unknown";
+  const ownerPrefix = `${ownerDisplay} / ...${idSuffix}`;
+
+  return { displayTitle: title, ownerPrefix };
+}
+
+export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templates", currentUserId }: TemplateCardProps) {
   const formattedDate = formatDate(template.updatedAt);
+  const { displayTitle, ownerPrefix } = formatTemplateTitle(
+    template.title,
+    template.id,
+    template.ownerId,
+    template.ownerName,
+    currentUserId
+  );
 
   if (viewMode === "list") {
     return (
@@ -103,7 +140,12 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
           <div className="flex-1 min-w-0 mr-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
               <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                {template.title}
+                {ownerPrefix && (
+                  <span className="text-muted-foreground font-normal text-sm mr-1">
+                    {ownerPrefix} –{" "}
+                  </span>
+                )}
+                {displayTitle}
               </h3>
               <VisibilityBadge visibility={template.visibility} />
             </div>
@@ -154,9 +196,15 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-transparent -mr-8 -mt-8 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
         
         <div className="relative z-10">
+          {/* Owner prefix for non-owned templates */}
+          {ownerPrefix && (
+            <p className="text-xs text-muted-foreground mb-1 truncate">
+              {ownerPrefix}
+            </p>
+          )}
           <div className="flex items-start justify-between gap-2 mb-3">
             <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-              {template.title}
+              {displayTitle}
             </h3>
             <VisibilityBadge visibility={template.visibility} />
           </div>

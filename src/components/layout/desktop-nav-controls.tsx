@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -76,12 +76,6 @@ export function DesktopNavControls({ user }: DesktopNavControlsProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="rounded-xl">
-              <Link href="/profile" className="flex items-center cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem asChild className="rounded-xl">
               <Link href="/settings" className="flex items-center cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />

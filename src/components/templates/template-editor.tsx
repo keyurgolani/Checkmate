@@ -710,6 +710,8 @@ export function TemplateEditor({
   const handleAddStepWithEditor = useCallback(
     async (data: {
       content: string;
+      description?: string | null;
+      resources?: import("@/lib/pocketbase-types").ResourceLink[] | null;
       itemType: "task" | "reference";
       referenceId?: string | null;
     }) => {
@@ -722,6 +724,8 @@ export function TemplateEditor({
           body: JSON.stringify({
             itemType: data.itemType === "task" ? ItemType.TASK : ItemType.REFERENCE,
             content: data.content,
+            description: data.description,
+            resources: data.resources,
             referenceId: data.referenceId,
           }),
         });

@@ -21,6 +21,8 @@ interface TemplateListProps {
   createHref?: string;
   defaultViewMode?: "grid" | "list";
   linkPrefix?: string;
+  /** Current user ID - passed to cards to determine ownership display */
+  currentUserId?: string | null;
 }
 
 export function TemplateList({
@@ -31,6 +33,7 @@ export function TemplateList({
   createHref = "/templates/new",
   defaultViewMode = "grid",
   linkPrefix = "/templates",
+  currentUserId,
 }: TemplateListProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode);
 
@@ -79,7 +82,7 @@ export function TemplateList({
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   layout
                 >
-                  <TemplateCard template={template} viewMode="grid" linkPrefix={linkPrefix} />
+                  <TemplateCard template={template} viewMode="grid" linkPrefix={linkPrefix} currentUserId={currentUserId} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -102,7 +105,7 @@ export function TemplateList({
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   layout
                 >
-                  <TemplateCard template={template} viewMode="list" linkPrefix={linkPrefix} />
+                  <TemplateCard template={template} viewMode="list" linkPrefix={linkPrefix} currentUserId={currentUserId} />
                 </motion.div>
               ))}
             </AnimatePresence>

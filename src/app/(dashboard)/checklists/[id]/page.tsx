@@ -74,6 +74,8 @@ export default async function ChecklistDetailPage({
     parentId: task.parent,
     path: task.path,
     content: task.content,
+    description: task.description,
+    resources: task.resources,
     isCompleted: task.isCompleted,
     completedAt: task.completedAt,
     isCustom: task.isCustom,

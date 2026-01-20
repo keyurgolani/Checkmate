@@ -8,6 +8,7 @@ import { Loader2, Github, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoLink } from "@/components/ui/logo";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -192,9 +193,8 @@ function SignInForm() {
               Forgot password?
             </Link>
           </div>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             placeholder="••••••••"
             autoComplete="current-password"
             value={formData.password}

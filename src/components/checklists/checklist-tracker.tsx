@@ -16,9 +16,10 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { Check, ChevronRight, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { Check, ChevronRight, Loader2, Sparkles, ExternalLink, Info, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LiveRegion, useStatusAnnouncer } from "@/components/ui/live-region";
+import type { ResourceLink } from "@/lib/pocketbase-types";
 
 // ============================================================================
 // Types
@@ -31,6 +32,8 @@ export interface ChecklistTask {
   parentId: string | null;
   path: string;
   content: string;
+  description: string | null;
+  resources: ResourceLink[] | null;
   isCompleted: boolean;
   completedAt: string | null;
   isCustom: boolean;
@@ -294,6 +297,7 @@ function TreeItem({
               </div>
             </div>
           ) : (
+            <>
             <div className="flex items-start gap-2">
               <label
                 id={`label-${node.id}`}
@@ -324,6 +328,44 @@ function TreeItem({
                 </span>
               )}
             </div>
+            
+            {/* Description */}
+            {node.description && node.description.trim().length > 0 && (
+              <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">
+                <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <p className={cn(
+                  "leading-relaxed",
+                  node.isCompleted && "line-through decoration-muted-foreground/30"
+                )}>{node.description}</p>
+              </div>
+            )}
+            
+            {/* Resources */}
+            {node.resources && node.resources.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {node.resources.map((resource, idx) => (
+                  <a
+                    key={idx}
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg transition-colors",
+                      node.isCompleted 
+                        ? "bg-muted/50 text-muted-foreground/70" 
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                    )}
+                    title={resource.description || resource.title}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <LinkIcon className="h-3 w-3" />
+                    {resource.title}
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                ))}
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

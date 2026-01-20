@@ -18,6 +18,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Calendar,
   Copy,
@@ -36,8 +44,13 @@ import {
   ExternalLink,
   Printer,
   Lock,
+  FolderPlus,
+  ChevronDown,
+  Info,
+  Link as LinkIcon,
 } from "lucide-react";
 import { formatDate, formatTodayDate, cn } from "@/lib/utils";
+import type { ItemMetadata, ResourceLink } from "@/lib/pocketbase-types";
 import type { ItemMetadata } from "@/lib/pocketbase-types";
 
 // ============================================================================
@@ -71,6 +84,8 @@ interface ItemData {
   path: string;
   itemType: "task" | "reference";
   content: string;
+  description: string | null;
+  resources: ResourceLink[] | null;
   referenceId: string | null;
   position: number;
   metadata: ItemMetadata | null;
@@ -83,6 +98,8 @@ interface TemplateDetailClientProps {
   items: ItemData[];
   isAuthenticated: boolean;
   accessLevel?: 'full' | 'limited';
+  workspaces?: Array<{ id: string; name: string }>;
+  currentUserId?: string;
 }
 
 // ============================================================================
@@ -165,6 +182,8 @@ function ItemDisplay({
   children.sort((a, b) => a.position - b.position);
 
   const isReference = item.itemType === "reference";
+  const hasDescription = item.description && item.description.trim().length > 0;
+  const hasResources = item.resources && item.resources.length > 0;
 
   return (
     <div className="space-y-0.5">
@@ -174,18 +193,48 @@ function ItemDisplay({
         /* Regular task item */
         <div
           className={cn(
-            "group flex items-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200",
+            "group py-2.5 px-3 rounded-xl transition-all duration-200",
             "hover:bg-muted/40 border border-transparent hover:border-border/40",
             depth > 0 && "ml-6"
           )}
         >
-          <Circle
-            className="h-4 w-4 mt-0.5 text-muted-foreground/50 flex-shrink-0 group-hover:text-primary/60 transition-colors"
-            aria-hidden="true"
-          />
-          <span className="flex-1 text-[15px] leading-relaxed text-foreground/90">
-            {item.content}
-          </span>
+          <div className="flex items-start gap-3">
+            <Circle
+              className="h-4 w-4 mt-0.5 text-muted-foreground/50 flex-shrink-0 group-hover:text-primary/60 transition-colors"
+              aria-hidden="true"
+            />
+            <span className="flex-1 text-[15px] leading-relaxed text-foreground/90">
+              {item.content}
+            </span>
+          </div>
+          
+          {/* Description */}
+          {hasDescription && (
+            <div className="ml-7 mt-2 flex items-start gap-2 text-sm text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <p className="leading-relaxed">{item.description}</p>
+            </div>
+          )}
+          
+          {/* Resources */}
+          {hasResources && (
+            <div className="ml-7 mt-2 flex flex-wrap gap-2">
+              {item.resources!.map((resource, idx) => (
+                <a
+                  key={idx}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  title={resource.description || resource.title}
+                >
+                  <LinkIcon className="h-3 w-3" />
+                  {resource.title}
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {children.length > 0 && (
@@ -373,6 +422,8 @@ export function TemplateDetailClient({
   items,
   isAuthenticated,
   accessLevel = 'full',
+  workspaces = [],
+  currentUserId,
 }: TemplateDetailClientProps) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -380,6 +431,79 @@ export function TemplateDetailClient({
   const [checklistName, setChecklistName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [requestStatus, setRequestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  
+  // Copy template state
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyWorkspaceId, setCopyWorkspaceId] = useState("");
+  const [copyTitle, setCopyTitle] = useState("");
+  const [isCopying, setIsCopying] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+
+  // Check if user owns this template
+  const isOwner = currentUserId && template?.owner?.id === currentUserId;
+
+  const handleCopyTemplate = async () => {
+    if (!template) return;
+
+    if (!isAuthenticated) {
+      router.push(`/signin?returnTo=/discover/${template.id}`);
+      return;
+    }
+
+    setCopyTitle(`${template.title} (Copy)`);
+    setCopyWorkspaceId(workspaces[0]?.id ?? "");
+    setCopyError(null);
+    setShowCopyDialog(true);
+  };
+
+  const handleConfirmCopy = async () => {
+    if (!copyWorkspaceId) {
+      setCopyError("Please select a workspace");
+      return;
+    }
+
+    if (!copyTitle.trim()) {
+      setCopyError("Please enter a title");
+      return;
+    }
+
+    setIsCopying(true);
+    setCopyError(null);
+
+    try {
+      const response = await fetch(`/api/templates/${template!.id}/copy`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workspaceId: copyWorkspaceId,
+          title: copyTitle.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.template) {
+        setShowCopyDialog(false);
+        router.push(`/templates/${data.template.id}`);
+      } else {
+        setCopyError(data.error?.message || "Failed to copy template");
+        setIsCopying(false);
+      }
+    } catch (err) {
+      console.error("Error copying template:", err);
+      setCopyError("An error occurred while copying the template");
+      setIsCopying(false);
+    }
+  };
+
+  const handleCancelCopy = () => {
+    setShowCopyDialog(false);
+    setCopyTitle("");
+    setCopyWorkspaceId("");
+    setCopyError(null);
+  };
 
   const handleRequestAccess = async () => {
     if (!template) return;
@@ -550,6 +674,12 @@ export function TemplateDetailClient({
                 )}
               </div>
               <div>
+                {/* Owner prefix for non-owned templates */}
+                {!isOwner && template.owner && (
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {template.owner.displayName || "Unknown"} / ...{template.id.slice(-4)}
+                  </p>
+                )}
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                   {template.title}
                 </h1>
@@ -572,6 +702,24 @@ export function TemplateDetailClient({
               <Printer className="h-4 w-4 mr-2" />
               Print
             </Button>
+            
+            {/* Copy to My Templates Button - show for authenticated users who don't own the template */}
+            {isAuthenticated && !isOwner && !isLimitedAccess && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleCopyTemplate}
+                disabled={isCopying}
+                className="hidden sm:flex rounded-xl h-11 no-print"
+              >
+                {isCopying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                )}
+                Copy to My Templates
+              </Button>
+            )}
             
 
             {/* Create Checklist / Request Access Button */}
@@ -674,6 +822,82 @@ export function TemplateDetailClient({
             </Card>
           </motion.div>
         )}
+
+        {/* Copy Template Dialog */}
+        <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Copy Template</DialogTitle>
+              <DialogDescription>
+                Create a copy of this template in your workspace. You&apos;ll be able to edit and customize it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="copy-title">Template Title</Label>
+                <Input
+                  id="copy-title"
+                  value={copyTitle}
+                  onChange={(e) => setCopyTitle(e.target.value)}
+                  placeholder="Enter template title"
+                  disabled={isCopying}
+                  className="rounded-xl h-11"
+                  maxLength={200}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="copy-workspace">Workspace</Label>
+                <div className="relative">
+                  <select
+                    id="copy-workspace"
+                    value={copyWorkspaceId}
+                    onChange={(e) => setCopyWorkspaceId(e.target.value)}
+                    disabled={isCopying}
+                    className="w-full h-11 px-4 py-2 text-sm rounded-xl border border-input bg-background shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="">Select a workspace</option>
+                    {workspaces.map((ws) => (
+                      <option key={ws.id} value={ws.id}>
+                        {ws.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The copied template will be private by default.
+                </p>
+              </div>
+              {copyError && (
+                <p className="text-sm text-destructive">{copyError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={handleCancelCopy}
+                disabled={isCopying}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmCopy}
+                disabled={isCopying || !copyWorkspaceId}
+                className="rounded-xl"
+              >
+                {isCopying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                )}
+                Copy Template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Limited Access Message */}
         {/* Limited Access Message */}

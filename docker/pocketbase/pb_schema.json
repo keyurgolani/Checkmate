@@ -339,6 +339,22 @@
         }
       },
       {
+        "name": "description",
+        "type": "editor",
+        "required": false,
+        "options": {
+          "convertUrls": false
+        }
+      },
+      {
+        "name": "resources",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
+      },
+      {
         "name": "metadata",
         "type": "json",
         "required": false,
@@ -566,6 +582,22 @@
         "type": "bool",
         "required": false,
         "options": {}
+      },
+      {
+        "name": "description",
+        "type": "editor",
+        "required": false,
+        "options": {
+          "convertUrls": false
+        }
+      },
+      {
+        "name": "resources",
+        "type": "json",
+        "required": false,
+        "options": {
+          "maxSize": 10000
+        }
       },
       {
         "name": "position",

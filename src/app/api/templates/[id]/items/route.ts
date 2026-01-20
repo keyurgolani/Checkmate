@@ -13,12 +13,14 @@ import { ItemService, ItemErrorCodes } from '@/lib/services/item';
 import { TemplateService, TemplateErrorCodes } from '@/lib/services/template';
 import { CollaborationService } from '@/lib/services/collaboration';
 import { Visibility, PermissionLevel, ItemType } from '@/lib/pocketbase-types';
-import type { Item, ItemMetadata } from '@/lib/pocketbase-types';
+import type { Item, ItemMetadata, ResourceLink } from '@/lib/pocketbase-types';
 
 interface CreateItemRequestBody {
   parentId?: string;
   itemType: ItemType;
   content: string;
+  description?: string;
+  resources?: ResourceLink[];
   referenceId?: string;
   position?: number;
   metadata?: ItemMetadata;
@@ -31,6 +33,8 @@ interface FormattedItem {
   path: string;
   itemType: string;
   content: string;
+  description: string | null;
+  resources: ResourceLink[] | null;
   referenceId: string | null;
   position: number;
   metadata: ItemMetadata | null;
@@ -67,7 +71,7 @@ function getStatusCodeForError(errorCode: string | undefined): number {
 }
 
 function formatItem(item: Item): FormattedItem {
-  return { id: item.id, templateId: item.blueprint, parentId: item.parent, path: item.path, itemType: item.itemType, content: item.content, referenceId: item.reference, position: item.position, metadata: item.metadata, createdAt: item.created, updatedAt: item.updated };
+  return { id: item.id, templateId: item.blueprint, parentId: item.parent, path: item.path, itemType: item.itemType, content: item.content, description: item.description, resources: item.resources, referenceId: item.reference, position: item.position, metadata: item.metadata, createdAt: item.created, updatedAt: item.updated };
 }
 
 
@@ -148,7 +152,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       return NextResponse.json({ success: false, error: { code: ItemErrorCodes.PERMISSION_DENIED, message: 'You do not have permission to add items to this template', timestamp: new Date().toISOString() } }, { status: 403 });
     }
 
-    const result = await itemService.create({ templateId: templateId, parentId: body.parentId, itemType: body.itemType, content: body.content, referenceId: body.referenceId, position: body.position, metadata: body.metadata });
+    const result = await itemService.create({ templateId: templateId, parentId: body.parentId, itemType: body.itemType, content: body.content, description: body.description, resources: body.resources, referenceId: body.referenceId, position: body.position, metadata: body.metadata });
 
     if (!result.success || !result.item) {
       const statusCode = getStatusCodeForError(result.error?.code);

@@ -15,7 +15,6 @@ import { usePathname } from "next/navigation";
 import {
   LogOut,
   Settings,
-  User,
   LayoutDashboard,
   FileText,
   ListChecks,
@@ -182,12 +181,6 @@ export function Header({ user }: HeaderProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="rounded-lg">
-                    <Link href="/profile" className="flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg">
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />

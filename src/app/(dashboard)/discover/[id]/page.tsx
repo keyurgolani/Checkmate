@@ -14,7 +14,7 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { TemplateService } from "@/lib/services/template";
 import { ItemService } from "@/lib/services/item";
-import { Item } from "@/lib/pocketbase-types";
+import { Item, Collections } from "@/lib/pocketbase-types";
 import { createAdminClient } from "@/lib/pocketbase";
 import { notFound } from "next/navigation";
 import { TemplateDetailClient } from "./template-detail-client";
@@ -25,7 +25,7 @@ interface PageProps {
 
 export default async function TemplateDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const { isAuthenticated, pb } = await getServerAuth();
+  const { isAuthenticated, user, pb } = await getServerAuth();
 
   // Initialize services
   const templateService = new TemplateService(pb);
@@ -77,6 +77,23 @@ export default async function TemplateDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Fetch user's workspaces for the copy functionality (only if authenticated)
+  let workspaces: Array<{ id: string; name: string }> = [];
+  if (isAuthenticated && user) {
+    try {
+      const workspaceResults = await pb.collection(Collections.WORKSPACES).getFullList({
+        filter: `owner = "${user.id}"`,
+        sort: 'name',
+      });
+      workspaces = workspaceResults.map((ws) => ({
+        id: ws.id,
+        name: ws.name,
+      }));
+    } catch (err) {
+      console.error('Failed to fetch workspaces:', err);
+    }
+  }
+
   // Format items for display
   const formattedItems = items.map((item) => ({
     id: item.id,
@@ -85,6 +102,8 @@ export default async function TemplateDetailPage({ params }: PageProps) {
     path: item.path,
     itemType: item.itemType as "task" | "reference",
     content: item.content,
+    description: item.description,
+    resources: item.resources,
     referenceId: item.reference,
     position: item.position,
     metadata: item.metadata,
@@ -121,6 +140,8 @@ export default async function TemplateDetailPage({ params }: PageProps) {
       items={formattedItems}
       isAuthenticated={isAuthenticated}
       accessLevel={accessLevel}
+      workspaces={workspaces}
+      currentUserId={user?.id}
     />
   );
 }

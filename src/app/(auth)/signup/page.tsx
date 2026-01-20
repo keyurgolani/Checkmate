@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ListChecks, Loader2, Github, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -204,14 +205,14 @@ function SignUpForm() {
 
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             placeholder="••••••••"
             autoComplete="new-password"
             value={formData.password}
             onChange={(e) => handleInputChange("password", e.target.value)}
             disabled={isLoading}
+            showStrengthIndicator
             aria-describedby={errors.password ? "password-error" : undefined}
             aria-invalid={!!errors.password}
             className="rounded-xl h-11 border-muted-foreground/20 dark:border-input bg-background/50 focus:bg-background transition-colors"
@@ -225,9 +226,8 @@ function SignUpForm() {
 
         <div className="space-y-2">
           <Label htmlFor="passwordConfirm">Confirm Password</Label>
-          <Input
+          <PasswordInput
             id="passwordConfirm"
-            type="password"
             placeholder="••••••••"
             autoComplete="new-password"
             value={formData.passwordConfirm}
