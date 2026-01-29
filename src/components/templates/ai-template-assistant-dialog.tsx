@@ -682,7 +682,13 @@ export function AITemplateAssistantDialog({
                         selectedEnhancedItems.has(item.id) ? "border-primary bg-primary/5" : "border-border"
                       )}
                     >
-                      <button onClick={() => toggleEnhancedItem(item.id)} className="w-full p-3 text-left">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => toggleEnhancedItem(item.id)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleEnhancedItem(item.id); } }}
+                        className="w-full p-3 text-left cursor-pointer"
+                      >
                         <div className="flex items-start gap-3">
                           <div
                             className={cn(
@@ -707,12 +713,13 @@ export function AITemplateAssistantDialog({
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); toggleExpanded(item.id); }}
+                            onKeyDown={(e) => e.stopPropagation()}
                             className="p-1 hover:bg-muted rounded"
                           >
                             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                           </button>
                         </div>
-                      </button>
+                      </div>
                       
                       {isExpanded && (
                         <div className="px-3 pb-3 pt-0 border-t mx-3 mt-2 space-y-2">
