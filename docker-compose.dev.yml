@@ -7,9 +7,13 @@ services:
     restart: unless-stopped
     ports:
       - "3002:3000"
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
+      # App URL for redirects (must use host-accessible URL with external port)
+      - NEXT_PUBLIC_APP_URL=http://localhost:3002
       # Client-side URL (browser) - must use host-accessible URL
       - NEXT_PUBLIC_POCKETBASE_URL=http://localhost:8090
       # Server-side URL (container-to-container)
@@ -68,6 +72,8 @@ services:
       - "8090:8090"
     volumes:
       - pocketbase_data:/pb/pb_data
+    env_file:
+      - .env.local
     healthcheck:
       test:
         [

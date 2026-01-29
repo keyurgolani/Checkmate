@@ -28,6 +28,8 @@ import {
   Share2,
   Trash2,
   Printer,
+  Info,
+  Link as LinkIcon,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { useChecklistRealtime } from "@/lib/hooks/use-realtime";
@@ -38,6 +40,9 @@ import {
   ProgressDisplay,
   type ChecklistTask,
 } from "@/components/checklists";
+import { ResourceLink } from "@/lib/pocketbase-types";
+import { ResourceEditor } from "@/components/ui/resource-editor";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 // ============================================================================
 // Types
@@ -48,6 +53,8 @@ interface ChecklistData {
   name: string;
   blueprintId: string;
   blueprintTitle: string;
+  description: string | null;
+  resources: ResourceLink[] | null;
   progress: number;
   totalItems: number;
   completedItems: number;
@@ -141,13 +148,15 @@ export function ChecklistDetailClient({
   // Subscribe to realtime updates for checklist progress
   // Requirements: 12.4
   useChecklistRealtime(checklist.id, {
-    onChecklistChange: useCallback((event: { action: string; record: { progress: number; completedAt: string | null; isSynced: boolean } }) => {
+    onChecklistChange: useCallback((event: { action: string; record: { progress: number; completedAt: string | null; isSynced: boolean; description: string | null; resources?: unknown } }) => {
       if (event.action === 'update') {
         setChecklist((prev) => ({
           ...prev,
           progress: event.record.progress,
           completedAt: event.record.completedAt,
           isSynced: event.record.isSynced,
+          description: event.record.description,
+          resources: (event.record as any).resources ?? null, // Cast as necessary
         }));
       }
     }, []),
@@ -173,6 +182,8 @@ export function ChecklistDetailClient({
           parentId: event.record.parent,
           path: event.record.path,
           content: event.record.content,
+          description: (event.record as any).description ?? null,
+          resources: (event.record as any).resources ?? null,
           isCompleted: event.record.isCompleted,
           completedAt: event.record.completedAt,
           isCustom: event.record.isCustom,
@@ -322,6 +333,47 @@ export function ChecklistDetailClient({
           </div>
         </div>
       </motion.div>
+
+      {/* Checklist Description & Resources */}
+      {(checklist.description || (checklist.resources && checklist.resources.length > 0)) && (
+        <motion.div variants={item} className="space-y-3">
+          {/* Description */}
+          {checklist.description && checklist.description.trim().length > 0 && (
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <Info className="h-4 w-4 mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <MarkdownRenderer content={checklist.description} className="text-muted-foreground" />
+              </div>
+            </div>
+          )}
+          
+          {/* Resources */}
+          {checklist.resources && checklist.resources.length > 0 && (
+            <div 
+              className="flex flex-wrap gap-2"
+              role="list"
+              aria-label="Checklist resources"
+            >
+              {checklist.resources.map((resource, idx) => (
+                <a
+                  key={idx}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  role="listitem"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1"
+                  title={resource.description || resource.title}
+                  aria-label={`${resource.title}${resource.description ? `: ${resource.description}` : ''} (opens in new tab)`}
+                >
+                  <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                  <span>{resource.title}</span>
+                  <ExternalLink className="h-3 w-3 opacity-60" aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Progress Card - Bento style */}
       <motion.div variants={item} className="no-print">

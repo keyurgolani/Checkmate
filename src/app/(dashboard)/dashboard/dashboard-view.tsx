@@ -14,7 +14,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { User, Checklist } from "@/lib/pocketbase-types";
+import { AISummary } from "@/components/dashboard/ai-summary";
+import type { User, Checklist, DashboardSummary } from "@/lib/pocketbase-types";
 
 interface DashboardViewProps {
   user: User | null;
@@ -26,6 +27,8 @@ interface DashboardViewProps {
   };
   recentChecklists: Checklist[];
   blueprintMap: Map<string, string>;
+  llmConfigured: boolean;
+  cachedSummary: DashboardSummary | null;
 }
 
 function getGreeting() {
@@ -33,7 +36,7 @@ function getGreeting() {
   return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 }
 
-export function DashboardView({ user, stats, recentChecklists, blueprintMap }: DashboardViewProps) {
+export function DashboardView({ user, stats, recentChecklists, blueprintMap, llmConfigured, cachedSummary }: DashboardViewProps) {
   const [greeting, setGreeting] = React.useState("Welcome");
   
   React.useEffect(() => {
@@ -70,6 +73,14 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap }: D
         <p className="text-base md:text-lg lg:text-xl text-muted-foreground">
           Ready to make some progress today?
         </p>
+      </motion.div>
+
+      {/* AI Summary */}
+      <motion.div variants={item}>
+        <AISummary 
+          initialSummary={cachedSummary} 
+          llmConfigured={llmConfigured} 
+        />
       </motion.div>
 
       {/* Bento Grid Stats */}

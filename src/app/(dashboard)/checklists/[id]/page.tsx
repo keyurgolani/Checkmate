@@ -80,6 +80,7 @@ export default async function ChecklistDetailPage({
     completedAt: task.completedAt,
     isCustom: task.isCustom,
     position: task.position,
+    itemType: task.itemType as "task" | "reference" | "phase" | undefined,
   }));
 
   // Calculate progress
@@ -99,6 +100,8 @@ export default async function ChecklistDetailPage({
         completedAt: checklist.completedAt,
         createdAt: checklist.created,
         updatedAt: checklist.updated,
+        description: checklist.description,
+        resources: checklist.resources,
       }}
       tasks={trackerTasks}
     />

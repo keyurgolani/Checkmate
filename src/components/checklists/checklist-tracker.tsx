@@ -16,9 +16,10 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { Check, ChevronRight, Loader2, Sparkles, ExternalLink, Info, Link as LinkIcon } from "lucide-react";
+import { Check, ChevronRight, ChevronDown, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LiveRegion, useStatusAnnouncer } from "@/components/ui/live-region";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import type { ResourceLink } from "@/lib/pocketbase-types";
 
 // ============================================================================
@@ -38,7 +39,7 @@ export interface ChecklistTask {
   completedAt: string | null;
   isCustom: boolean;
   position: number;
-  itemType?: "task" | "reference";
+  itemType?: "task" | "reference" | "phase";
 }
 
 export interface ChecklistTrackerProps {
@@ -215,6 +216,114 @@ function TreeItem({
   );
 
   const isReference = node.itemType === 'reference';
+  const isPhase = node.itemType === 'phase';
+
+  // Phase items render as collapsible section headers
+  if (isPhase) {
+    // Calculate phase progress
+    const getPhaseProgress = () => {
+      let total = 0;
+      let completed = 0;
+      const countTasks = (children: TreeNode[]) => {
+        for (const child of children) {
+          if (child.itemType !== 'phase') {
+            total++;
+            if (child.isCompleted) completed++;
+          }
+          if (child.children.length > 0) {
+            countTasks(child.children);
+          }
+        }
+      };
+      countTasks(node.children);
+      return { total, completed };
+    };
+    const progress = getPhaseProgress();
+
+    return (
+      <div className="select-none" role="listitem">
+        <div
+          className={cn(
+            "group flex items-center gap-4 py-4 px-5 rounded-xl transition-all duration-300",
+            "[@media(max-width:640px)]:[--indent-step:12px] sm:[--indent-step:24px]",
+            "bg-gradient-to-r from-amber-50 to-amber-25 dark:from-amber-950/40 dark:to-amber-900/20",
+            "border-2 border-amber-300 dark:border-amber-700/60",
+            "hover:bg-amber-50/80 dark:hover:bg-amber-950/50"
+          )}
+          style={indentStyle}
+        >
+          {/* Expand/Collapse button */}
+          <button
+            type="button"
+            onClick={handleExpandToggle}
+            onKeyDown={handleExpandKeyDown}
+            className={cn(
+              "flex items-center justify-center h-6 w-6 rounded-md transition-colors",
+              "hover:bg-amber-200/50 dark:hover:bg-amber-800/50 active:scale-95",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:ring-offset-1",
+              "text-amber-600 dark:text-amber-400"
+            )}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? `Collapse phase ${node.content}` : `Expand phase ${node.content}`}
+            aria-controls={`children-${node.id}`}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
+
+          {/* Phase icon */}
+          <div className="flex items-center justify-center h-8 w-8 shrink-0 rounded-lg bg-amber-200 dark:bg-amber-800/60">
+            <Layers className="h-4 w-4 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+          </div>
+
+          {/* Phase content */}
+          <div className="flex-1 min-w-0">
+            <span className="text-base font-semibold text-amber-800 dark:text-amber-200 block">
+              {node.content}
+            </span>
+          </div>
+
+          {/* Progress indicator */}
+          <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 font-medium">
+            <span>{progress.completed}/{progress.total}</span>
+            {progress.total > 0 && (
+              <div className="w-16 h-1.5 bg-amber-200 dark:bg-amber-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-300"
+                  style={{ width: `${(progress.completed / progress.total) * 100}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Render children if expanded */}
+        {hasChildren && isExpanded && (
+          <div 
+            id={`children-${node.id}`}
+            role="group" 
+            aria-label={`Tasks in phase ${node.content}`}
+            className="relative ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-800/50"
+          >
+            {node.children.map((child) => (
+              <TreeItem
+                key={child.id}
+                node={child}
+                onToggle={onToggle}
+                loadingTasks={loadingTasks}
+                disabled={disabled}
+                expandedTasks={expandedTasks}
+                onToggleExpand={onToggleExpand}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="select-none" role="listitem">
@@ -263,7 +372,7 @@ function TreeItem({
         {/* Checkbox or Reference Icon */}
         {isReference ? (
           <div className="flex items-center justify-center h-9 w-9 shrink-0 rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 relative z-10">
-            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            <FileText className="h-4 w-4" aria-hidden="true" />
           </div>
         ) : (
           <div className="mt-0.5 relative z-10">
@@ -329,38 +438,48 @@ function TreeItem({
               )}
             </div>
             
-            {/* Description */}
+            {/* Description - rendered as markdown */}
             {node.description && node.description.trim().length > 0 && (
-              <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">
+              <div className={cn(
+                "flex items-start gap-2 mt-2 text-sm text-muted-foreground",
+                node.isCompleted && "line-through decoration-muted-foreground/30"
+              )}>
                 <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                <p className={cn(
-                  "leading-relaxed",
-                  node.isCompleted && "line-through decoration-muted-foreground/30"
-                )}>{node.description}</p>
+                <div className="leading-relaxed flex-1 min-w-0">
+                  <MarkdownRenderer content={node.description} compact />
+                </div>
               </div>
             )}
             
-            {/* Resources */}
+            {/* Resources - Requirements: 5.4, 6.3 */}
             {node.resources && node.resources.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div 
+                className="flex flex-wrap gap-2 mt-2"
+                role="list"
+                aria-label="Resource links"
+              >
                 {node.resources.map((resource, idx) => (
                   <a
                     key={idx}
                     href={resource.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    role="listitem"
                     className={cn(
                       "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg transition-colors",
+                      // Focus styles for keyboard navigation - Requirements: 6.3
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
                       node.isCompleted 
-                        ? "bg-muted/50 text-muted-foreground/70" 
+                        ? "bg-muted/50 text-muted-foreground/70 focus-visible:ring-muted-foreground/30" 
                         : "bg-primary/10 text-primary hover:bg-primary/20"
                     )}
                     title={resource.description || resource.title}
+                    aria-label={`${resource.title}${resource.description ? `: ${resource.description}` : ''} (opens in new tab)`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <LinkIcon className="h-3 w-3" />
-                    {resource.title}
-                    <ExternalLink className="h-3 w-3 opacity-60" />
+                    <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                    <span>{resource.title}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" aria-hidden="true" />
                   </a>
                 ))}
               </div>
@@ -407,11 +526,44 @@ export function ChecklistTracker({
 }: ChecklistTrackerProps) {
   const [loadingTasks, setLoadingTasks] = useState<Set<string>>(new Set());
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(() => {
-    // Start with all parent tasks expanded
+    // Smart expansion logic:
+    // 1. For phases: only expand the phase containing the first incomplete task
+    // 2. For regular parent tasks: expand all
     const expanded = new Set<string>();
+    
+    // Find the first incomplete task
+    const firstIncompleteTask = tasks.find(t => !t.isCompleted && t.itemType !== 'phase');
+    
+    // Find which phase (if any) contains the first incomplete task
+    const findPhaseAncestor = (taskId: string | null): string | null => {
+      if (!taskId) return null;
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return null;
+      if (task.itemType === 'phase') return task.id;
+      return findPhaseAncestor(task.parentId);
+    };
+    
+    const activePhaseId = firstIncompleteTask ? findPhaseAncestor(firstIncompleteTask.parentId) : null;
+    
     for (const task of tasks) {
-      if (tasks.some((t) => t.parentId === task.id)) {
-        expanded.add(task.id);
+      const hasChildren = tasks.some((t) => t.parentId === task.id);
+      if (hasChildren) {
+        if (task.itemType === 'phase') {
+          // Only expand the active phase (containing first incomplete task)
+          // If no incomplete tasks, expand the first phase
+          if (activePhaseId === task.id) {
+            expanded.add(task.id);
+          } else if (!activePhaseId && !expanded.has(task.id)) {
+            // If no active phase found yet, expand the first phase we encounter
+            const phases = tasks.filter(t => t.itemType === 'phase');
+            if (phases.length > 0 && phases[0]?.id === task.id) {
+              expanded.add(task.id);
+            }
+          }
+        } else {
+          // Regular parent tasks: expand all
+          expanded.add(task.id);
+        }
       }
     }
     return expanded;

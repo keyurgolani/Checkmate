@@ -14,6 +14,7 @@ import type {
   TemplateCreate,
   TemplateUpdate,
   Collaborator,
+  ResourceLink,
 } from '../pocketbase-types';
 import { Collections, Visibility } from '../pocketbase-types';
 import { ItemService } from './item';
@@ -32,6 +33,14 @@ export interface CreateTemplateInput {
   category?: string;
   tags?: string[];
   visibility?: Visibility;
+  questions?: Array<{
+    id: string;
+    question: string;
+    answerType: 'boolean' | 'enum';
+    enumOptions?: string[];
+    defaultValue?: boolean | string;
+  }>;
+  resources?: ResourceLink[];
 }
 
 /**
@@ -50,6 +59,7 @@ export interface UpdateTemplateInput {
     enumOptions?: string[];
     defaultValue?: boolean | string;
   }> | null;
+  resources?: ResourceLink[] | null;
 }
 
 /**
@@ -341,6 +351,8 @@ export class TemplateService {
         instanceCount: 0,
         ratingSum: 0,
         ratingCount: 0,
+        questions: input.questions ?? [],
+        resources: input.resources ?? [],
       };
 
       const template = await this.pb
@@ -392,6 +404,9 @@ export class TemplateService {
       }
       if (input.questions !== undefined) {
         updateData.questions = input.questions;
+      }
+      if (input.resources !== undefined) {
+        updateData.resources = input.resources;
       }
 
       const template = await this.pb

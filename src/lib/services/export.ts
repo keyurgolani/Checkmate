@@ -21,6 +21,7 @@ import type {
   Item,
   ItemCreate,
   ItemMetadata,
+  ResourceLink,
   User,
 } from '../pocketbase-types';
 import { Collections, ItemType, Visibility } from '../pocketbase-types';
@@ -54,6 +55,8 @@ export interface ExportedItem {
   path: string;
   itemType: string;
   content: string;
+  description: string | null;
+  resources: ResourceLink[] | null;
   position: number;
   parentId: string | null;
   referenceId: string | null;
@@ -96,6 +99,7 @@ export interface ExportedBlueprint {
     totalItems: number;
     taskCount: number;
     referenceCount: number;
+    phaseCount: number;
     maxDepth: number;
   };
 }
@@ -184,7 +188,9 @@ export interface ParsedImportData {
  */
 export interface ParsedImportItem {
   content: string;
-  itemType: 'task' | 'reference';
+  description?: string | null;
+  resources?: ResourceLink[] | null;
+  itemType: 'task' | 'reference' | 'phase';
   position: number;
   children: ParsedImportItem[];
   metadata?: Record<string, unknown>;
@@ -320,6 +326,8 @@ function buildItemTree(items: Item[]): ExportedItem[] {
       path: item.path,
       itemType: item.itemType,
       content: item.content,
+      description: item.description,
+      resources: item.resources,
       position: item.position,
       parentId: item.parent,
       referenceId: item.reference,
@@ -580,9 +588,19 @@ function parseExportedItems(items: ExportedItem[], errors: ImportError[]): Parse
       continue;
     }
     
+    // Determine item type: phase, reference, or task (default)
+    let itemType: 'task' | 'reference' | 'phase' = 'task';
+    if (item.itemType === 'phase') {
+      itemType = 'phase';
+    } else if (item.itemType === 'reference') {
+      itemType = 'reference';
+    }
+    
     const parsedItem: ParsedImportItem = {
       content: item.content,
-      itemType: item.itemType === 'reference' ? 'reference' : 'task',
+      description: item.description || null,
+      resources: item.resources || null,
+      itemType,
       position: i,
       children: item.children ? parseExportedItems(item.children, errors) : [],
       metadata: item.metadata as Record<string, unknown> | undefined,
@@ -686,6 +704,8 @@ function parseCSVImport(data: string): ImportValidationResult {
   const contentIndex = headers.findIndex(h => h === 'content' || h === 'text' || h === 'task');
   const typeIndex = headers.findIndex(h => h === 'type' || h === 'itemtype');
   const pathIndex = headers.findIndex(h => h === 'path');
+  const descriptionIndex = headers.findIndex(h => h === 'description');
+  const resourcesIndex = headers.findIndex(h => h === 'resources');
   
   if (contentIndex === -1) {
     return {
@@ -736,9 +756,30 @@ function parseCSVImport(data: string): ImportValidationResult {
     const itemType = typeIndex >= 0 && values[typeIndex]?.toLowerCase() === 'reference' 
       ? 'reference' as const 
       : 'task' as const;
+
+    // Parse description
+    let itemDescription: string | null = null;
+    if (descriptionIndex >= 0 && values[descriptionIndex]) {
+      itemDescription = values[descriptionIndex].trim() || null;
+    }
+
+    // Parse resources (JSON-encoded)
+    let itemResources: ResourceLink[] | null = null;
+    if (resourcesIndex >= 0 && values[resourcesIndex]) {
+      try {
+        const parsed = JSON.parse(values[resourcesIndex]);
+        if (Array.isArray(parsed)) {
+          itemResources = parsed as ResourceLink[];
+        }
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
     
     items.push({
       content,
+      description: itemDescription,
+      resources: itemResources,
       itemType,
       position: items.length,
       children: [],
@@ -818,19 +859,122 @@ function parseMarkdownImport(data: string): ImportValidationResult {
   
   let inDescription = false;
   const descriptionLines: string[] = [];
+  let lastItem: ParsedImportItem | null = null;
+  let lastItemIndent = 0;
+  let titleFound = false;
+  let currentPhase: ParsedImportItem | null = null;
   
-  for (const line of lines) {
+  // Reserved section headers that should not be treated as phases
+  const reservedHeaders = ['metadata', 'statistics', 'checklist items'];
+  
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex] || '';
+    
     // Check for title (# heading)
     const titleMatch = line.match(/^#\s+(.+)$/);
     if (titleMatch) {
       title = titleMatch[1]?.trim() || title;
+      titleFound = true;
       inDescription = true;
+      lastItem = null;
+      currentPhase = null;
       continue;
     }
     
-    // Check for section headers (## heading) - skip them
-    if (line.match(/^##\s+/)) {
+    // Check for section headers (## heading) - these become phases
+    const sectionMatch = line.match(/^##\s+(.+)$/);
+    if (sectionMatch && titleFound) {
+      const sectionName = sectionMatch[1]?.trim() || '';
+      
+      // Skip reserved section headers
+      if (reservedHeaders.includes(sectionName.toLowerCase())) {
+        inDescription = false;
+        lastItem = null;
+        currentPhase = null;
+        continue;
+      }
+      
+      // Create a phase item
+      const phaseItem: ParsedImportItem = {
+        content: sectionName,
+        description: null,
+        resources: null,
+        itemType: 'phase',
+        position: items.length,
+        children: [],
+      };
+      
+      items.push(phaseItem);
+      currentPhase = phaseItem;
+      itemStack.length = 0; // Reset item stack for new phase
       inDescription = false;
+      lastItem = phaseItem;
+      lastItemIndent = 0;
+      
+      // Check if next non-empty line is description (not a list item)
+      let nextLineIndex = lineIndex + 1;
+      const phaseDescLines: string[] = [];
+      while (nextLineIndex < lines.length) {
+        const nextLine = lines[nextLineIndex] || '';
+        const trimmedNext = nextLine.trim();
+        
+        // Stop if we hit another header, list item, or empty line after content
+        if (trimmedNext.startsWith('#') || trimmedNext.startsWith('-') || trimmedNext.startsWith('*')) {
+          break;
+        }
+        
+        if (trimmedNext === '' && phaseDescLines.length > 0) {
+          break;
+        }
+        
+        if (trimmedNext !== '') {
+          phaseDescLines.push(trimmedNext);
+        }
+        
+        nextLineIndex++;
+      }
+      
+      if (phaseDescLines.length > 0) {
+        phaseItem.description = phaseDescLines.join(' ');
+        // Skip the lines we consumed for description
+        lineIndex = nextLineIndex - 1;
+      }
+      
+      continue;
+    }
+
+    // Check for description lines (blockquotes after an item)
+    const descriptionMatch = line.match(/^(\s*)>\s*(.+)$/);
+    if (descriptionMatch && lastItem) {
+      const indent = descriptionMatch[1]?.length || 0;
+      const descText = descriptionMatch[2]?.trim() || '';
+      // Only add if indent is appropriate for the last item
+      if (descText && indent >= lastItemIndent) {
+        lastItem.description = lastItem.description 
+          ? `${lastItem.description} ${descText}` 
+          : descText;
+      }
+      continue;
+    }
+
+    // Check for resource links (- 📎 [title](url) - description)
+    const resourceMatch = line.match(/^(\s*)[-*]\s*📎?\s*\[([^\]]+)\]\(([^)]+)\)(?:\s*[-–]\s*(.+))?$/);
+    if (resourceMatch && lastItem && lastItem.itemType !== 'phase') {
+      const indent = resourceMatch[1]?.length || 0;
+      const resourceTitle = resourceMatch[2]?.trim() || '';
+      const url = resourceMatch[3]?.trim() || '';
+      const resourceDesc = resourceMatch[4]?.trim();
+      
+      if (resourceTitle && url && indent >= lastItemIndent) {
+        if (!lastItem.resources) {
+          lastItem.resources = [];
+        }
+        lastItem.resources.push({
+          title: resourceTitle,
+          url,
+          description: resourceDesc,
+        });
+      }
       continue;
     }
     
@@ -848,6 +992,8 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       
       const newItem: ParsedImportItem = {
         content: cleanContent,
+        description: null,
+        resources: null,
         itemType: 'task',
         position: 0,
         children: [],
@@ -859,9 +1005,14 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       }
       
       if (itemStack.length === 0) {
-        // Root level item
-        newItem.position = items.length;
-        items.push(newItem);
+        // Root level item - add to current phase or root items
+        if (currentPhase) {
+          newItem.position = currentPhase.children.length;
+          currentPhase.children.push(newItem);
+        } else {
+          newItem.position = items.length;
+          items.push(newItem);
+        }
       } else {
         // Child item
         const parent = itemStack[itemStack.length - 1];
@@ -872,6 +1023,8 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       }
       
       itemStack.push({ item: newItem, indent });
+      lastItem = newItem;
+      lastItemIndent = indent;
       continue;
     }
     
@@ -886,6 +1039,8 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       
       const newItem: ParsedImportItem = {
         content,
+        description: null,
+        resources: null,
         itemType: 'task',
         position: 0,
         children: [],
@@ -897,8 +1052,14 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       }
       
       if (itemStack.length === 0) {
-        newItem.position = items.length;
-        items.push(newItem);
+        // Root level item - add to current phase or root items
+        if (currentPhase) {
+          newItem.position = currentPhase.children.length;
+          currentPhase.children.push(newItem);
+        } else {
+          newItem.position = items.length;
+          items.push(newItem);
+        }
       } else {
         const parent = itemStack[itemStack.length - 1];
         if (parent) {
@@ -908,6 +1069,8 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       }
       
       itemStack.push({ item: newItem, indent });
+      lastItem = newItem;
+      lastItemIndent = indent;
       continue;
     }
     
@@ -1044,6 +1207,7 @@ export class ExportService {
         totalItems: items.length,
         taskCount: items.filter(i => i.itemType === ItemType.TASK).length,
         referenceCount: items.filter(i => i.itemType === ItemType.REFERENCE).length,
+        phaseCount: items.filter(i => i.itemType === ItemType.PHASE).length,
         maxDepth: items.reduce((max, item) => Math.max(max, getPathDepth(item.path)), 0),
       };
 
@@ -1130,6 +1294,8 @@ export class ExportService {
       'Path',
       'Type',
       'Content',
+      'Description',
+      'Resources',
       'Position',
       'Parent ID',
       'Reference ID',
@@ -1148,6 +1314,8 @@ export class ExportService {
         item.path,
         item.itemType,
         item.content,
+        item.description || '',
+        item.resources ? JSON.stringify(item.resources) : '',
         String(item.position),
         item.parentId || '',
         item.referenceId || '',
@@ -1216,6 +1384,7 @@ export class ExportService {
     lines.push(`- **Total Items:** ${data.stats.totalItems}`);
     lines.push(`- **Tasks:** ${data.stats.taskCount}`);
     lines.push(`- **References:** ${data.stats.referenceCount}`);
+    lines.push(`- **Phases:** ${data.stats.phaseCount}`);
     lines.push(`- **Max Depth:** ${data.stats.maxDepth}`);
     lines.push('');
 
@@ -1224,25 +1393,56 @@ export class ExportService {
     lines.push('');
 
     // Render items recursively
-    const renderItems = (items: ExportedItem[], depth: number = 0) => {
+    const renderItems = (items: ExportedItem[], depth: number = 0, inPhase: boolean = false) => {
       for (const item of items) {
-        const indent = '  '.repeat(depth);
-        const checkbox = '- [ ]';
-        
-        if (item.itemType === ItemType.REFERENCE) {
-          // Reference item - show with link indicator
-          const refTitle = item.referencedBlueprintTitle 
-            ? ` → *${item.referencedBlueprintTitle}*`
-            : ' → *(referenced blueprint)*';
-          lines.push(`${indent}${checkbox} ${item.content}${refTitle}`);
-        } else {
-          // Task item
-          lines.push(`${indent}${checkbox} ${item.content}`);
-        }
+        if (item.itemType === ItemType.PHASE) {
+          // Render phase as a section header
+          lines.push('');
+          lines.push(`## ${item.content}`);
+          lines.push('');
+          
+          // Include phase description if present
+          if (item.description) {
+            lines.push(item.description);
+            lines.push('');
+          }
 
-        // Render children
-        if (item.children && item.children.length > 0) {
-          renderItems(item.children, depth + 1);
+          // Render phase children as regular items
+          if (item.children && item.children.length > 0) {
+            renderItems(item.children, 0, true);
+          }
+        } else {
+          const indent = '  '.repeat(depth);
+          const checkbox = '- [ ]';
+          
+          if (item.itemType === ItemType.REFERENCE) {
+            // Reference item - show with link indicator
+            const refTitle = item.referencedBlueprintTitle 
+              ? ` → *${item.referencedBlueprintTitle}*`
+              : ' → *(referenced blueprint)*';
+            lines.push(`${indent}${checkbox} ${item.content}${refTitle}`);
+          } else {
+            // Task item
+            lines.push(`${indent}${checkbox} ${item.content}`);
+          }
+
+          // Include description if present (as blockquote)
+          if (item.description) {
+            lines.push(`${indent}  > ${item.description}`);
+          }
+
+          // Include resources if present (as links)
+          if (item.resources && item.resources.length > 0) {
+            for (const resource of item.resources) {
+              const resourceDesc = resource.description ? ` - ${resource.description}` : '';
+              lines.push(`${indent}  - 📎 [${resource.title}](${resource.url})${resourceDesc}`);
+            }
+          }
+
+          // Render children
+          if (item.children && item.children.length > 0) {
+            renderItems(item.children, depth + 1, inPhase);
+          }
         }
       }
     };
@@ -1462,14 +1662,27 @@ export class ExportService {
         ? `${parentPath}.${i + 1}` 
         : String(i + 1);
 
+      // Determine the item type for the database
+      let dbItemType: ItemType;
+      if (item.itemType === 'phase') {
+        dbItemType = ItemType.PHASE;
+      } else if (item.itemType === 'reference') {
+        dbItemType = ItemType.REFERENCE;
+      } else {
+        dbItemType = ItemType.TASK;
+      }
+
       // Create the item
       const itemData: ItemCreate = {
         blueprint: blueprintId,
         parent: parentId || undefined,
         path,
-        itemType: item.itemType === 'reference' ? ItemType.REFERENCE : ItemType.TASK,
+        itemType: dbItemType,
         content: item.content,
-        position: i,
+        description: item.description || undefined,
+        // Phases don't have resources
+        resources: item.itemType === 'phase' ? undefined : (item.resources || undefined),
+        position: i + 1,
         metadata: item.metadata as ItemMetadata | undefined,
       };
 

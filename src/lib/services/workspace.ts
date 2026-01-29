@@ -446,16 +446,14 @@ export class WorkspaceService {
       const perPage = options?.limit ?? DEFAULT_PAGE_SIZE;
       const includeArchived = options?.includeArchived ?? false;
 
-      // Build filter
-      let filter = `owner = "${userId}"`;
-      if (!includeArchived) {
-        filter += ' && isArchived = false';
-      }
-
-      const queryOptions: { filter: string; sort: string; expand?: string } = {
-        filter,
+      // Build filter - the listRule already filters by owner, so we only need isArchived
+      const queryOptions: { filter?: string; sort: string; expand?: string } = {
         sort: '-created',
       };
+
+      if (!includeArchived) {
+        queryOptions.filter = 'isArchived = false';
+      }
 
       if (options?.expand) {
         queryOptions.expand = options.expand;

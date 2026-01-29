@@ -127,6 +127,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     }
 
     const body = await request.json() as CreateItemRequestBody;
+    console.log('[POST /api/templates/[id]/items] Request body:', JSON.stringify(body));
 
     if (!body.content) {
       return NextResponse.json({ success: false, error: { code: ItemErrorCodes.CONTENT_REQUIRED, message: 'content is required', timestamp: new Date().toISOString() } }, { status: 400 });
@@ -152,7 +153,18 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       return NextResponse.json({ success: false, error: { code: ItemErrorCodes.PERMISSION_DENIED, message: 'You do not have permission to add items to this template', timestamp: new Date().toISOString() } }, { status: 403 });
     }
 
+    console.log('[POST /api/templates/[id]/items] Calling itemService.create with:', {
+      templateId,
+      parentId: body.parentId,
+      itemType: body.itemType,
+      content: body.content,
+      description: body.description,
+      position: body.position,
+    });
+
     const result = await itemService.create({ templateId: templateId, parentId: body.parentId, itemType: body.itemType, content: body.content, description: body.description, resources: body.resources, referenceId: body.referenceId, position: body.position, metadata: body.metadata });
+
+    console.log('[POST /api/templates/[id]/items] itemService.create result:', JSON.stringify(result));
 
     if (!result.success || !result.item) {
       const statusCode = getStatusCodeForError(result.error?.code);

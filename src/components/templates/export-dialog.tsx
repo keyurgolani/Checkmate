@@ -148,7 +148,7 @@ export function ExportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden" aria-label="Export template">
+      <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden" aria-label="Export template">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">

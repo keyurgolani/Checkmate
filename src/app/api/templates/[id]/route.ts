@@ -8,11 +8,14 @@
  * Requirements: 3.1, 4.1, 4.2, 7.6
  */
 
+
+// Force rebuild - Syntax fix applied
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/server-auth';
 import { TemplateService, TemplateErrorCodes } from '@/lib/services/template';
 import { CollaborationService } from '@/lib/services/collaboration';
 import { Visibility, PermissionLevel } from '@/lib/pocketbase-types';
+import type { ResourceLink } from '@/lib/pocketbase-types';
 
 // ============================================================================
 // Types
@@ -30,6 +33,7 @@ interface UpdateTemplateRequestBody {
     enumOptions?: string[];
     defaultValue?: boolean | string;
   }>;
+  resources?: ResourceLink[];
 }
 
 interface TemplateResponse {
@@ -40,6 +44,7 @@ interface TemplateResponse {
     ownerId: string;
     title: string;
     description: string | null;
+    resources: ResourceLink[] | null;
     visibility: string;
     category: string | null;
     tags: string[] | null;
@@ -95,6 +100,7 @@ function formatTemplate(template: {
   owner: string;
   title: string;
   description: string | null;
+  resources: ResourceLink[] | null;
   visibility: string;
   category: string | null;
   tags: string[] | null;
@@ -116,6 +122,7 @@ function formatTemplate(template: {
     ownerId: template.owner,
     title: template.title,
     description: template.description,
+    resources: template.resources,
     visibility: template.visibility,
     category: template.category,
     tags: template.tags,
@@ -339,6 +346,7 @@ export async function PUT(
       category: body.category,
       tags: body.tags,
       questions: body.questions,
+      resources: body.resources,
     });
 
     if (!result.success || !result.template) {

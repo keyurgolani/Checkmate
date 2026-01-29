@@ -55,7 +55,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 import { ItemType, Visibility } from "@/lib/pocketbase-types";
-import type { ItemMetadata } from "@/lib/pocketbase-types";
+import type { ItemMetadata, ResourceLink } from "@/lib/pocketbase-types";
 import { useTemplateRealtime } from "@/lib/hooks/use-realtime";
 import { SortableStep } from "./sortable-step";
 import { StepEditor } from "./step-editor";
@@ -78,7 +78,9 @@ import {
   LayoutList,
   CheckCircle2,
   ArrowLeft,
-  Filter
+  Filter,
+  Sparkles,
+  Layers
 } from "lucide-react";
 import { VisibilitySettingsPanel } from "./visibility-settings-panel";
 import { ExportDialog } from "./export-dialog";
@@ -107,6 +109,13 @@ import { QuestionManager } from "./question-manager";
 import { ConditionQuestionnaire } from "@/components/checklists/condition-questionnaire";
 import { TemplatePreview } from "./template-preview";
 import type { TemplateQuestion, ConditionAnswers } from "@/lib/pocketbase-types";
+import type { LLMSettings } from "@/lib/pocketbase-types";
+import type { GeneratedTemplateItem } from "@/lib/services/llm";
+import { ResourceEditor } from "@/components/ui/resource-editor";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { AIImproveTemplateDialog } from "./ai-improve-dialog";
+import { AIEnhanceTemplateDialog } from "./ai-improve-dialog";
+import { AITemplateAssistantDialog } from "./ai-template-assistant-dialog";
 
 // ============================================================================
 // Types
@@ -130,6 +139,8 @@ export interface TemplateData {
     enumOptions?: string[];
     defaultValue?: boolean | string;
   }> | null;
+
+  resources: ResourceLink[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,8 +150,10 @@ export interface StepData {
   templateId: string;
   parentId: string | null;
   path: string;
-  itemType: "task" | "reference";
+  itemType: "task" | "reference" | "phase";
   content: string;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
   referenceId: string | null;
   position: number;
   metadata: ItemMetadata | null;
@@ -155,6 +168,7 @@ interface TemplateEditorProps {
   template: TemplateData;
   steps: StepData[];
   canEdit: boolean;
+  llmSettings: LLMSettings | null;
 }
 
 
@@ -255,6 +269,93 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
   );
 }
 
+// ============================================================================
+// Description Editor Component (click-to-edit with markdown preview)
+// ============================================================================
+
+interface DescriptionEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+}
+
+function DescriptionEditor({ value, onChange, textareaRef }: DescriptionEditorProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const handleBlur = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+  
+  const handleClick = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+  
+  // Focus textarea and resize when entering edit mode
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      const textarea = textareaRef.current;
+      // Resize to fit content
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+      // Focus and move cursor to end
+      textarea.focus();
+      const len = textarea.value.length;
+      textarea.setSelectionRange(len, len);
+    }
+  }, [isEditing, textareaRef]);
+  
+  if (isEditing) {
+    return (
+      <textarea
+        ref={textareaRef}
+        id="template-description"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={handleBlur}
+        placeholder="Add a description (supports markdown)..."
+        className="w-full min-h-[24px] text-sm text-muted-foreground bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 p-0"
+        rows={1}
+        onInput={(e) => {
+          const target = e.target as HTMLTextAreaElement;
+          target.style.height = 'auto';
+          target.style.height = target.scrollHeight + 'px';
+        }}
+        aria-label="Template description"
+        autoComplete="off"
+      />
+    );
+  }
+  
+  if (!value || value.trim().length === 0) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-text text-left"
+      >
+        Add a description (supports markdown)...
+      </button>
+    );
+  }
+  
+  return (
+    <div
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="cursor-text hover:bg-muted/30 -mx-2 -my-1 px-2 py-1 rounded-lg transition-colors"
+      aria-label="Click to edit description"
+    >
+      <MarkdownRenderer content={value} className="text-sm text-muted-foreground" />
+    </div>
+  );
+}
 
 // ============================================================================
 // Template Editor Component
@@ -264,6 +365,7 @@ export function TemplateEditor({
   template,
   steps: initialSteps,
   canEdit,
+  llmSettings,
 }: TemplateEditorProps) {
   const router = useRouter();
   
@@ -273,6 +375,7 @@ export function TemplateEditor({
   const [currentVisibility, setCurrentVisibility] = useState(template.visibility);
   const [steps, setSteps] = useState<StepData[]>(initialSteps);
   const [questions, setQuestions] = useState<TemplateQuestion[]>(template.questions ?? []);
+  const [resources, setResources] = useState<ResourceLink[]>(template.resources ?? []);
 
   // Sync steps state when initialSteps prop changes (e.g., after browser back navigation)
   // This ensures the component displays fresh data from the server
@@ -284,17 +387,21 @@ export function TemplateEditor({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const [newStepContent, setNewStepContent] = useState("");
+  const [newPhaseContent, setNewPhaseContent] = useState("");
   const [showStepEditor, setShowStepEditor] = useState(false);
   const [showVisibilitySettings, setShowVisibilitySettings] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showAIImproveDialog, setShowAIImproveDialog] = useState(false);
+  const [showAIEnhanceDialog, setShowAIEnhanceDialog] = useState(false);
+  const [showAIAssistantDialog, setShowAIAssistantDialog] = useState(false);
   const [isCreatingChecklist, setIsCreatingChecklist] = useState(false);
   const [showChecklistNameDialog, setShowChecklistNameDialog] = useState(false);
   const [showConditionQuestionnaire, setShowConditionQuestionnaire] = useState(false);
   const [pendingChecklistName, setPendingChecklistName] = useState("");
   const [checklistName, setChecklistName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [showConditionsDialog, setShowConditionsDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Status announcer for screen readers - Requirements: 13.4
@@ -302,6 +409,9 @@ export function TemplateEditor({
 
   // Track steps added locally to prevent duplicates from realtime subscription
   const recentlyAddedStepsRef = useRef<Set<string>>(new Set());
+  
+  // Ref for description textarea auto-resize
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // DnD sensors
   const sensors = useSensors(
@@ -325,19 +435,30 @@ export function TemplateEditor({
   useEffect(() => {
     const titleChanged = title !== template.title;
     const descriptionChanged = description !== (template.description ?? "");
-    setHasChanges(titleChanged || descriptionChanged);
-  }, [title, description, template.title, template.description]);
+    const resourcesChanged = JSON.stringify(resources) !== JSON.stringify(template.resources ?? []);
+    setHasChanges(titleChanged || descriptionChanged || resourcesChanged);
+  }, [title, description, resources, template.title, template.description, template.resources]);
+
+  // Auto-resize description textarea to fit content
+  useEffect(() => {
+    const textarea = descriptionTextareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  }, [description]);
 
   // Subscribe to realtime updates for collaborators
   // Requirements: 12.4
   useTemplateRealtime(template.id, {
-    onTemplateChange: useCallback((event: { action: string; record: { title: string; description: string | null; visibility: string } }) => {
+    onTemplateChange: useCallback((event: { action: string; record: { title: string; description: string | null; visibility: string; resources: ResourceLink[] | null } }) => {
       if (event.action === 'update') {
         // Update local state with changes from other collaborators
         // Only update if we don't have local changes to avoid conflicts
         if (!hasChanges) {
           setTitle(event.record.title);
           setDescription(event.record.description ?? "");
+          setResources(event.record.resources ?? []);
         }
         setCurrentVisibility(event.record.visibility);
       }
@@ -355,7 +476,7 @@ export function TemplateEditor({
           templateId: event.record.blueprint,
           parentId: event.record.parent,
           path: event.record.path,
-          itemType: event.record.itemType as "task" | "reference",
+          itemType: event.record.itemType as "task" | "reference" | "phase",
           content: event.record.content,
           referenceId: event.record.reference,
           position: event.record.position,
@@ -378,7 +499,7 @@ export function TemplateEditor({
               ? {
                   ...step,
                   content: event.record.content,
-                  itemType: event.record.itemType as "task" | "reference",
+                  itemType: event.record.itemType as "task" | "reference" | "phase",
                   referenceId: event.record.reference,
                   position: event.record.position,
                   path: event.record.path,
@@ -496,7 +617,7 @@ export function TemplateEditor({
               setSteps(
                 data.items.map((step: StepData) => ({
                   ...step,
-                  itemType: step.itemType as "task" | "reference",
+                  itemType: step.itemType as "task" | "reference" | "phase",
                 }))
               );
               announce(`Step "${activeStep.content}" moved successfully`);
@@ -525,6 +646,7 @@ export function TemplateEditor({
         body: JSON.stringify({
           title,
           description: description || null,
+          resources: resources || null,
         }),
       });
 
@@ -570,7 +692,7 @@ export function TemplateEditor({
             ...prev,
             {
               ...data.item,
-              itemType: data.item.itemType as "task" | "reference",
+              itemType: data.item.itemType as "task" | "reference" | "phase",
             },
           ]);
           setNewStepContent("");
@@ -585,9 +707,52 @@ export function TemplateEditor({
     }
   }, [canEdit, newStepContent, template.id, announce, announceAssertive]);
 
+  const handleAddPhase = useCallback(async () => {
+    const content = newPhaseContent.trim();
+    if (!canEdit || !content) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemType: ItemType.PHASE,
+          content: content,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.item) {
+          recentlyAddedStepsRef.current.add(data.item.id);
+          setTimeout(() => {
+            recentlyAddedStepsRef.current.delete(data.item.id);
+          }, 5000);
+          
+          setSteps((prev) => [
+            ...prev,
+            {
+              ...data.item,
+              itemType: data.item.itemType as "task" | "reference" | "phase",
+            },
+          ]);
+          setNewPhaseContent("");
+          announce(`Phase "${content}" added`);
+        }
+      } else {
+        announceAssertive("Failed to add phase");
+      }
+    } catch (error) {
+      console.error("Failed to add phase:", error);
+      announceAssertive("Failed to add phase");
+    }
+  }, [canEdit, newPhaseContent, template.id, announce, announceAssertive]);
+
 
   const handleUpdateStep = useCallback(
-    async (stepId: string, content: string, itemType?: "task" | "reference", referenceId?: string | null) => {
+    async (stepId: string, content: string, itemType?: "task" | "reference" | "phase", referenceId?: string | null, description?: string | null, resources?: ResourceLink[] | null) => {
       if (!canEdit) return;
 
       try {
@@ -597,6 +762,10 @@ export function TemplateEditor({
           updateData.itemType = itemType;
           updateData.referenceId = itemType === "reference" ? referenceId : null;
         }
+        
+        // Always include description and resources in update
+        updateData.description = description ?? null;
+        updateData.resources = resources ?? null;
 
         const response = await fetch(`/api/items/${stepId}`, {
           method: "PUT",
@@ -612,7 +781,7 @@ export function TemplateEditor({
                 step.id === stepId
                   ? {
                       ...data.item,
-                      itemType: data.item.itemType as "task" | "reference",
+                      itemType: data.item.itemType as "task" | "reference" | "phase",
                     }
                   : step
               )
@@ -679,6 +848,7 @@ export function TemplateEditor({
             parentId,
             itemType: ItemType.TASK,
             content,
+            metadata: { source: "handleAddSubStep" }, // Debug marker
           }),
         });
 
@@ -694,7 +864,7 @@ export function TemplateEditor({
               ...prev,
               {
                 ...data.item,
-                itemType: data.item.itemType as "task" | "reference",
+                itemType: data.item.itemType as "task" | "reference" | "phase",
               },
             ]);
             setEditingStepId(data.item.id);
@@ -705,6 +875,84 @@ export function TemplateEditor({
       }
     },
     [canEdit, template.id]
+  );
+
+  /**
+   * Add multiple sub-steps with content (for AI-suggested sub-steps)
+   */
+  const handleAddSubStepsWithContent = useCallback(
+    async (parentId: string, subSteps: Array<{ content: string; description?: string }>) => {
+      console.log('[handleAddSubStepsWithContent] Called with:', { 
+        parentId, 
+        subStepsCount: subSteps?.length,
+        subSteps: JSON.stringify(subSteps) 
+      });
+      if (!canEdit || subSteps.length === 0) {
+        console.log('[handleAddSubStepsWithContent] Early return - canEdit:', canEdit, 'subSteps.length:', subSteps?.length);
+        return;
+      }
+
+      let addedCount = 0;
+      for (let i = 0; i < subSteps.length; i++) {
+        const subStep = subSteps[i];
+        if (!subStep) continue;
+        
+        try {
+          console.log(`[handleAddSubStepsWithContent] Adding sub-step ${i + 1}/${subSteps.length}:`, {
+            content: subStep.content,
+            description: subStep.description,
+          });
+          
+          const requestBody = {
+            parentId,
+            itemType: ItemType.TASK,
+            content: subStep.content,
+            description: subStep.description || null,
+            metadata: { source: "handleAddSubStepsWithContent" }, // Debug marker
+          };
+          console.log('[handleAddSubStepsWithContent] Request body:', JSON.stringify(requestBody));
+          
+          const response = await fetch(`/api/templates/${template.id}/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[handleAddSubStepsWithContent] Success:', data);
+            if (data.success && data.item) {
+              recentlyAddedStepsRef.current.add(data.item.id);
+              setTimeout(() => {
+                recentlyAddedStepsRef.current.delete(data.item.id);
+              }, 5000);
+
+              setSteps((prev) => [
+                ...prev,
+                {
+                  ...data.item,
+                  itemType: data.item.itemType as "task" | "reference" | "phase",
+                },
+              ]);
+              addedCount++;
+            }
+          } else {
+            const errorData = await response.json();
+            console.error("[handleAddSubStepsWithContent] Failed to add sub-step:", subStep.content, errorData);
+          }
+        } catch (error) {
+          console.error("[handleAddSubStepsWithContent] Exception:", error);
+        }
+      }
+
+      console.log('[handleAddSubStepsWithContent] Completed. Added:', addedCount, 'of', subSteps.length);
+      if (addedCount > 0) {
+        announce(`Added ${addedCount} sub-step${addedCount !== 1 ? "s" : ""}`);
+      } else {
+        announceAssertive("Failed to add sub-steps");
+      }
+    },
+    [canEdit, template.id, announce, announceAssertive]
   );
 
   const handleAddStepWithEditor = useCallback(
@@ -742,7 +990,7 @@ export function TemplateEditor({
               ...prev,
               {
                 ...responseData.item,
-                itemType: responseData.item.itemType as "task" | "reference",
+                itemType: responseData.item.itemType as "task" | "reference" | "phase",
               },
             ]);
             setShowStepEditor(false);
@@ -842,6 +1090,75 @@ export function TemplateEditor({
     }
   }, [template.id, announce, announceAssertive]);
 
+  /**
+   * Handle adding AI-suggested items to the template
+   */
+  const handleAddAIItems = useCallback(async (items: GeneratedTemplateItem[]) => {
+    if (!canEdit) return;
+
+    const addItemWithChildren = async (
+      item: GeneratedTemplateItem,
+      parentId?: string
+    ): Promise<void> => {
+      try {
+        // Determine item type - respect the generated itemType (phase or task)
+        // Default to 'task' if not specified
+        const itemType = item.itemType === 'phase' ? 'phase' : 'task';
+        
+        // Phases don't need resources - they are organizational containers
+        const resources = itemType === 'phase' ? null : (item.resources || null);
+        
+        const response = await fetch(`/api/templates/${template.id}/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemType,
+            content: item.content,
+            description: item.description || null,
+            resources,
+            parentId: parentId || null,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.item) {
+            // Track to prevent duplicate from realtime
+            recentlyAddedStepsRef.current.add(data.item.id);
+            setTimeout(() => {
+              recentlyAddedStepsRef.current.delete(data.item.id);
+            }, 5000);
+
+            // Add to local state
+            setSteps((prev) => [
+              ...prev,
+              {
+                ...data.item,
+                itemType: data.item.itemType as "task" | "reference" | "phase",
+              },
+            ]);
+
+            // Recursively add children if any
+            if (item.children && item.children.length > 0) {
+              for (const child of item.children) {
+                await addItemWithChildren(child, data.item.id);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to add AI item:", error);
+      }
+    };
+
+    // Add all top-level items
+    for (const item of items) {
+      await addItemWithChildren(item);
+    }
+
+    announce(`Added ${items.length} AI-suggested step${items.length !== 1 ? "s" : ""}`);
+  }, [canEdit, template.id, announce]);
+
   const handleDeleteTemplate = useCallback(async () => {
     if (!canEdit) return;
 
@@ -867,6 +1184,84 @@ export function TemplateEditor({
       setShowDeleteDialog(false);
     }
   }, [canEdit, template.id, router, announce, announceAssertive]);
+
+  /**
+   * Handle updating multiple items at once (for AI enhancement)
+   */
+  const handleUpdateMultipleItems = useCallback(async (updates: Array<{
+    id: string;
+    content: string;
+    description: string;
+    resources: import("@/lib/pocketbase-types").ResourceLink[];
+  }>) => {
+    if (!canEdit) return;
+
+    let updatedCount = 0;
+    for (const update of updates) {
+      try {
+        const response = await fetch(`/api/items/${update.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: update.content,
+            description: update.description,
+            resources: update.resources,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.item) {
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === update.id
+                  ? {
+                      ...data.item,
+                      itemType: data.item.itemType as "task" | "reference" | "phase",
+                    }
+                  : step
+              )
+            );
+            updatedCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to update item ${update.id}:`, error);
+      }
+    }
+
+    if (updatedCount > 0) {
+      announce(`Enhanced ${updatedCount} step${updatedCount !== 1 ? "s" : ""}`);
+    }
+  }, [canEdit, announce]);
+
+  /**
+   * Handle updating template metadata (title, description, resources)
+   */
+  const handleUpdateTemplateMetadata = useCallback(async (updates: {
+    title?: string;
+    description?: string;
+    resources?: import("@/lib/pocketbase-types").ResourceLink[];
+  }) => {
+    if (!canEdit) return;
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        if (updates.title) setTitle(updates.title);
+        if (updates.description) setDescription(updates.description);
+        if (updates.resources) setResources(updates.resources);
+        announce("Template updated");
+      }
+    } catch (error) {
+      console.error("Failed to update template:", error);
+    }
+  }, [canEdit, template.id, announce]);
 
 
   // ============================================================================
@@ -992,6 +1387,10 @@ export function TemplateEditor({
                                   <Upload className="h-4 w-4 mr-2" />
                                   Import Data
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setShowAIAssistantDialog(true)}>
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  AI Assistant
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setShowDeleteDialog(true)}
                                   className="text-destructive focus:text-destructive"
@@ -1023,28 +1422,18 @@ export function TemplateEditor({
                 </div>
 
                 {/* Description and Metadata */}
-                 <div className="space-y-2">
-                    {/* Description */}
-                    <div className="relative group max-w-3xl">
+                  {/* Description and Metadata */}
+                  <div className="space-y-4">
+                    {/* Description - click to edit when canEdit is true */}
+                    <div className="relative group">
                       {canEdit ? (
-                        <textarea
-                          id="template-description"
+                        <DescriptionEditor
                           value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Add a description..."
-                          className="w-full min-h-[24px] text-sm text-muted-foreground bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50 p-0"
-                          rows={1}
-                          style={{ height: 'auto', minHeight: '1.5rem' }}
-                          onInput={(e) => {
-                            const target = e.target as HTMLTextAreaElement;
-                            target.style.height = 'auto';
-                            target.style.height = target.scrollHeight + 'px';
-                          }}
-                          aria-label="Template description"
-                          autoComplete="off"
+                          onChange={setDescription}
+                          textareaRef={descriptionTextareaRef}
                         />
                       ) : description && (
-                        <p className="text-sm text-muted-foreground">{description}</p>
+                        <MarkdownRenderer content={description} className="text-sm text-muted-foreground" />
                       )}
                     </div>
 
@@ -1057,7 +1446,18 @@ export function TemplateEditor({
                         <span>•</span>
                         <span>Updated {formatTodayDate()}</span>
                     </div>
-                 </div>
+
+                    <Separator />
+
+                    {/* Resources */}
+                    <div className="space-y-2">
+                       <ResourceEditor
+                         resources={resources}
+                         onChange={setResources}
+                         canEdit={canEdit}
+                       />
+                    </div>
+                  </div>
               </div>
             </div>
           </div>
@@ -1079,7 +1479,7 @@ export function TemplateEditor({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Configuration Button */}
+                  {/* Conditions Button */}
                   {canEdit && (
                     <TooltipProvider>
                       <Tooltip>
@@ -1087,11 +1487,11 @@ export function TemplateEditor({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setShowConfigDialog(true)}
+                            onClick={() => setShowConditionsDialog(true)}
                             className="rounded-lg h-8 px-3 text-xs"
                           >
                             <Settings className="h-3.5 w-3.5 mr-1.5" />
-                            Configure
+                            Conditions
                             {questions.length > 0 && (
                               <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">
                                 {questions.length}
@@ -1161,6 +1561,46 @@ export function TemplateEditor({
                    </div>
                 )}
 
+                {/* Add Phase Input */}
+                {canEdit && !showStepEditor && (
+                   <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 group-focus-within:text-amber-600 transition-colors">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <Input
+                      id="new-phase-content"
+                      value={newPhaseContent}
+                      onChange={(e) => setNewPhaseContent(e.target.value)}
+                      placeholder="Add a new phase (collapsible section)..."
+                      className="pl-12 py-6 text-base bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-background focus:border-amber-500/30 rounded-xl transition-all shadow-sm focus:shadow-md"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newPhaseContent.trim()) {
+                           handleAddPhase();
+                        }
+                      }}
+                      autoComplete="off"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                onClick={handleAddPhase}
+                                disabled={!newPhaseContent.trim()}
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-amber-600 hover:bg-amber-500/10 rounded-lg"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>Add Phase</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                   </div>
+                )}
+
                 {/* Advanced Step Editor */}
                 {canEdit && showStepEditor && (
                   <motion.div
@@ -1196,7 +1636,7 @@ export function TemplateEditor({
                           role="list"
                           aria-label={`Template steps, ${steps.length} total`}
                         >
-                          {flattenedSteps.map((step) => (
+                          {flattenedSteps.map((step, index) => (
                             <SortableStep
                               key={step.id}
                               step={step}
@@ -1205,11 +1645,20 @@ export function TemplateEditor({
                               isEditing={editingStepId === step.id}
                               currentTemplateId={template.id}
                               questions={questions}
+                              llmSettings={llmSettings}
+                              templateContext={{
+                                title,
+                                description: description || null,
+                                resources: resources || null,
+                                allSteps: flattenedSteps.map(s => ({ content: s.content, description: s.description })),
+                                currentStepIndex: index,
+                              }}
                               onStartEdit={() => setEditingStepId(step.id)}
                               onCancelEdit={() => setEditingStepId(null)}
-                              onSaveEdit={(content, itemType, referenceId) => handleUpdateStep(step.id, content, itemType, referenceId)}
+                              onSaveEdit={(content, itemType, referenceId, description, resources) => handleUpdateStep(step.id, content, itemType, referenceId, description, resources)}
                               onDelete={() => handleDeleteStep(step.id)}
                               onAddSubStep={() => handleAddSubStep(step.id)}
+                              onAddSubStepsWithContent={async (subSteps) => handleAddSubStepsWithContent(step.id, subSteps)}
                               onUpdateConditions={async (conditions) => {
                                 const newMetadata = { ...step.metadata, conditions };
                                 try {
@@ -1257,16 +1706,16 @@ export function TemplateEditor({
           </div>
         </div>
 
-      {/* Configuration Dialog */}
-      <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
-        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+      {/* Conditions Dialog */}
+      <Dialog open={showConditionsDialog} onOpenChange={setShowConditionsDialog}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Settings className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle>Configuration</DialogTitle>
+                <DialogTitle>Conditions</DialogTitle>
                 <DialogDescription className="text-xs mt-0.5">
                   Conditional logic and template preview
                 </DialogDescription>
@@ -1422,6 +1871,29 @@ export function TemplateEditor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Template Assistant Dialog */}
+      <AITemplateAssistantDialog
+        isOpen={showAIAssistantDialog}
+        onOpenChange={setShowAIAssistantDialog}
+        llmSettings={llmSettings}
+        template={{
+          id: template.id,
+          title: title,
+          description: description || null,
+          resources: resources || null,
+          items: steps.map(s => ({
+            id: s.id,
+            content: s.content,
+            description: s.description,
+            resources: s.resources,
+            itemType: s.itemType,
+          })),
+        }}
+        onAddItems={handleAddAIItems}
+        onUpdateItems={handleUpdateMultipleItems}
+        onUpdateTemplate={handleUpdateTemplateMetadata}
+      />
     </div>
   );
 }

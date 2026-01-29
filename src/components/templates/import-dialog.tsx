@@ -261,7 +261,7 @@ export function ImportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg rounded-[var(--radius)] border bg-card/95 backdrop-blur-xl shadow-2xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl rounded-[var(--radius)] border bg-card/95 backdrop-blur-xl shadow-2xl p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">

@@ -303,7 +303,7 @@ export function VisibilitySettingsPanel({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden" aria-label="Visibility settings">
+      <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden" aria-label="Visibility settings">
         <LiveRegion message={statusAnnouncement} politeness={error ? "assertive" : "polite"} />
         
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">

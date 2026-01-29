@@ -34,33 +34,60 @@ A modern, enterprise-grade checklist application for creating, sharing, and trac
 ### Prerequisites
 
 - Node.js 20+
-- Docker and Docker Compose (for PocketBase)
+- Docker and Docker Compose
 
-### Local Development
+### Development with Docker (Recommended)
+
+The easiest way to get started is with Docker Compose. Everything is automatic:
 
 ```bash
 # Clone the repository
 git clone https://github.com/keyurgolani/Checkmate.git
-cd Checkmate
+cd checkmate
 
+# Start all services (Next.js + PocketBase)
+docker compose -f docker-compose.dev.yml up -d
+```
+
+That's it! The app will:
+
+1. Start PocketBase with auto-created admin user
+2. Auto-import the database schema on first request
+3. Start the Next.js development server
+
+Open [http://localhost:3002](http://localhost:3002) to see the app.
+
+PocketBase admin dashboard is available at [http://localhost:8090/\_/](http://localhost:8090/_/)
+
+- Default admin: `admin@checkmate.local` / `checkmate_admin_2026`
+
+### Fresh Start
+
+To completely reset the database and start fresh:
+
+```bash
+npm run docker:fresh
+```
+
+### Local Development (Without Docker for Next.js)
+
+If you prefer to run Next.js locally:
+
+```bash
 # Install dependencies
 npm install
 
-# Start PocketBase backend
+# Start only PocketBase in Docker
 docker compose -f docker-compose.dev.yml up pocketbase -d
+
+# Import schema (first time only)
+npm run setup:schema
 
 # Start development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the app.
-
-### Development with Full Docker Stack
-
-```bash
-# Start all services (Next.js + PocketBase)
-docker compose -f docker-compose.dev.yml up -d
-```
 
 ## Deployment
 
@@ -134,19 +161,24 @@ Key environment variables (see `.env.example` for full list):
 
 ```bash
 # Development
-npm run dev          # Start dev server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
+npm run dev              # Start dev server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Run ESLint
 
 # Testing
-npm test             # Run tests
-npm run test:coverage # Run tests with coverage
+npm test                 # Run tests
+npm run test:coverage    # Run tests with coverage
+
+# Docker
+npm run docker:up        # Start all services
+npm run docker:down      # Stop all services
+npm run docker:logs      # View logs
+npm run docker:fresh     # Reset database and restart
 
 # Database
-npx tsx scripts/setup-pocketbase.ts    # Initial setup
-npx tsx scripts/migrate-pocketbase.ts  # Run migrations
-npx tsx scripts/export-pocketbase-schema.ts  # Export schema
+npm run setup:schema     # Import PocketBase schema
+npm run pocketbase:export # Export current schema
 ```
 
 ## Contributing

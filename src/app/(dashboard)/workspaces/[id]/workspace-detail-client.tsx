@@ -414,7 +414,7 @@ export function WorkspaceDetailClient({
 
       {/* Create Checklist Dialog */}
       <Dialog open={isCreateChecklistOpen} onOpenChange={setIsCreateChecklistOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create Checklist</DialogTitle>
             <DialogDescription>

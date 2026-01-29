@@ -305,7 +305,7 @@
         "required": true,
         "options": {
           "maxSelect": 1,
-          "values": ["task", "reference"]
+          "values": ["task", "reference", "phase"]
         }
       },
       {
@@ -431,7 +431,7 @@
     "listRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)",
     "viewRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)",
     "createRule": "@request.auth.id != '' && @collection.blueprints.id = blueprint && @collection.blueprints.owner = @request.auth.id",
-    "updateRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || (user = @request.auth.id && @request.data.acceptedAt:isset))",
+    "updateRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)",
     "deleteRule": "@collection.blueprints.id = blueprint && (@collection.blueprints.owner = @request.auth.id || user = @request.auth.id)"
   },
   {
@@ -607,6 +607,15 @@
           "min": 0,
           "max": null,
           "noDecimal": true
+        }
+      },
+      {
+        "name": "itemType",
+        "type": "select",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "values": ["task", "reference", "phase"]
         }
       }
     ],

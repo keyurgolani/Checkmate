@@ -344,6 +344,8 @@ export class ChecklistService {
         user: userId,
         workspace: input.workspaceId ?? templateResult.template.workspace, // Use provided workspace or template's workspace
         name: input.name.trim(),
+        description: templateResult.template.description ?? undefined,
+        resources: templateResult.template.resources ?? undefined,
         isSynced: true,
         progress: 0,
       };
@@ -353,9 +355,9 @@ export class ChecklistService {
         .create<Instance>(checklistData);
 
       // Verify the checklist was created and is accessible
-      const verifyChecklist = await this.pb
-        .collection(Collections.CHECKLISTS)
-        .getOne<Instance>(checklist.id);
+      // const verifyChecklist = await this.pb
+      //   .collection(Collections.CHECKLISTS)
+      //   .getOne<Instance>(checklist.id);
 
       // Get all items from the template
       const templateItems = await this.itemService.getByTemplate(input.templateId, {
@@ -550,6 +552,7 @@ export class ChecklistService {
         isCompleted: false,
         isCustom: false,
         position: templateItem.position + 1,
+        itemType: templateItem.itemType,
       };
 
       const task = await this.pb
@@ -591,6 +594,7 @@ export class ChecklistService {
         isCompleted: false,
         isCustom: false,
         position: templateItem.position + 1,
+        itemType: templateItem.itemType,
       };
 
       const task = await this.pb
@@ -663,6 +667,7 @@ export class ChecklistService {
           isCompleted: false,
           isCustom: false,
           position: i + 1,
+          itemType: refItem.itemType,
         };
 
         const task = await this.pb
@@ -802,6 +807,7 @@ export class ChecklistService {
           isCompleted: false,
           isCustom: false,
           position: positionIndex + 1,
+          itemType: childItem.itemType,
         };
 
         const task = await this.pb

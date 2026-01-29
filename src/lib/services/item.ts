@@ -293,6 +293,8 @@ export class ItemService {
    */
   async create(input: CreateItemInput): Promise<ItemResult> {
     try {
+      console.log('[ItemService.create] Input:', JSON.stringify(input));
+      
       // Validate content
       const contentError = validateContent(input.content);
       if (contentError) {
@@ -382,15 +384,22 @@ export class ItemService {
       }
 
       // Calculate position if not provided
-      let position = input.position ?? 0;
+      // Note: PocketBase has "Nonzero" validation on position field, so we use 1-based indexing
+      let position = input.position ?? 1;
       if (input.position === undefined) {
-        // Get the next position for items at this level
+        // Get the next position for items at this level (1-based)
         const siblings = await this.getItemsByParent(input.templateId, input.parentId ?? null);
-        position = siblings.length;
+        position = siblings.length + 1;
+        console.log('[ItemService.create] Calculated position:', position, 'from', siblings.length, 'siblings (1-based)');
+      } else if (input.position === 0) {
+        // If explicitly passed 0, convert to 1 for PocketBase compatibility
+        position = 1;
+        console.log('[ItemService.create] Converted position 0 to 1 for PocketBase Nonzero validation');
       }
 
       // Generate path
       const path = generatePath(parentPath, position);
+      console.log('[ItemService.create] Generated path:', path);
 
       // Create item data
       const createData: ItemCreate = {
@@ -406,12 +415,17 @@ export class ItemService {
         metadata: input.metadata,
       };
 
+      console.log('[ItemService.create] Creating item with data:', JSON.stringify(createData));
+
       const item = await this.pb
         .collection(Collections.ITEMS)
         .create<Item>(createData);
 
+      console.log('[ItemService.create] Item created successfully:', item.id);
+
       return createSuccessResult(item);
     } catch (err) {
+      console.error('[ItemService.create] Error:', err);
       return createErrorResult(parseError(err));
     }
   }

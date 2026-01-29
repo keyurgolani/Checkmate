@@ -117,6 +117,12 @@ export * from './preferences';
 // Realtime service
 export * from './realtime';
 
+// LLM service
+export * from './llm';
+
+// Web Research service
+export * from './web-research';
+
 // Re-export server-side auth utilities
 export * from '../server-auth';
 export * from '../auth-cookies';

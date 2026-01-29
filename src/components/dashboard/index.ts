@@ -5,3 +5,4 @@
  */
 
 export { DashboardSkeleton, StatCardSkeleton } from './dashboard-skeleton';
+export { AISummary } from './ai-summary';

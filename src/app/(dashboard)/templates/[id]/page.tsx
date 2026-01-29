@@ -11,10 +11,11 @@ import { getServerAuth } from "@/lib/server-auth";
 import { TemplateService } from "@/lib/services/template";
 import { ItemService } from "@/lib/services/item";
 import { CollaborationService } from "@/lib/services/collaboration";
+import { PreferencesService } from "@/lib/services/preferences";
 import { TemplateEditor } from "@/components/templates/template-editor";
 import { notFound } from "next/navigation";
 import { Visibility, PermissionLevel } from "@/lib/pocketbase-types";
-import type { Item } from "@/lib/pocketbase-types";
+import type { Item, LLMSettings } from "@/lib/pocketbase-types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -29,8 +30,10 @@ function formatStepsForEditor(items: Item[]) {
     templateId: item.blueprint,
     parentId: item.parent,
     path: item.path,
-    itemType: item.itemType as "task" | "reference",
+    itemType: item.itemType as "task" | "reference" | "phase",
     content: item.content,
+    description: item.description,
+    resources: item.resources,
     referenceId: item.reference,
     position: item.position,
     metadata: item.metadata,
@@ -47,6 +50,7 @@ export default async function TemplateDetailPage({ params }: PageProps) {
   const templateService = new TemplateService(pb);
   const itemService = new ItemService(pb);
   const collaborationService = new CollaborationService(pb);
+  const preferencesService = new PreferencesService(pb);
 
   // Get the template
   const result = await templateService.getById(id);
@@ -108,6 +112,15 @@ export default async function TemplateDetailPage({ params }: PageProps) {
   const items = await itemService.getByBlueprint(id);
   const formattedSteps = formatStepsForEditor(items);
 
+  // Get user preferences for LLM settings
+  let llmSettings: LLMSettings | null = null;
+  if (isAuthenticated) {
+    const prefsResult = await preferencesService.getPreferences();
+    if (prefsResult.success && prefsResult.preferences?.llmSettings) {
+      llmSettings = prefsResult.preferences.llmSettings;
+    }
+  }
+
   return (
     <div className="space-y-6">
 
@@ -126,11 +139,13 @@ export default async function TemplateDetailPage({ params }: PageProps) {
           version: template.version,
           instanceCount: template.instanceCount,
           questions: template.questions ?? null,
+          resources: template.resources ?? null,
           createdAt: template.created,
           updatedAt: template.updated,
         }}
         steps={formattedSteps}
         canEdit={canEdit}
+        llmSettings={llmSettings}
       />
     </div>
   );

@@ -6,12 +6,46 @@ import PocketBase from 'pocketbase';
 const getServerUrl = () => process.env.POCKETBASE_URL || process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const getClientUrl = () => process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090';
 
+// Track schema initialization
+let schemaInitPromise: Promise<void> | null = null;
+
+/**
+ * Ensures schema is initialized on first server-side PocketBase access.
+ * This is a no-op on the client side.
+ */
+async function ensureSchemaOnFirstAccess(): Promise<void> {
+  // Only run on server side
+  if (typeof window !== 'undefined') return;
+  
+  // Only initialize once
+  if (schemaInitPromise) return schemaInitPromise;
+  
+  schemaInitPromise = (async () => {
+    try {
+      // Dynamic import to avoid circular dependencies
+      const { ensureSchemaInitialized } = await import('./services/schema-init');
+      await ensureSchemaInitialized();
+    } catch (error) {
+      console.error('[PocketBase] Schema initialization error:', error);
+    }
+  })();
+  
+  return schemaInitPromise;
+}
+
 /**
  * Creates a new PocketBase client instance.
  * Uses appropriate URL based on execution context (server vs client).
+ * On first server-side access, ensures schema is initialized.
  */
 export function createPocketBaseClient(): PocketBase {
   const url = typeof window === 'undefined' ? getServerUrl() : getClientUrl();
+  
+  // Trigger schema initialization on first server-side access (non-blocking)
+  if (typeof window === 'undefined') {
+    ensureSchemaOnFirstAccess();
+  }
+  
   return new PocketBase(url);
 }
 

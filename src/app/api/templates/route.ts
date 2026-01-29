@@ -23,6 +23,18 @@ interface CreateTemplateRequestBody {
   category?: string;
   tags?: string[];
   visibility?: Visibility;
+  questions?: Array<{
+    id: string;
+    question: string;
+    answerType: 'boolean' | 'enum';
+    enumOptions?: string[];
+    defaultValue?: boolean | string;
+  }>;
+  resources?: Array<{
+    title: string;
+    url: string;
+    description?: string;
+  }>;
 }
 
 interface TemplateResponse {
@@ -316,6 +328,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<TemplateR
       category: body.category,
       tags: body.tags,
       visibility: body.visibility,
+      questions: body.questions,
+      resources: body.resources,
     });
 
     if (!result.success || !result.template) {

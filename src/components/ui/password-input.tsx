@@ -47,7 +47,7 @@ export function calculatePasswordStrength(password: string): PasswordStrength {
   // Normalize score to 0-4
   const normalizedScore = Math.min(4, Math.floor(score)) as 0 | 1 | 2 | 3 | 4;
 
-  const strengthMap: Record<number, { label: PasswordStrength["label"]; color: string }> = {
+  const strengthMap: Record<0 | 1 | 2 | 3 | 4, { label: PasswordStrength["label"]; color: string }> = {
     0: { label: "Very Weak", color: "bg-red-500" },
     1: { label: "Weak", color: "bg-orange-500" },
     2: { label: "Fair", color: "bg-yellow-500" },
@@ -55,10 +55,12 @@ export function calculatePasswordStrength(password: string): PasswordStrength {
     4: { label: "Very Strong", color: "bg-emerald-500" },
   };
 
+  const strength = strengthMap[normalizedScore];
+
   return {
     score: normalizedScore,
-    label: strengthMap[normalizedScore].label,
-    color: strengthMap[normalizedScore].color,
+    label: strength.label,
+    color: strength.color,
     feedback,
   };
 }

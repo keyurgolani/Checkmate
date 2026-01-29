@@ -195,6 +195,14 @@ const coreCollections: CollectionSchema[] = [
           noDecimal: true,
         },
       },
+      {
+        name: 'resources',
+        type: 'json',
+        required: false,
+        options: {
+          maxSize: 10000,
+        },
+      },
     ],
     // Access rules based on visibility (Requirements 4.1, 4.2, 4.5):
     // - Private: only owner can access
@@ -416,6 +424,22 @@ const supportingCollections: CollectionSchema[] = [
         required: false,
         options: {},
       },
+      {
+        name: 'description',
+        type: 'editor',
+        required: false,
+        options: {
+          convertUrls: false,
+        },
+      },
+      {
+        name: 'resources',
+        type: 'json',
+        required: false,
+        options: {
+          maxSize: 10000,
+        },
+      },
     ],
     // Owner-only access for instances (Requirement 4.1 - private by nature)
     listRule: 'user = @request.auth.id',
@@ -502,6 +526,22 @@ const supportingCollections: CollectionSchema[] = [
         options: {
           min: 0,
           noDecimal: true,
+        },
+      },
+      {
+        name: 'description',
+        type: 'editor',
+        required: false,
+        options: {
+          convertUrls: false,
+        },
+      },
+      {
+        name: 'resources',
+        type: 'json',
+        required: false,
+        options: {
+          maxSize: 10000,
         },
       },
     ],
@@ -752,8 +792,23 @@ async function setupCollections() {
       
       try {
         // Check if collection exists
-        await pb.collections.getOne(collection.name);
-        console.log(`   ℹ️  Collection "${collection.name}" already exists`);
+        const existingInfo = await pb.collections.getOne(collection.name);
+        console.log(`   ℹ️  Collection "${collection.name}" already exists. Checking for updates...`);
+
+        // Update existing collection if needed
+        const existingFieldNames = existingInfo.schema.map((f: { name: string }) => f.name);
+        const newFields = collection.schema.filter(
+          (field) => !existingFieldNames.includes(field.name)
+        );
+
+        if (newFields.length > 0) {
+          await pb.collections.update(existingInfo.id, {
+            schema: [...existingInfo.schema, ...newFields],
+          });
+          console.log(`   ✅ Added ${newFields.length} new fields to "${collection.name}"`);
+        } else {
+           console.log(`   ✨ No new fields to add to "${collection.name}"`);
+        }
       } catch {
         // Collection doesn't exist, create it
         try {
@@ -771,8 +826,23 @@ async function setupCollections() {
       
       try {
         // Check if collection exists
-        await pb.collections.getOne(collection.name);
-        console.log(`   ℹ️  Collection "${collection.name}" already exists`);
+        const existingInfo = await pb.collections.getOne(collection.name);
+        console.log(`   ℹ️  Collection "${collection.name}" already exists. Checking for updates...`);
+        
+        // Update existing collection if needed
+        const existingFieldNames = existingInfo.schema.map((f: { name: string }) => f.name);
+        const newFields = collection.schema.filter(
+          (field) => !existingFieldNames.includes(field.name)
+        );
+
+        if (newFields.length > 0) {
+           await pb.collections.update(existingInfo.id, {
+            schema: [...existingInfo.schema, ...newFields],
+          });
+           console.log(`   ✅ Added ${newFields.length} new fields to "${collection.name}"`);
+        } else {
+            console.log(`   ✨ No new fields to add to "${collection.name}"`);
+        }
       } catch {
         // Collection doesn't exist, create it
         try {

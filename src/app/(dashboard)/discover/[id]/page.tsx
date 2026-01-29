@@ -100,7 +100,7 @@ export default async function TemplateDetailPage({ params }: PageProps) {
     templateId: item.blueprint, // Mapping blueprint to templateId
     parentId: item.parent,
     path: item.path,
-    itemType: item.itemType as "task" | "reference",
+    itemType: item.itemType as "task" | "reference" | "phase",
     content: item.content,
     description: item.description,
     resources: item.resources,
@@ -116,6 +116,7 @@ export default async function TemplateDetailPage({ params }: PageProps) {
     id: template.id,
     title: template.title,
     description: template.description,
+    resources: template.resources,
     visibility: template.visibility,
     category: template.category,
     tags: template.tags,

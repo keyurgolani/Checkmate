@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatTodayDate, cn } from "@/lib/utils";
 import type { ItemMetadata, ResourceLink } from "@/lib/pocketbase-types";
-import type { ItemMetadata } from "@/lib/pocketbase-types";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 // ============================================================================
 // Types
@@ -61,6 +61,7 @@ interface TemplateData {
   id: string;
   title: string;
   description: string | null;
+  resources: ResourceLink[] | null;
   visibility: string;
   category: string | null;
   tags: string[] | null;
@@ -82,7 +83,7 @@ interface ItemData {
   templateId: string; 
   parentId: string | null;
   path: string;
-  itemType: "task" | "reference";
+  itemType: "task" | "reference" | "phase";
   content: string;
   description: string | null;
   resources: ResourceLink[] | null;
@@ -182,8 +183,49 @@ function ItemDisplay({
   children.sort((a, b) => a.position - b.position);
 
   const isReference = item.itemType === "reference";
+  const isPhase = item.itemType === "phase";
   const hasDescription = item.description && item.description.trim().length > 0;
   const hasResources = item.resources && item.resources.length > 0;
+
+  // Phase items render as section headers
+  if (isPhase) {
+    return (
+      <div className="space-y-0.5">
+        <div
+          className={cn(
+            "py-3 px-4 rounded-xl transition-all duration-200",
+            "bg-gradient-to-r from-amber-50 to-amber-25 dark:from-amber-950/40 dark:to-amber-900/20",
+            "border-2 border-amber-300 dark:border-amber-700/60",
+            depth > 0 && "ml-6"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-amber-200 dark:bg-amber-800/60 flex-shrink-0">
+              <ChevronDown className="h-4 w-4 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+            </div>
+            <span className="flex-1 text-base font-semibold text-amber-800 dark:text-amber-200">
+              {item.content}
+            </span>
+            <span className="text-xs text-amber-600/70 dark:text-amber-400/60 uppercase tracking-wider font-medium">
+              Phase
+            </span>
+          </div>
+        </div>
+        {children.length > 0 && (
+          <div className="ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-800/50 space-y-0.5">
+            {children.map((child) => (
+              <ItemDisplay
+                key={child.id}
+                item={child}
+                items={items}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-0.5">
@@ -211,8 +253,10 @@ function ItemDisplay({
           {/* Description */}
           {hasDescription && (
             <div className="ml-7 mt-2 flex items-start gap-2 text-sm text-muted-foreground">
-              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-              <p className="leading-relaxed">{item.description}</p>
+              <Info className="h-3.5 w-3.5 mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <MarkdownRenderer content={item.description!} compact className="text-muted-foreground" />
+              </div>
             </div>
           )}
           
@@ -684,9 +728,34 @@ export function TemplateDetailClient({
                   {template.title}
                 </h1>
                 {template.description && (
-                  <p className="text-muted-foreground mt-1 max-w-2xl">
-                    {template.description}
-                  </p>
+                  <div className="text-muted-foreground mt-2">
+                    <MarkdownRenderer content={template.description} className="text-muted-foreground" />
+                  </div>
+                )}
+                {/* Template Resources */}
+                {template.resources && template.resources.length > 0 && (
+                  <div 
+                    className="flex flex-wrap gap-2 mt-3"
+                    role="list"
+                    aria-label="Template resources"
+                  >
+                    {template.resources.map((resource, idx) => (
+                      <a
+                        key={idx}
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        role="listitem"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1"
+                        title={resource.description || resource.title}
+                        aria-label={`${resource.title}${resource.description ? `: ${resource.description}` : ''} (opens in new tab)`}
+                      >
+                        <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                        <span>{resource.title}</span>
+                        <ExternalLink className="h-3 w-3 opacity-60" aria-hidden="true" />
+                      </a>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -825,7 +894,7 @@ export function TemplateDetailClient({
 
         {/* Copy Template Dialog */}
         <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Copy Template</DialogTitle>
               <DialogDescription>

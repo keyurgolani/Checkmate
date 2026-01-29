@@ -31,8 +31,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Eye, RotateCcw, Check, X, ListChecks } from "lucide-react";
-import type { TemplateQuestion, ConditionAnswers, ItemCondition } from "@/lib/pocketbase-types";
+import type { TemplateQuestion, ConditionAnswers, ItemCondition, ResourceLink } from "@/lib/pocketbase-types";
 import { filterItemsByConditions } from "@/lib/services/condition";
+import { DescriptionPreview } from "@/components/ui/description-preview";
+import { ResourceIndicator } from "@/components/ui/resource-indicator";
 
 // ============================================================================
 // Types
@@ -41,6 +43,8 @@ import { filterItemsByConditions } from "@/lib/services/condition";
 interface PreviewItem {
   id: string;
   content: string;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
   parentId: string | null;
   metadata: {
     conditions?: ItemCondition[];
@@ -70,28 +74,44 @@ interface PreviewItemRowProps {
 function PreviewItemRow({ item, isIncluded, depth }: PreviewItemRowProps) {
   return (
     <div
-      className={`flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all ${
+      className={`flex items-start gap-3 py-2.5 px-3 rounded-xl transition-all ${
         isIncluded
           ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50"
           : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 opacity-60"
       }`}
       style={{ marginLeft: `${depth * 20}px` }}
     >
-      <div className={`p-1 rounded-lg ${isIncluded ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+      <div className={`p-1 rounded-lg mt-0.5 ${isIncluded ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
         {isIncluded ? (
           <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
         ) : (
           <X className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
         )}
       </div>
-      <span className={`text-sm flex-1 ${!isIncluded ? "line-through text-muted-foreground" : ""}`}>
-        {item.content}
-      </span>
-      {item.metadata?.conditions && item.metadata.conditions.length > 0 && (
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 rounded-md">
-          {item.metadata.conditions.length} rule{item.metadata.conditions.length > 1 ? "s" : ""}
-        </Badge>
-      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={`text-sm ${!isIncluded ? "line-through text-muted-foreground" : ""}`}>
+            {item.content}
+          </span>
+          {item.metadata?.conditions && item.metadata.conditions.length > 0 && (
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5 rounded-md">
+              {item.metadata.conditions.length} rule{item.metadata.conditions.length > 1 ? "s" : ""}
+            </Badge>
+          )}
+        </div>
+        
+        {isIncluded && (
+          <>
+            <DescriptionPreview 
+              description={item.description || null} 
+              className="mt-1 text-xs"
+            />
+            <div className="mt-1.5">
+              <ResourceIndicator resources={item.resources} />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -191,7 +211,7 @@ export function TemplatePreview({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl rounded-[var(--radius)] border bg-card/95 backdrop-blur-xl shadow-2xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl rounded-[var(--radius)] border bg-card/95 backdrop-blur-xl shadow-2xl p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">

@@ -13,7 +13,14 @@ RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
 # Create data directory
 RUN mkdir -p /pb/pb_data
 
+# Copy schema file for auto-import
+COPY pb_schema.json /pb/pb_schema.json
+
+# Copy and set up entrypoint script
+COPY entrypoint.sh /pb/entrypoint.sh
+RUN chmod +x /pb/entrypoint.sh
+
 EXPOSE 8090
 
-# Start PocketBase
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090"]
+# Use entrypoint script for automatic setup
+ENTRYPOINT ["/pb/entrypoint.sh"]

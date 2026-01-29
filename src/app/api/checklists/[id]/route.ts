@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/server-auth';
 import { ChecklistService, ChecklistErrorCodes } from '@/lib/services/checklist';
+import type { ResourceLink } from '@/lib/pocketbase-types';
 
 // ============================================================================
 // Types
@@ -18,6 +19,8 @@ import { ChecklistService, ChecklistErrorCodes } from '@/lib/services/checklist'
 
 interface UpdateChecklistRequestBody {
   name?: string;
+  description?: string;
+  resources?: ResourceLink[];
 }
 
 interface ChecklistResponse {
@@ -30,6 +33,8 @@ interface ChecklistResponse {
     isSynced: boolean;
     progress: number;
     completedAt: string | null;
+    description: string | null;
+    resources: ResourceLink[] | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -87,6 +92,8 @@ function formatChecklist(checklist: {
   isSynced: boolean;
   progress: number;
   completedAt: string | null;
+  description: string | null;
+  resources: ResourceLink[] | null;
   created: string;
   updated: string;
 }) {
@@ -98,6 +105,8 @@ function formatChecklist(checklist: {
     isSynced: checklist.isSynced,
     progress: checklist.progress,
     completedAt: checklist.completedAt,
+    description: checklist.description,
+    resources: checklist.resources,
     createdAt: checklist.created,
     updatedAt: checklist.updated,
   };
@@ -333,6 +342,8 @@ export async function PUT(
     // Update the checklist
     const result = await checklistService.update(id, {
       name: body.name?.trim(),
+      description: body.description,
+      resources: body.resources,
     });
 
     if (!result.success || !result.checklist) {

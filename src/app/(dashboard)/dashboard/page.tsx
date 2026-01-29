@@ -2,7 +2,8 @@ import { getServerAuth } from "@/lib/server-auth";
 import { WorkspaceService } from "@/lib/services/workspace";
 import { TemplateService } from "@/lib/services"; // Updated import
 import { ChecklistService } from "@/lib/services/checklist";
-import type { Checklist } from "@/lib/pocketbase-types";
+import { PreferencesService } from "@/lib/services/preferences";
+import type { Checklist, DashboardSummary, LLMSettings } from "@/lib/pocketbase-types";
 import { DashboardView } from "./dashboard-view";
 
 
@@ -20,6 +21,7 @@ export default async function DashboardPage() {
   const workspaceService = new WorkspaceService(pb);
   const templateService = new TemplateService(pb); // Updated service
   const checklistService = new ChecklistService(pb);
+  const preferencesService = new PreferencesService(pb);
 
   // Fetch data
   let totalTemplates = 0; // Renamed
@@ -28,6 +30,8 @@ export default async function DashboardPage() {
   let overallProgress = 0;
   let recentChecklists: Checklist[] = [];
   let templateMap: Map<string, string> = new Map(); // Renamed
+  let llmSettings: LLMSettings | null = null;
+  let cachedSummary: DashboardSummary | null = null;
 
   if (isAuthenticated) {
     // Get user's workspaces
@@ -91,10 +95,20 @@ export default async function DashboardPage() {
                  }
             }
         }
+
+        // Fetch user preferences for LLM settings and cached summary
+        const prefsResult = await preferencesService.getPreferences();
+        if (prefsResult.success && prefsResult.preferences) {
+          llmSettings = prefsResult.preferences.llmSettings || null;
+          cachedSummary = prefsResult.preferences.dashboardSummary || null;
+        }
     } catch (error) {
         console.error("Dashboard data fetch error:", error);
     }
   }
+
+  // Determine if LLM is properly configured
+  const llmConfigured = !!(llmSettings?.provider && llmSettings?.selectedModel);
 
   return (
     <DashboardView 
@@ -107,6 +121,8 @@ export default async function DashboardPage() {
         }}
         recentChecklists={recentChecklists}
         blueprintMap={templateMap} // Passing as blueprintMap for compatibility with view
+        llmConfigured={llmConfigured}
+        cachedSummary={cachedSummary}
     />
   );
 }

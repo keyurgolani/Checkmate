@@ -17,7 +17,13 @@ import { TemplateCard } from "@/components/templates/template-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Compass, Filter, X } from "lucide-react";
+import { Loader2, Search, Compass, Filter, X, ArrowUpDown, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { SearchSuggestion, FilterState, Category, SortOption } from "@/components/search";
 import type { TemplateCardData } from "@/components/templates/template-card";
 
@@ -56,6 +62,13 @@ interface CategoriesResponse {
 }
 
 const POPULAR_TAGS = ["productivity", "travel", "home", "work", "health", "baby", "wedding", "moving"];
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "relevance", label: "Most Relevant" },
+  { value: "popularity", label: "Most Popular" },
+  { value: "rating", label: "Highest Rated" },
+  { value: "date", label: "Most Recent" },
+];
 
 const DEFAULT_FILTERS: FilterState = {
   category: null,
@@ -252,14 +265,14 @@ function DiscoverPageContent() {
         gradient
       />
 
-      {/* Search Input with Filter Button */}
+      {/* Search Input with Sort and Filter Buttons */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="flex flex-col sm:flex-row gap-3"
       >
-        <div className="flex-1 max-w-2xl">
+        <div className="flex-1">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
@@ -270,19 +283,57 @@ function DiscoverPageContent() {
             placeholder="Search templates by title, description, or tags..."
           />
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowMobileFilters(true)}
-          className="sm:w-auto justify-between sm:justify-center gap-2 rounded-xl h-12 px-4"
-        >
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(filters.category || filters.tags.length > 0 || filters.sortBy !== "relevance") && (
-            <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-              {(filters.category ? 1 : 0) + (filters.sortBy !== "relevance" ? 1 : 0) + filters.tags.length}
-            </span>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          {/* Sort Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="sm:w-auto justify-between sm:justify-center gap-2 rounded-xl h-14 px-4 border-2"
+              >
+                <ArrowUpDown className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || "Sort"}
+                </span>
+                <span className="sm:hidden">Sort</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {SORT_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => {
+                    const newFilters = { ...filters, sortBy: option.value };
+                    setFilters(newFilters);
+                    updateUrl(searchQuery, newFilters);
+                    performSearch(searchQuery, newFilters);
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span>{option.label}</span>
+                  {filters.sortBy === option.value && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Filter Button */}
+          <Button
+            variant="outline"
+            onClick={() => setShowMobileFilters(true)}
+            className="sm:w-auto justify-between sm:justify-center gap-2 rounded-xl h-14 px-4 border-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filters</span>
+            {(filters.category || filters.tags.length > 0) && (
+              <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                {(filters.category ? 1 : 0) + filters.tags.length}
+              </span>
+            )}
+          </Button>
+        </div>
       </motion.div>
 
       {/* Filter Dialog */}

@@ -26,6 +26,7 @@ export default async function SettingsPage() {
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
           created: user.created,
+          preferences: user.preferences,
         }}
       />
     </div>

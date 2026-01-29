@@ -20,6 +20,7 @@ export enum Visibility {
 export enum ItemType {
   TASK = 'task',
   REFERENCE = 'reference',
+  PHASE = 'phase',
 }
 
 export enum PermissionLevel {
@@ -69,6 +70,77 @@ export interface UserPreferences {
     email?: boolean;
     inApp?: boolean;
     push?: boolean;
+  };
+  llmSettings?: LLMSettings;
+  dashboardSummary?: DashboardSummary;
+}
+
+// ============================================================================
+// Web Research Provider Types
+// ============================================================================
+
+export enum WebResearchProvider {
+  TAVILY = 'tavily',
+  EXA = 'exa',
+  FIRECRAWL = 'firecrawl',
+  BRAVE = 'brave',
+  SEARXNG = 'searxng',
+}
+
+export interface WebResearchSettings {
+  enabled: boolean;
+  provider: WebResearchProvider | null;
+  apiKey: string | null;
+  /** Base URL for self-hosted providers like SearXNG */
+  baseUrl?: string | null;
+}
+
+// ============================================================================
+// LLM Provider Types
+// ============================================================================
+
+export enum LLMProvider {
+  OLLAMA = 'ollama',
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GEMINI = 'gemini',
+  OPENROUTER = 'openrouter',
+  PERPLEXITY = 'perplexity',
+}
+
+export interface LLMModel {
+  id: string;
+  name: string;
+  provider: LLMProvider;
+}
+
+export interface LLMSettings {
+  provider: LLMProvider | null;
+  apiKey: string | null;
+  baseUrl?: string | null; // For Ollama custom URL
+  selectedModel: string | null;
+  webResearch?: WebResearchSettings | null;
+}
+
+// ============================================================================
+// Dashboard Summary Types
+// ============================================================================
+
+/**
+ * AI-generated dashboard summary with caching metadata
+ */
+export interface DashboardSummary {
+  /** The AI-generated summary text */
+  content: string;
+  /** ISO timestamp when the summary was generated */
+  generatedAt: string;
+  /** Stats snapshot used to generate the summary */
+  statsSnapshot: {
+    totalTemplates: number;
+    activeChecklists: number;
+    completedChecklists: number;
+    overallProgress: number;
+    recentActivity: string[];
   };
 }
 
@@ -252,6 +324,7 @@ export interface Template extends BaseRecord {
   ratingCount: number;
   /** Conditional questions for dynamic template customization */
   questions: TemplateQuestion[] | null;
+  resources: ResourceLink[] | null;
   // Expanded relations
   expand?: {
     workspace?: Workspace;
@@ -272,6 +345,7 @@ export interface TemplateCreate {
   ratingSum?: number;
   ratingCount?: number;
   questions?: TemplateQuestion[];
+  resources?: ResourceLink[];
 }
 
 export interface TemplateUpdate {
@@ -285,6 +359,7 @@ export interface TemplateUpdate {
   ratingSum?: number;
   ratingCount?: number;
   questions?: TemplateQuestion[] | null;
+  resources?: ResourceLink[] | null;
 }
 
 // ============================================================================
@@ -380,6 +455,8 @@ export interface Checklist extends BaseRecord {
   isSynced: boolean;
   progress: number;
   completedAt: string | null;
+  description: string | null;
+  resources: ResourceLink[] | null;
   // Expanded relations
   expand?: {
     blueprint?: Template;
@@ -396,6 +473,8 @@ export interface ChecklistCreate {
   isSynced?: boolean;
   progress?: number;
   completedAt?: string;
+  description?: string;
+  resources?: ResourceLink[];
 }
 
 export interface ChecklistUpdate {
@@ -404,6 +483,8 @@ export interface ChecklistUpdate {
   isSynced?: boolean;
   progress?: number;
   completedAt?: string | null;
+  description?: string | null;
+  resources?: ResourceLink[] | null;
 }
 
 // ============================================================================
@@ -423,6 +504,7 @@ export interface ChecklistItem extends BaseRecord {
   completedAt: string | null;
   isCustom: boolean;
   position: number;
+  itemType: ItemType | null; // Type of item (task, reference, phase)
   // Expanded relations
   expand?: {
     instance?: Checklist;
@@ -443,6 +525,7 @@ export interface ChecklistItemCreate {
   completedAt?: string;
   isCustom?: boolean;
   position: number;
+  itemType?: ItemType;
 }
 
 export interface ChecklistItemUpdate {
@@ -455,6 +538,7 @@ export interface ChecklistItemUpdate {
   completedAt?: string | null;
   isCustom?: boolean;
   position?: number;
+  itemType?: ItemType;
 }
 
 // ============================================================================

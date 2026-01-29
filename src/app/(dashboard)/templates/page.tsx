@@ -15,7 +15,7 @@ import { TemplateList, TemplatesPageHeader, type TemplateCardData } from "@/comp
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileText, LogIn } from "lucide-react";
-import type { Visibility } from "@/lib/pocketbase-types";
+import type { Visibility, LLMSettings } from "@/lib/pocketbase-types";
 
 function UnauthenticatedState() {
   return (
@@ -36,7 +36,7 @@ function UnauthenticatedState() {
 }
 
 export default async function TemplatesPage() {
-  const { isAuthenticated, pb } = await getServerAuth();
+  const { isAuthenticated, pb, user } = await getServerAuth();
 
   if (!isAuthenticated) {
     return <UnauthenticatedState />;
@@ -76,10 +76,23 @@ export default async function TemplatesPage() {
   );
 
   const defaultWorkspaceId = workspaces[0]?.id || "";
+  
+  // Get LLM settings from user preferences
+  const llmSettings: LLMSettings | null = user?.preferences?.llmSettings || null;
+
+  // Map workspaces for the header component
+  const workspaceOptions = workspaces.map((ws) => ({
+    id: ws.id,
+    name: ws.name,
+  }));
 
   return (
     <div className="space-y-8">
-      <TemplatesPageHeader defaultWorkspaceId={defaultWorkspaceId} />
+      <TemplatesPageHeader 
+        defaultWorkspaceId={defaultWorkspaceId}
+        workspaces={workspaceOptions}
+        llmSettings={llmSettings}
+      />
       <TemplateList
         templates={allTemplates}
         emptyMessage="No templates yet"
