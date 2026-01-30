@@ -106,6 +106,10 @@ export enum LLMProvider {
   GEMINI = 'gemini',
   OPENROUTER = 'openrouter',
   PERPLEXITY = 'perplexity',
+  GROQ = 'groq',
+  MISTRAL = 'mistral',
+  DEEPSEEK = 'deepseek',
+  XAI = 'xai',
 }
 
 export interface LLMModel {

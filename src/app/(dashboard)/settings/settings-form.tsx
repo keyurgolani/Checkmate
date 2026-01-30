@@ -396,6 +396,10 @@ export function SettingsForm({ user }: SettingsFormProps) {
                 <SelectItem value="openai">OpenAI</SelectItem>
                 <SelectItem value="anthropic">Anthropic</SelectItem>
                 <SelectItem value="gemini">Google Gemini</SelectItem>
+                <SelectItem value="groq">Groq</SelectItem>
+                <SelectItem value="mistral">Mistral AI</SelectItem>
+                <SelectItem value="deepseek">DeepSeek</SelectItem>
+                <SelectItem value="xai">xAI (Grok)</SelectItem>
                 <SelectItem value="openrouter">OpenRouter</SelectItem>
                 <SelectItem value="perplexity">Perplexity</SelectItem>
               </SelectContent>

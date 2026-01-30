@@ -109,6 +109,10 @@ const PROVIDER_CONFIG: Record<LLMProvider, { name: string; requiresApiKey: boole
   gemini: { name: 'Google Gemini', requiresApiKey: true },
   openrouter: { name: 'OpenRouter', requiresApiKey: true, baseUrl: 'https://openrouter.ai/api/v1' },
   perplexity: { name: 'Perplexity', requiresApiKey: true, baseUrl: 'https://api.perplexity.ai' },
+  groq: { name: 'Groq', requiresApiKey: true, baseUrl: 'https://api.groq.com/openai/v1' },
+  mistral: { name: 'Mistral AI', requiresApiKey: true, baseUrl: 'https://api.mistral.ai/v1' },
+  deepseek: { name: 'DeepSeek', requiresApiKey: true, baseUrl: 'https://api.deepseek.com' },
+  xai: { name: 'xAI (Grok)', requiresApiKey: true, baseUrl: 'https://api.x.ai/v1' },
 };
 
 // ============================================================================
@@ -155,6 +159,30 @@ function getProviderClient(settings: LLMSettings): (modelId: string) => Language
       return createOpenAICompatible({
         name: 'perplexity',
         baseURL: 'https://api.perplexity.ai',
+        apiKey: apiKey || '',
+      }) as unknown as (modelId: string) => LanguageModel;
+    case 'groq':
+      return createOpenAICompatible({
+        name: 'groq',
+        baseURL: 'https://api.groq.com/openai/v1',
+        apiKey: apiKey || '',
+      }) as unknown as (modelId: string) => LanguageModel;
+    case 'mistral':
+      return createOpenAICompatible({
+        name: 'mistral',
+        baseURL: 'https://api.mistral.ai/v1',
+        apiKey: apiKey || '',
+      }) as unknown as (modelId: string) => LanguageModel;
+    case 'deepseek':
+      return createOpenAICompatible({
+        name: 'deepseek',
+        baseURL: 'https://api.deepseek.com',
+        apiKey: apiKey || '',
+      }) as unknown as (modelId: string) => LanguageModel;
+    case 'xai':
+      return createOpenAICompatible({
+        name: 'xai',
+        baseURL: 'https://api.x.ai/v1',
         apiKey: apiKey || '',
       }) as unknown as (modelId: string) => LanguageModel;
     default:
@@ -366,6 +394,105 @@ export class LLMService {
             { id: 'sonar-reasoning-pro', name: 'Sonar Reasoning Pro', provider },
             { id: 'sonar-reasoning', name: 'Sonar Reasoning', provider },
           ];
+          break;
+        }
+        case 'groq': {
+          // Groq has an OpenAI-compatible models endpoint
+          const response = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) {
+            // Fallback to known models if API fails
+            console.warn('Failed to fetch Groq models, using fallback list');
+            models = [
+              { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Versatile', provider },
+              { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant', provider },
+              { id: 'llama3-70b-8192', name: 'Llama 3 70B', provider },
+              { id: 'llama3-8b-8192', name: 'Llama 3 8B', provider },
+              { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', provider },
+              { id: 'gemma2-9b-it', name: 'Gemma 2 9B', provider },
+            ];
+          } else {
+            const data = await response.json();
+            models = (data.data || [])
+              .filter((m: { id: string; active?: boolean }) => m.active !== false)
+              .map((m: { id: string }) => ({ id: m.id, name: m.id, provider }))
+              .sort((a: LLMModel, b: LLMModel) => a.id.localeCompare(b.id));
+          }
+          break;
+        }
+        case 'mistral': {
+          // Mistral has a models endpoint
+          const response = await fetch('https://api.mistral.ai/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) {
+            // Fallback to known models if API fails
+            console.warn('Failed to fetch Mistral models, using fallback list');
+            models = [
+              { id: 'mistral-large-latest', name: 'Mistral Large', provider },
+              { id: 'mistral-medium-latest', name: 'Mistral Medium', provider },
+              { id: 'mistral-small-latest', name: 'Mistral Small', provider },
+              { id: 'open-mixtral-8x22b', name: 'Mixtral 8x22B', provider },
+              { id: 'open-mixtral-8x7b', name: 'Mixtral 8x7B', provider },
+              { id: 'codestral-latest', name: 'Codestral', provider },
+            ];
+          } else {
+            const data = await response.json();
+            models = (data.data || [])
+              .map((m: { id: string; name?: string }) => ({ 
+                id: m.id, 
+                name: m.name || m.id, 
+                provider 
+              }))
+              .sort((a: LLMModel, b: LLMModel) => a.id.localeCompare(b.id));
+          }
+          break;
+        }
+        case 'deepseek': {
+          // DeepSeek has an OpenAI-compatible models endpoint
+          const response = await fetch('https://api.deepseek.com/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) {
+            // Fallback to known models if API fails
+            console.warn('Failed to fetch DeepSeek models, using fallback list');
+            models = [
+              { id: 'deepseek-chat', name: 'DeepSeek Chat', provider },
+              { id: 'deepseek-coder', name: 'DeepSeek Coder', provider },
+              { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', provider },
+            ];
+          } else {
+            const data = await response.json();
+            models = (data.data || [])
+              .map((m: { id: string }) => ({ id: m.id, name: m.id, provider }))
+              .sort((a: LLMModel, b: LLMModel) => a.id.localeCompare(b.id));
+          }
+          break;
+        }
+        case 'xai': {
+          // xAI has an OpenAI-compatible models endpoint
+          const response = await fetch('https://api.x.ai/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) {
+            // Fallback to known models if API fails
+            console.warn('Failed to fetch xAI models, using fallback list');
+            models = [
+              { id: 'grok-2-latest', name: 'Grok 2', provider },
+              { id: 'grok-2-mini', name: 'Grok 2 Mini', provider },
+              { id: 'grok-beta', name: 'Grok Beta', provider },
+            ];
+          } else {
+            const data = await response.json();
+            models = (data.data || [])
+              .map((m: { id: string; name?: string }) => ({ 
+                id: m.id, 
+                name: m.name || m.id, 
+                provider 
+              }))
+              .sort((a: LLMModel, b: LLMModel) => a.id.localeCompare(b.id));
+          }
           break;
         }
       }
