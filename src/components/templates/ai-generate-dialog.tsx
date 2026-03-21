@@ -36,6 +36,7 @@ import type { LLMSettings } from "@/lib/pocketbase-types";
 import type { GeneratedTemplate, GeneratedTemplateItem } from "@/lib/services/llm";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { llmClient } from '@/lib/services/llm-client';
+import TICKER_IDEAS from "@/lib/ticker-ideas";
 
 // ============================================================================
 // Types
@@ -119,6 +120,16 @@ export function AIGenerateDialog({
   const [createdTemplateId, setCreatedTemplateId] = React.useState<string | null>(null);
   const [questionsExpanded, setQuestionsExpanded] = React.useState(false);
   const [generationStage, setGenerationStage] = React.useState(0);
+  const [tickerIndex, setTickerIndex] = React.useState(() => Math.floor(Math.random() * TICKER_IDEAS.length));
+
+  // Cycle through ticker ideas every 5 seconds during generation
+  React.useEffect(() => {
+    if (step !== "generating") return;
+    const interval = setInterval(() => {
+      setTickerIndex((prev) => (prev + 1) % TICKER_IDEAS.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [step]);
 
   // Progress through generation stages with decelerating timing
   React.useEffect(() => {
@@ -625,6 +636,23 @@ export function AIGenerateDialog({
                 <p className="text-sm text-muted-foreground">
                   This may take a moment
                 </p>
+              </div>
+
+              {/* Idea ticker */}
+              <div className="w-full max-w-md mt-6 px-4 min-h-[4.5rem] flex items-center justify-center">
+                {TICKER_IDEAS[tickerIndex] && (
+                  <div
+                    key={tickerIndex}
+                    className="text-center animate-ticker-fade"
+                  >
+                    <p className="text-sm font-medium text-foreground/80">
+                      {TICKER_IDEAS[tickerIndex].title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {TICKER_IDEAS[tickerIndex].pitch}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Fake progress bar */}
