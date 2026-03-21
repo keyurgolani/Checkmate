@@ -47,30 +47,13 @@ export async function POST(): Promise<NextResponse<SignOutResponse>> {
 }
 
 /**
- * GET handler for sign out - clears cookie and redirects to signin
- * This allows using a simple link for sign out
+ * GET handler for sign out - returns method not allowed.
+ * Sign out must use POST to prevent accidental cookie clearing via
+ * link prefetching or crawlers following links.
  */
-export async function GET(request: Request): Promise<NextResponse> {
-  // Get the origin from headers (respects X-Forwarded-Host/Proto from reverse proxy)
-  // or fall back to NEXT_PUBLIC_APP_URL, or use request URL as last resort
-  const headers = new Headers(request.headers);
-  const forwardedHost = headers.get('x-forwarded-host');
-  const forwardedProto = headers.get('x-forwarded-proto') || 'http';
-  const host = headers.get('host');
-  
-  let origin: string;
-  if (forwardedHost) {
-    origin = `${forwardedProto}://${forwardedHost}`;
-  } else if (process.env.NEXT_PUBLIC_APP_URL) {
-    origin = process.env.NEXT_PUBLIC_APP_URL;
-  } else if (host) {
-    origin = `http://${host}`;
-  } else {
-    origin = new URL(request.url).origin;
-  }
-  
-  const redirectUrl = new URL('/signin', origin);
-  const response = NextResponse.redirect(redirectUrl);
-  response.cookies.delete('pb_auth');
-  return response;
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST to sign out.' },
+    { status: 405 }
+  );
 }

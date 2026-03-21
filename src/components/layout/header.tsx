@@ -11,7 +11,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LogOut,
   Settings,
@@ -20,6 +20,8 @@ import {
   ListChecks,
   FolderKanban,
   Search,
+  Loader2,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,11 +49,24 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+      router.push("/signin");
+      router.refresh();
+    } catch {
+      window.location.href = "/signin";
+    }
+  };
 
   const isAuthenticated = !!user;
   const initials = user?.name
@@ -80,6 +95,12 @@ export function Header({ user }: HeaderProps) {
       title: "Checklists",
       href: "/checklists",
       icon: ListChecks,
+      requiresAuth: true,
+    },
+    {
+      title: "Reports",
+      href: "/reports",
+      icon: BarChart3,
       requiresAuth: true,
     },
     {
@@ -189,16 +210,16 @@ export function Header({ user }: HeaderProps) {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    asChild
-                    className="rounded-lg text-destructive focus:text-destructive"
+                    className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
+                    onClick={handleSignOut}
+                    disabled={signingOut}
                   >
-                    <Link
-                      href="/api/auth/signout"
-                      className="flex items-center"
-                    >
+                    {signingOut ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
                       <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
-                    </Link>
+                    )}
+                    {signingOut ? "Signing out..." : "Sign out"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

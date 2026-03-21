@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,11 +26,24 @@ interface DesktopNavControlsProps {
 }
 
 export function DesktopNavControls({ user }: DesktopNavControlsProps) {
+  const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
-  
+  const [signingOut, setSigningOut] = React.useState(false);
+
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+      router.push("/signin");
+      router.refresh();
+    } catch {
+      window.location.href = "/signin";
+    }
+  };
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -83,11 +97,17 @@ export function DesktopNavControls({ user }: DesktopNavControlsProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10">
-              <Link href="/api/auth/signout" className="flex items-center cursor-pointer">
+            <DropdownMenuItem
+              className="rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              {signingOut ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </Link>
+              )}
+              {signingOut ? "Signing out..." : "Sign out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

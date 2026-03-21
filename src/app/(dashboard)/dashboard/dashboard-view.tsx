@@ -191,15 +191,17 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap, llm
             />
         </Link>
         
-        <motion.div variants={item} className="col-span-1 lg:col-span-3 rounded-[var(--radius)] bg-secondary/10 border-[length:var(--border-width,1px)] border-secondary/20 dark:border-secondary/30 p-6 flex flex-row items-center justify-between gap-3 group cursor-pointer hover:bg-secondary/20 transition-colors card" data-slot="card">
-            <div className="flex flex-col gap-1">
-                <div className="font-bold text-lg">View Reports</div>
-                <div className="text-sm text-muted-foreground">Analyze your productivity trends</div>
-            </div>
-            <div className="p-4 rounded-xl bg-secondary/20 group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-6 h-6 text-secondary" />
-            </div>
-        </motion.div>
+        <Link href="/reports" className="contents">
+          <motion.div variants={item} className="col-span-1 lg:col-span-3 rounded-[var(--radius)] bg-secondary/10 border-[length:var(--border-width,1px)] border-secondary/20 dark:border-secondary/30 p-6 flex flex-row items-center justify-between gap-3 group cursor-pointer hover:bg-secondary/20 transition-colors card" data-slot="card">
+              <div className="flex flex-col gap-1">
+                  <div className="font-bold text-lg">View Reports</div>
+                  <div className="text-sm text-muted-foreground">Analyze your productivity trends</div>
+              </div>
+              <div className="p-4 rounded-xl bg-secondary/20 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-secondary" />
+              </div>
+          </motion.div>
+        </Link>
       </div>
 
       {/* Recent Activity Section */}

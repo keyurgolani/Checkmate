@@ -22,6 +22,7 @@ import {
   FolderKanban,
   LogIn,
   UserPlus,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoLink } from "@/components/ui/logo";
@@ -47,6 +48,7 @@ const authenticatedNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
   { title: "Templates", href: "/templates", icon: FileText, requiresAuth: true },
   { title: "Checklists", href: "/checklists", icon: ListChecks, requiresAuth: true },
+  { title: "Reports", href: "/reports", icon: BarChart3, requiresAuth: true },
   { title: "Workspaces", href: "/workspaces", icon: FolderKanban, requiresAuth: true },
   { title: "Discover", href: "/discover", icon: Search, requiresAuth: false },
 ];
