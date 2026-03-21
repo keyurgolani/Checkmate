@@ -454,6 +454,36 @@
   animation: fade-out var(--duration-fast, 0.2s) ease-out;
 }
 
+/* Progress bar glow animation */
+@keyframes progress-glow {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-progress-glow {
+  animation: progress-glow 2s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent 100%
+  );
+}
+
 @media print {
   header, nav, aside, .no-print {
     display: none !important;

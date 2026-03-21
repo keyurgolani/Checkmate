@@ -183,13 +183,12 @@ export function ChecklistCard({
           </div>
           <div className="relative">
             <Progress value={progress} size="sm" isComplete={isComplete} />
-            {/* Shimmer effect */}
             {!isComplete && progress > 0 && (
               <div
                 className="absolute inset-0 overflow-hidden rounded-full"
                 style={{ width: `${progress}%` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                <div className="absolute inset-0 animate-progress-glow" />
               </div>
             )}
           </div>

@@ -39,6 +39,9 @@ COPY . .
 # Disable Next.js telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Enable standalone output for Docker builds
+ENV DOCKER_BUILD=true
+
 # Build the application with standalone output
 RUN npm run build
 

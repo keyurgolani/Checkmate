@@ -25,7 +25,7 @@ export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "md" | "lg";
   /** Whether to show the progress as complete (green color) */
   isComplete?: boolean;
-  /** Whether to show an animated stripe pattern */
+  /** Whether to show a glowing animation effect */
   animated?: boolean;
   /** Custom color class for the progress indicator */
   indicatorClassName?: string;
@@ -75,7 +75,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuemax={100}
         aria-label={ariaLabel || `Progress: ${Math.round(clampedValue)}%`}
         className={cn(
-          "w-full overflow-hidden rounded-full bg-secondary/20",
+          "relative w-full overflow-hidden rounded-full bg-secondary/20",
           sizeClasses[size],
           className
         )}
@@ -85,11 +85,18 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           className={cn(
             "h-full rounded-full transition-all duration-300 ease-in-out",
             indicatorColor,
-            animated && "animate-progress-stripe",
             indicatorClassName
           )}
           style={{ width: `${clampedValue}%` }}
         />
+        {animated && clampedValue > 0 && (
+          <div
+            className="absolute inset-0 rounded-full overflow-hidden"
+            style={{ width: `${clampedValue}%` }}
+          >
+            <div className="animate-progress-glow absolute inset-0 rounded-full" />
+          </div>
+        )}
       </div>
     );
   }

@@ -520,12 +520,7 @@ export function ChecklistDetailClient({
                 )}
               >
                 {!isComplete && (
-                  <div className="absolute inset-0 bg-white/20 w-full h-full animate-shimmer"
-                    style={{
-                      backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,0.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.15) 75%,transparent 75%,transparent)',
-                      backgroundSize: '1rem 1rem'
-                    }}
-                  />
+                  <div className="absolute inset-0 animate-progress-glow" />
                 )}
               </motion.div>
             </div>

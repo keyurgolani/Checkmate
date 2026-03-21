@@ -637,7 +637,7 @@ export function AIGenerateDialog({
                       transition: 'width 2s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                   >
-                    <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                    <div className="absolute inset-0 animate-progress-glow" />
                   </div>
                 </div>
               </div>

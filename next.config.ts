@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable standalone output for optimized Docker production builds
-  // This creates a self-contained build with only necessary dependencies
-  output: "standalone",
+  // output: "standalone" is used for Docker builds only
+  // Vercel handles its own build output automatically
+  ...(process.env.DOCKER_BUILD === "true" ? { output: "standalone" as const } : {}),
 };
 
 export default nextConfig;
