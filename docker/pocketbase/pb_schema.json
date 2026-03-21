@@ -653,6 +653,7 @@
             "collaboration_revoked",
             "blueprint_updated",
             "instance_reminder",
+            "access_request",
             "system"
           ]
         }

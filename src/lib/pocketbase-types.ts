@@ -33,8 +33,8 @@ export enum NotificationType {
   COLLABORATION_INVITE = 'collaboration_invite',
   COLLABORATION_ACCEPTED = 'collaboration_accepted',
   COLLABORATION_REVOKED = 'collaboration_revoked',
-  TEMPLATE_UPDATED = 'template_updated',
-  CHECKLIST_REMINDER = 'checklist_reminder',
+  BLUEPRINT_UPDATED = 'blueprint_updated',
+  INSTANCE_REMINDER = 'instance_reminder',
   ACCESS_REQUEST = 'access_request',
   SYSTEM = 'system',
 }

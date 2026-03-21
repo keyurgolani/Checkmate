@@ -39,15 +39,21 @@ import { NotificationCenterClient } from "@/components/notifications";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
 
+interface PbAuthData {
+  token: string;
+  model: { id: string; collectionId: string; collectionName: string; [key: string]: unknown };
+}
+
 interface HeaderProps {
   user?: {
     name?: string;
     email?: string;
     avatarUrl?: string;
   } | null;
+  pbAuth?: PbAuthData | null;
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, pbAuth }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
@@ -165,7 +171,7 @@ export function Header({ user }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {user && <NotificationCenterClient />}
+          {user && <NotificationCenterClient pbAuth={pbAuth} />}
           <ThemeToggle />
 
           {user ? (

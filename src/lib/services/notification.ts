@@ -339,6 +339,7 @@ export class NotificationService {
         .getList<Notification>(options?.page || 1, options?.perPage || 20, {
           filter,
           sort: '-created',
+          requestKey: 'notifications-list',
         });
 
       return {
@@ -503,6 +504,7 @@ export class NotificationService {
         .collection(Collections.NOTIFICATIONS)
         .getList<Notification>(1, 1, {
           filter: `user = "${currentUserId}" && isRead = false`,
+          requestKey: 'notifications-unread-count',
         });
 
       return { count: result.totalItems, error: null };

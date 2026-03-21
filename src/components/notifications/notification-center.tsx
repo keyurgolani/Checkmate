@@ -94,6 +94,8 @@ export function NotificationCenter({
     try {
       await onAccept(notificationId, collaboratorId);
       announce("Invitation accepted");
+    } catch {
+      announce("Failed to accept invitation");
     } finally {
       setActionLoading(null);
     }
@@ -300,7 +302,7 @@ function NotificationItem({
               className="h-7 px-2.5 text-xs rounded-lg"
               onClick={() => onAccept(notification.data?.collaboratorId as string)}
               disabled={isLoading}
-              aria-label={`Accept invitation to ${notification.data?.templateTitle}`}
+              aria-label={`Accept invitation to ${notification.data?.blueprintTitle || notification.data?.templateTitle}`}
             >
               {isLoading && (isLoading as any) === `accept-${notification.id}` ? (
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -399,7 +401,7 @@ function getNotificationIcon(type: NotificationType): React.ReactNode {
           <line x1="22" x2="17" y1="8" y2="13" />
         </svg>
       );
-    case NotificationType.TEMPLATE_UPDATED:
+    case NotificationType.BLUEPRINT_UPDATED:
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
@@ -408,11 +410,18 @@ function getNotificationIcon(type: NotificationType): React.ReactNode {
           <path d="m9 15 3-3 3 3" />
         </svg>
       );
-    case NotificationType.CHECKLIST_REMINDER:
+    case NotificationType.INSTANCE_REMINDER:
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case NotificationType.ACCESS_REQUEST:
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
       );
     case NotificationType.SYSTEM:

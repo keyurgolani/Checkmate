@@ -17,15 +17,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationCenterClient } from "@/components/notifications";
 
+interface PbAuthData {
+  token: string;
+  model: { id: string; collectionId: string; collectionName: string; [key: string]: unknown };
+}
+
 interface DesktopNavControlsProps {
   user?: {
     name?: string;
     email?: string;
     avatarUrl?: string;
   } | null;
+  pbAuth?: PbAuthData | null;
 }
 
-export function DesktopNavControls({ user }: DesktopNavControlsProps) {
+export function DesktopNavControls({ user, pbAuth }: DesktopNavControlsProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
@@ -65,7 +71,7 @@ export function DesktopNavControls({ user }: DesktopNavControlsProps) {
 
   return (
     <div className="flex items-center gap-2 p-1.5 rounded-[var(--radius)] border border-border/40 bg-background/95 backdrop-blur-md shadow-sm transition-all hover:bg-background hover:shadow-md hover:border-border/60 overflow-hidden">
-      <NotificationCenterClient />
+      <NotificationCenterClient pbAuth={pbAuth} />
       <ThemeToggle />
       
       <div className="h-4 w-px bg-border/50 mx-1" />

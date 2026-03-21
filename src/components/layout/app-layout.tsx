@@ -15,6 +15,11 @@ import { Header } from "./header";
 import { SkipLink } from "@/components/ui/skip-link";
 import type { Workspace } from "@/lib/pocketbase-types";
 
+interface PbAuthData {
+  token: string;
+  model: { id: string; collectionId: string; collectionName: string; [key: string]: unknown };
+}
+
 interface AppLayoutProps {
   children: React.ReactNode;
   user?: {
@@ -23,9 +28,10 @@ interface AppLayoutProps {
     avatarUrl?: string;
   } | null;
   workspaces?: Workspace[];
+  pbAuth?: PbAuthData | null;
 }
 
-export function AppLayout({ children, user }: AppLayoutProps) {
+export function AppLayout({ children, user, pbAuth }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background relative">
       {/* Skip links for keyboard navigation - Requirements: 13.2 */}
@@ -42,7 +48,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
       >
         {/* Header (Visible on Desktop and Mobile) */}
         <div>
-            <Header user={user} />
+            <Header user={user} pbAuth={pbAuth} />
         </div>
         
         {/* Main content with landmark role and id for skip link target */}

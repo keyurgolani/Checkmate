@@ -8,13 +8,22 @@ import { useNotificationChanges } from "@/lib/hooks/use-realtime";
 import { getPocketBaseClient } from "@/lib/pocketbase";
 import type { Notification } from "@/lib/pocketbase-types";
 
+interface PbAuthData {
+  token: string;
+  model: { id: string; collectionId: string; collectionName: string; [key: string]: unknown };
+}
+
+interface NotificationCenterClientProps {
+  pbAuth?: PbAuthData | null;
+}
+
 /**
  * Client-side wrapper for NotificationCenter that handles data fetching
  * and state management with realtime updates.
- * 
+ *
  * Requirements: 10.5, 12.4
  */
-export function NotificationCenterClient() {
+export function NotificationCenterClient({ pbAuth }: NotificationCenterClientProps) {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -23,13 +32,16 @@ export function NotificationCenterClient() {
   const notificationService = React.useMemo(() => getNotificationService(), []);
   const collaborationService = React.useMemo(() => getCollaborationService(), []);
 
-  // Get current user ID for realtime subscription
+  // Hydrate client-side PocketBase auth from server-provided data
   React.useEffect(() => {
     const pb = getPocketBaseClient();
-    if (pb.authStore.isValid && pb.authStore.model) {
-      setUserId(pb.authStore.model.id);
+    if (pbAuth?.token && pbAuth?.model) {
+      pb.authStore.save(pbAuth.token, pbAuth.model);
     }
-  }, []);
+    if (pb.authStore.isValid && pb.authStore.record) {
+      setUserId(pb.authStore.record.id);
+    }
+  }, [pbAuth]);
 
   const fetchNotifications = React.useCallback(async () => {
     setIsLoading(true);
@@ -53,10 +65,12 @@ export function NotificationCenterClient() {
     }
   }, [notificationService]);
 
-  // Initial fetch
+  // Initial fetch - only after auth is hydrated
   React.useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    if (userId) {
+      fetchNotifications();
+    }
+  }, [userId, fetchNotifications]);
 
   // Subscribe to realtime notification updates
   // Requirements: 12.4
@@ -78,27 +92,24 @@ export function NotificationCenterClient() {
         }
       } else if (event.action === 'update') {
         // Notification updated (e.g., marked as read)
+        // Only update the notification record; count is managed by local handlers
+        // to avoid race conditions with optimistic updates
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === event.record.id ? event.record : n
           )
         );
-        // Recalculate unread count if read status changed
-        setNotifications((prev) => {
-          const newUnreadCount = prev.filter((n) => !n.isRead).length;
-          setUnreadCount(newUnreadCount);
-          return prev;
-        });
       } else if (event.action === 'delete') {
-        // Notification deleted
-        const deletedNotification = notifications.find((n) => n.id === event.record.id);
-        setNotifications((prev) => prev.filter((n) => n.id !== event.record.id));
-        // Decrement unread count if deleted notification was unread
-        if (deletedNotification && !deletedNotification.isRead) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+        // Notification deleted - use state updater to avoid stale closure
+        setNotifications((prev) => {
+          const deletedNotification = prev.find((n) => n.id === event.record.id);
+          if (deletedNotification && !deletedNotification.isRead) {
+            setUnreadCount((c) => Math.max(0, c - 1));
+          }
+          return prev.filter((n) => n.id !== event.record.id);
+        });
       }
-    }, [notifications])
+    }, [])
   );
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -137,12 +148,13 @@ export function NotificationCenterClient() {
   const handleAcceptInvitation = async (notificationId: string, collaboratorId: string) => {
     // Accept the invitation
     const result = await collaborationService.acceptInvitation(collaboratorId);
-    
-    if (result.success) {
-      // Mark notification as read
-      await handleMarkAsRead(notificationId);
-      // Optional: Refresh notifications to show updated state or navigate to template (handled by UI if needed)
+
+    if (!result.success) {
+      throw new Error(result.error?.message || 'Failed to accept invitation');
     }
+
+    // Mark notification as read on success
+    await handleMarkAsRead(notificationId);
   };
 
   return (

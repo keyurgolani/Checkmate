@@ -266,10 +266,11 @@ export const notificationTypeArb = fc.constantFrom(
   'collaboration_invite',
   'collaboration_accepted',
   'collaboration_revoked',
-  'template_updated',
-  'checklist_reminder',
+  'blueprint_updated',
+  'instance_reminder',
+  'access_request',
   'system'
-) as fc.Arbitrary<'collaboration_invite' | 'collaboration_accepted' | 'collaboration_revoked' | 'template_updated' | 'checklist_reminder' | 'system'>;
+) as fc.Arbitrary<'collaboration_invite' | 'collaboration_accepted' | 'collaboration_revoked' | 'blueprint_updated' | 'instance_reminder' | 'access_request' | 'system'>;
 
 /**
  * Resource type generator
