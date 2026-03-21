@@ -4,7 +4,8 @@
  * Import Dialog Component
  *
  * Provides import functionality for templates with file upload.
- * Supports JSON, CSV, and Markdown formats with auto-detection.
+ * Only JSON format is supported for import. CSV and Markdown exports
+ * are for personal use only and cannot be re-imported.
  *
  * Requirements: 11.3
  */
@@ -25,8 +26,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Upload,
   FileJson,
-  FileSpreadsheet,
-  FileText,
   Loader2,
   Check,
   AlertCircle,
@@ -39,7 +38,7 @@ import { useRouter } from "next/navigation";
 // Types
 // ============================================================================
 
-export type ImportFormat = "json" | "csv" | "markdown";
+export type ImportFormat = "json";
 
 interface ImportDialogProps {
   workspaceId: string;
@@ -68,19 +67,9 @@ const FORMAT_INFO: Record<
     icon: FileJson,
     extensions: [".json"],
   },
-  csv: {
-    label: "CSV",
-    icon: FileSpreadsheet,
-    extensions: [".csv"],
-  },
-  markdown: {
-    label: "Markdown",
-    icon: FileText,
-    extensions: [".md", ".markdown"],
-  },
 };
 
-const ACCEPTED_EXTENSIONS = [".json", ".csv", ".md", ".markdown"];
+const ACCEPTED_EXTENSIONS = [".json"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // ============================================================================
@@ -96,8 +85,6 @@ function formatFileSize(bytes: number): string {
 function detectFormatFromExtension(filename: string): ImportFormat | null {
   const ext = filename.toLowerCase().slice(filename.lastIndexOf("."));
   if (ext === ".json") return "json";
-  if (ext === ".csv") return "csv";
-  if (ext === ".md" || ext === ".markdown") return "markdown";
   return null;
 }
 
@@ -333,7 +320,7 @@ export function ImportDialog({
                     fileInputRef.current?.click();
                   }
                 }}
-                aria-label="Drop a file here or click to browse. Supports JSON, CSV, and Markdown files"
+                aria-label="Drop a file here or click to browse. Supports JSON files"
               >
                 <input
                   ref={fileInputRef}
@@ -350,7 +337,7 @@ export function ImportDialog({
                   Drop a file here or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supports JSON, CSV, and Markdown (max {formatFileSize(MAX_FILE_SIZE)})
+                  Supports JSON format (max {formatFileSize(MAX_FILE_SIZE)})
                 </p>
               </div>
             ) : (
@@ -408,27 +395,19 @@ export function ImportDialog({
 
             {/* Supported Formats Info */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium" id="supported-formats-label">Supported Formats</Label>
-              <div className="grid grid-cols-3 gap-2" role="list" aria-labelledby="supported-formats-label">
-                {Object.entries(FORMAT_INFO).map(([format, info]) => {
-                  const Icon = info.icon;
-                  return (
-                    <div
-                      key={format}
-                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/30 border text-center"
-                      role="listitem"
-                    >
-                      <div className="p-1.5 rounded-lg bg-background">
-                        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                      <span className="text-xs font-medium">{info.label}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {info.extensions.join(", ")}
-                      </span>
-                    </div>
-                  );
-                })}
+              <Label className="text-sm font-medium" id="supported-formats-label">Supported Format</Label>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border" role="region" aria-labelledby="supported-formats-label">
+                <div className="p-1.5 rounded-lg bg-background">
+                  <FileJson className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <div>
+                  <span className="text-xs font-medium">JSON</span>
+                  <span className="text-[10px] text-muted-foreground ml-2">.json</span>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                CSV and Markdown exports are for personal use and cannot be re-imported.
+              </p>
             </div>
           </div>
         </ScrollArea>

@@ -1,8 +1,8 @@
 /**
  * Template Import API Route
- * 
- * POST /api/templates/import - Import a template from various formats
- * 
+ *
+ * POST /api/templates/import - Import a template from JSON format
+ *
  * Requirements: 11.3
  */
 
@@ -16,7 +16,7 @@ import type { ExportFormat } from '@/lib/services/export';
 // ============================================================================
 
 interface ImportRequestBody {
-  /** The import data (JSON, CSV, or Markdown string) */
+  /** The import data (JSON string) */
   data: string;
   /** Workspace ID to import into */
   workspaceId: string;
@@ -68,15 +68,15 @@ function getStatusCodeForError(errorCode: string | undefined): number {
 // ============================================================================
 
 /**
- * Import a template from data in various formats
- * 
+ * Import a template from JSON format
+ *
  * Request body:
- * - data: The import data (JSON, CSV, or Markdown string)
+ * - data: The import data (JSON string)
  * - workspaceId: Workspace ID to import into
- * - format: Import format ('json', 'csv', 'markdown') - auto-detected if not specified
+ * - format: Must be 'json' if specified (only JSON import is supported)
  * - title: Override title (optional)
  * - description: Override description (optional)
- * 
+ *
  * Requirements: 11.3
  */
 export async function POST(
@@ -147,20 +147,23 @@ export async function POST(
       );
     }
 
-    // Validate format if specified
-    if (body.format && !['json', 'csv', 'markdown'].includes(body.format)) {
+    // Only JSON import is supported
+    if (body.format && body.format !== 'json') {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: ImportErrorCodes.INVALID_FORMAT,
-            message: `Invalid import format: ${body.format}. Must be one of: json, csv, markdown`,
+            message: `Only JSON import is supported. CSV and Markdown exports are for personal use only.`,
             timestamp: new Date().toISOString(),
           },
         },
         { status: 400 }
       );
     }
+
+    // Force JSON format
+    body.format = 'json';
 
     // Create export service with authenticated client
     const exportService = new ExportService(pb);

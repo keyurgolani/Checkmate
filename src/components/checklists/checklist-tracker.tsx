@@ -5,6 +5,7 @@
  *
  * Displays tasks with checkboxes for tracking completion.
  * Supports nested tasks with proper indentation up to 5 levels deep.
+ * Supports context menus and multi-select with bulk actions.
  *
  * Requirements: 6.1, 7.1, 13.2, 13.3, 13.4
  * - Display tasks with checkboxes
@@ -16,10 +17,12 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { Check, ChevronRight, ChevronDown, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers } from "lucide-react";
+import { Check, ChevronRight, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers } from "lucide-react";
+import { buildTree, type TreeNode } from "@/lib/utils/tree";
 import { cn } from "@/lib/utils";
 import { LiveRegion, useStatusAnnouncer } from "@/components/ui/live-region";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { ResourceLink } from "@/lib/pocketbase-types";
 
 // ============================================================================
@@ -46,62 +49,17 @@ export interface ChecklistTrackerProps {
   tasks: ChecklistTask[];
   onToggleTask: (taskId: string) => Promise<void>;
   disabled?: boolean;
+  /** Context menu items for task items */
+  contextMenuItems?: ContextMenuItemConfig<ChecklistTask>[];
+  /** Selection mode props */
+  isSelectionMode?: boolean;
+  isSelected?: (id: string) => boolean;
+  onSelectionClick?: (id: string, event: React.MouseEvent) => void;
+  onSelect?: (id: string) => void;
+  onEnterSelectionMode?: (id: string) => void;
 }
 
-interface TreeNode extends ChecklistTask {
-  children: TreeNode[];
-  depth: number;
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Builds a tree structure from flat tasks array
- */
-function buildTaskTree(tasks: ChecklistTask[]): TreeNode[] {
-  // Create a map for quick lookup
-  const taskMap = new Map<string, TreeNode>();
-  const rootNodes: TreeNode[] = [];
-
-  // First pass: create tree nodes
-  for (const task of tasks) {
-    taskMap.set(task.id, {
-      ...task,
-      children: [],
-      depth: 0,
-    });
-  }
-
-  // Second pass: build parent-child relationships
-  for (const task of tasks) {
-    const node = taskMap.get(task.id);
-    if (!node) continue;
-
-    if (task.parentId && taskMap.has(task.parentId)) {
-      const parent = taskMap.get(task.parentId)!;
-      node.depth = parent.depth + 1;
-      parent.children.push(node);
-    } else {
-      rootNodes.push(node);
-    }
-  }
-
-  // Sort children by position at each level
-  const sortChildren = (nodes: TreeNode[]) => {
-    nodes.sort((a, b) => a.position - b.position);
-    for (const node of nodes) {
-      if (node.children.length > 0) {
-        sortChildren(node.children);
-      }
-    }
-  };
-
-  sortChildren(rootNodes);
-
-  return rootNodes;
-}
+export type TaskTreeNode = ChecklistTask & TreeNode<ChecklistTask>;
 
 // ============================================================================
 // Checkbox Component
@@ -148,12 +106,18 @@ function Checkbox({ checked, onChange, disabled, loading, id }: CheckboxProps) {
 // ============================================================================
 
 interface TreeItemProps {
-  node: TreeNode;
+  node: TaskTreeNode;
   onToggle: (taskId: string) => Promise<void>;
   loadingTasks: Set<string>;
   disabled?: boolean;
   expandedTasks: Set<string>;
   onToggleExpand: (taskId: string) => void;
+  contextMenuItems?: ContextMenuItemConfig<ChecklistTask>[];
+  isSelectionMode?: boolean;
+  isSelected?: (id: string) => boolean;
+  onSelectionClick?: (id: string, event: React.MouseEvent) => void;
+  onSelect?: (id: string) => void;
+  onEnterSelectionMode?: (id: string) => void;
 }
 
 function TreeItem({
@@ -163,19 +127,26 @@ function TreeItem({
   disabled,
   expandedTasks,
   onToggleExpand,
+  contextMenuItems,
+  isSelectionMode = false,
+  isSelected,
+  onSelectionClick,
+  onSelect,
+  onEnterSelectionMode,
 }: TreeItemProps) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedTasks.has(node.id);
   const isLoading = loadingTasks.has(node.id);
   const depth = node.depth;
+  const itemIsSelected = isSelected?.(node.id) ?? false;
 
   // Calculate indentation based on depth (max 5 levels per requirements)
   // Using 24px (1.5rem) per level for clear visual hierarchy
   const indentStyle = useMemo(() => {
     // scale factor 0 to 5
     const depthFactor = Math.min(depth, 5);
-    return { 
-      paddingLeft: `calc(var(--indent-step, 1.5rem) * ${depthFactor})` 
+    return {
+      paddingLeft: `calc(var(--indent-step, 1.5rem) * ${depthFactor})`
     };
   }, [depth]);
 
@@ -193,15 +164,31 @@ function TreeItem({
     [node.id, onToggleExpand]
   );
 
+  // Handle click on the item row - in selection mode, toggle selection instead of completion
+  const handleRowClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isSelectionMode && onSelectionClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelectionClick(node.id, e);
+      }
+    },
+    [isSelectionMode, onSelectionClick, node.id]
+  );
+
   // Handle keyboard events for the item row - Requirements: 13.2
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        handleToggle();
+        if (isSelectionMode && onSelect) {
+          onSelect(node.id);
+        } else {
+          handleToggle();
+        }
       }
     },
-    [handleToggle]
+    [handleToggle, isSelectionMode, onSelect, node.id]
   );
 
   // Handle keyboard events for expand/collapse - Requirements: 13.2
@@ -215,6 +202,15 @@ function TreeItem({
     [handleExpandToggle]
   );
 
+  // In selection mode, checkbox click should toggle selection, not completion
+  const handleCheckboxClick = useCallback(() => {
+    if (isSelectionMode && onSelect) {
+      onSelect(node.id);
+    } else {
+      handleToggle();
+    }
+  }, [isSelectionMode, onSelect, node.id, handleToggle]);
+
   const isReference = node.itemType === 'reference';
   const isPhase = node.itemType === 'phase';
 
@@ -224,7 +220,7 @@ function TreeItem({
     const getPhaseProgress = () => {
       let total = 0;
       let completed = 0;
-      const countTasks = (children: TreeNode[]) => {
+      const countTasks = (children: TaskTreeNode[]) => {
         for (const child of children) {
           if (child.itemType !== 'phase') {
             total++;
@@ -240,39 +236,54 @@ function TreeItem({
     };
     const progress = getPhaseProgress();
 
-    return (
+    const phaseContent = (
       <div className="select-none" role="listitem">
         <div
           className={cn(
-            "group flex items-center gap-4 py-4 px-5 rounded-xl transition-all duration-300",
+            "group flex items-center gap-4 py-4 px-5 rounded-xl transition-all duration-300 cursor-pointer",
             "[@media(max-width:640px)]:[--indent-step:12px] sm:[--indent-step:24px]",
             "bg-gradient-to-r from-amber-50 to-amber-25 dark:from-amber-950/40 dark:to-amber-900/20",
             "border-2 border-amber-300 dark:border-amber-700/60",
-            "hover:bg-amber-50/80 dark:hover:bg-amber-950/50"
+            "hover:bg-amber-50/80 dark:hover:bg-amber-950/50",
+            isSelectionMode && itemIsSelected && "ring-2 ring-primary/40 bg-primary/5",
+            isSelectionMode && !itemIsSelected && "opacity-75"
           )}
           style={indentStyle}
+          onClick={isSelectionMode ? handleRowClick : handleExpandToggle}
+          onKeyDown={handleExpandKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          aria-controls={`children-${node.id}`}
+          aria-label={isExpanded ? `Collapse phase ${node.content}` : `Expand phase ${node.content}`}
         >
-          {/* Expand/Collapse button */}
-          <button
-            type="button"
-            onClick={handleExpandToggle}
-            onKeyDown={handleExpandKeyDown}
+          {/* Selection checkmark for phases */}
+          {isSelectionMode && (
+            <div
+              className={cn(
+                "flex items-center justify-center h-5 w-5 shrink-0 rounded-md border-2 transition-all duration-200",
+                itemIsSelected
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-muted-foreground/25 bg-background"
+              )}
+              aria-hidden="true"
+            >
+              {itemIsSelected && <Check className="h-3 w-3 stroke-[3]" />}
+            </div>
+          )}
+
+          {/* Expand/Collapse chevron */}
+          <div
             className={cn(
               "flex items-center justify-center h-6 w-6 rounded-md transition-colors",
-              "hover:bg-amber-200/50 dark:hover:bg-amber-800/50 active:scale-95",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:ring-offset-1",
               "text-amber-600 dark:text-amber-400"
             )}
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? `Collapse phase ${node.content}` : `Expand phase ${node.content}`}
-            aria-controls={`children-${node.id}`}
+            aria-hidden="true"
           >
-            {isExpanded ? (
-              <ChevronDown className="h-5 w-5" aria-hidden="true" />
-            ) : (
-              <ChevronRight className="h-5 w-5" aria-hidden="true" />
-            )}
-          </button>
+            <div className={cn("transition-transform duration-200", isExpanded && "rotate-90")}>
+              <ChevronRight className="h-5 w-5" />
+            </div>
+          </div>
 
           {/* Phase icon */}
           <div className="flex items-center justify-center h-8 w-8 shrink-0 rounded-lg bg-amber-200 dark:bg-amber-800/60">
@@ -291,7 +302,7 @@ function TreeItem({
             <span>{progress.completed}/{progress.total}</span>
             {progress.total > 0 && (
               <div className="w-16 h-1.5 bg-amber-200 dark:bg-amber-800 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-300"
                   style={{ width: `${(progress.completed / progress.total) * 100}%` }}
                 />
@@ -300,74 +311,129 @@ function TreeItem({
           </div>
         </div>
 
-        {/* Render children if expanded */}
-        {hasChildren && isExpanded && (
-          <div 
-            id={`children-${node.id}`}
-            role="group" 
-            aria-label={`Tasks in phase ${node.content}`}
-            className="relative ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-800/50"
+        {/* Render children with smooth collapse animation */}
+        {hasChildren && (
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-in-out",
+              isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}
           >
-            {node.children.map((child) => (
-              <TreeItem
-                key={child.id}
-                node={child}
-                onToggle={onToggle}
-                loadingTasks={loadingTasks}
-                disabled={disabled}
-                expandedTasks={expandedTasks}
-                onToggleExpand={onToggleExpand}
-              />
-            ))}
+            <div className="overflow-hidden min-h-0">
+              <div
+                id={`children-${node.id}`}
+                role="group"
+                aria-label={`Tasks in phase ${node.content}`}
+                className="relative ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-800/50"
+              >
+                {node.children.map((child) => (
+                  <TreeItem
+                    key={child.id}
+                    node={child}
+                    onToggle={onToggle}
+                    loadingTasks={loadingTasks}
+                    disabled={disabled}
+                    expandedTasks={expandedTasks}
+                    onToggleExpand={onToggleExpand}
+                    contextMenuItems={contextMenuItems}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={isSelected}
+                    onSelectionClick={onSelectionClick}
+                    onSelect={onSelect}
+                    onEnterSelectionMode={onEnterSelectionMode}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
     );
+
+    // Wrap phase in context menu if items provided
+    if (contextMenuItems) {
+      return (
+        <EntityContextMenu
+          entityId={node.id}
+          entity={node as ChecklistTask}
+          menuItems={contextMenuItems}
+          isSelectionMode={isSelectionMode}
+          isSelected={itemIsSelected}
+          onSelect={onSelect}
+          onEnterSelectionMode={onEnterSelectionMode}
+        >
+          {phaseContent}
+        </EntityContextMenu>
+      );
+    }
+
+    return phaseContent;
   }
 
-  return (
+  const taskContent = (
     <div className="select-none" role="listitem">
       <div
         className={cn(
           "group flex items-start gap-4 py-3.5 px-5 rounded-[var(--radius)] transition-all duration-300",
-          "[@media(max-width:640px)]:[--indent-step:12px] sm:[--indent-step:24px]", 
-          isReference 
-            ? "bg-gradient-to-br from-card to-background border border-border/50 shadow-sm hover:shadow-md hover:border-primary/20 relative overflow-hidden" 
+          "[@media(max-width:640px)]:[--indent-step:12px] sm:[--indent-step:24px]",
+          isReference
+            ? "bg-gradient-to-br from-card to-background border border-border/50 shadow-sm hover:shadow-md hover:border-primary/20 relative overflow-hidden"
             : "hover:bg-muted/50 border border-transparent hover:border-border/50 rounded-[var(--radius)] px-4 py-3",
-          "focus-within:ring-2 focus-within:ring-primary/20 focus-within:bg-muted/30"
+          "focus-within:ring-2 focus-within:ring-primary/20 focus-within:bg-muted/30",
+          // Selection mode styles
+          isSelectionMode && itemIsSelected && "bg-primary/5 border-primary/30 hover:bg-primary/10",
+          isSelectionMode && !itemIsSelected && "opacity-70 hover:opacity-90",
+          isSelectionMode && "cursor-pointer"
         )}
         style={indentStyle}
+        onClick={isSelectionMode ? handleRowClick : undefined}
       >
         {/* Glow effect for references */}
         {isReference && (
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
         )}
 
-        {/* Expand/Collapse button for items with children */}
-        <div className={cn("flex items-center h-5 w-5 shrink-0 relative z-10", isReference ? "mt-1.5" : "mt-0.5")}>
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={handleExpandToggle}
-              onKeyDown={handleExpandKeyDown}
+        {/* Selection checkmark (shown in selection mode) or Expand/Collapse button */}
+        {isSelectionMode ? (
+          <div className={cn("flex items-center h-5 w-5 shrink-0 relative z-10", isReference ? "mt-1.5" : "mt-0.5")}>
+            <div
               className={cn(
-                "flex items-center justify-center h-5 w-5 rounded-md transition-colors",
-                "hover:bg-accent/80 active:scale-95",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
-                isReference ? "text-primary hover:bg-primary/10" : "text-muted-foreground"
+                "flex items-center justify-center h-5 w-5 rounded-md border-2 transition-all duration-200",
+                itemIsSelected
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "border-muted-foreground/25 bg-background"
               )}
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? `Collapse ${node.content}` : `Expand ${node.content}`}
-              aria-controls={`children-${node.id}`}
+              aria-hidden="true"
             >
-              <div className={cn("transition-transform duration-200", isExpanded && "rotate-90")}>
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </div>
-            </button>
-          ) : (
-            <span className="w-5" aria-hidden="true" />
-          )}
-        </div>
+              {itemIsSelected && <Check className="h-3 w-3 stroke-[3]" />}
+            </div>
+          </div>
+        ) : (
+          <div className={cn("flex items-center h-5 w-5 shrink-0 relative z-10", isReference ? "mt-1.5" : "mt-0.5")}>
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={handleExpandToggle}
+                onKeyDown={handleExpandKeyDown}
+                className={cn(
+                  "flex items-center justify-center h-5 w-5 rounded-md transition-colors",
+                  "hover:bg-accent/80 active:scale-95",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
+                  isReference ? "text-primary hover:bg-primary/10" : "text-muted-foreground"
+                )}
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? `Collapse ${node.content}` : `Expand ${node.content}`}
+                aria-controls={`children-${node.id}`}
+              >
+                <div className={cn("transition-transform duration-200", isExpanded && "rotate-90")}>
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </div>
+              </button>
+            ) : (
+              <span className="w-5" aria-hidden="true" />
+            )}
+          </div>
+        )}
 
         {/* Checkbox or Reference Icon */}
         {isReference ? (
@@ -379,7 +445,7 @@ function TreeItem({
             <Checkbox
               id={node.id}
               checked={node.isCompleted}
-              onChange={handleToggle}
+              onChange={handleCheckboxClick}
               disabled={disabled}
               loading={isLoading}
             />
@@ -412,11 +478,19 @@ function TreeItem({
                 id={`label-${node.id}`}
                 className={cn(
                   "text-[15px] cursor-pointer leading-relaxed block transition-all duration-200 pt-px",
-                  node.isCompleted 
-                    ? "text-muted-foreground/70 line-through decoration-muted-foreground/40" 
+                  node.isCompleted
+                    ? "text-muted-foreground/70 line-through decoration-muted-foreground/40"
                     : "text-foreground group-hover:text-foreground/90"
                 )}
-                onClick={handleToggle}
+                onClick={(e) => {
+                  if (isSelectionMode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelect?.(node.id);
+                  } else {
+                    handleToggle();
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 tabIndex={0}
                 role="button"
@@ -424,7 +498,7 @@ function TreeItem({
               >
                 {node.content}
               </label>
-              
+
               {/* Custom task indicator - only for non-reference items */}
               {node.isCustom && (
                 <span
@@ -437,7 +511,7 @@ function TreeItem({
                 </span>
               )}
             </div>
-            
+
             {/* Description - rendered as markdown */}
             {node.description && node.description.trim().length > 0 && (
               <div className={cn(
@@ -450,10 +524,10 @@ function TreeItem({
                 </div>
               </div>
             )}
-            
+
             {/* Resources - Requirements: 5.4, 6.3 */}
             {node.resources && node.resources.length > 0 && (
-              <div 
+              <div
                 className="flex flex-wrap gap-2 mt-2"
                 role="list"
                 aria-label="Resource links"
@@ -469,8 +543,8 @@ function TreeItem({
                       "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg transition-colors",
                       // Focus styles for keyboard navigation - Requirements: 6.3
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
-                      node.isCompleted 
-                        ? "bg-muted/50 text-muted-foreground/70 focus-visible:ring-muted-foreground/30" 
+                      node.isCompleted
+                        ? "bg-muted/50 text-muted-foreground/70 focus-visible:ring-muted-foreground/30"
                         : "bg-primary/10 text-primary hover:bg-primary/20"
                     )}
                     title={resource.description || resource.title}
@@ -489,30 +563,82 @@ function TreeItem({
         </div>
       </div>
 
-      {/* Render children if expanded */}
-      {hasChildren && isExpanded && (
-        <div 
-          id={`children-${node.id}`}
-          role="group" 
-          aria-label={`Sub-tasks of ${node.content}`}
-          className="relative before:absolute before:left-[calc(var(--indent-px,0px)+1.5rem)] before:top-0 before:bottom-2 before:w-px before:bg-border/50"
-          style={{ '--indent-px': `${Math.min(depth, 5) * 24}px` } as React.CSSProperties}
+      {/* Render children with smooth collapse animation */}
+      {hasChildren && (
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows] duration-300 ease-in-out",
+            isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          )}
         >
-          {node.children.map((child) => (
-            <TreeItem
-              key={child.id}
-              node={child}
-              onToggle={onToggle}
-              loadingTasks={loadingTasks}
-              disabled={disabled}
-              expandedTasks={expandedTasks}
-              onToggleExpand={onToggleExpand}
-            />
-          ))}
+          <div className="overflow-hidden min-h-0">
+            <div
+              id={`children-${node.id}`}
+              role="group"
+              aria-label={`Sub-tasks of ${node.content}`}
+              className="relative before:absolute before:left-[calc(var(--indent-px,0px)+1.5rem)] before:top-0 before:bottom-2 before:w-px before:bg-border/50"
+              style={{ '--indent-px': `${Math.min(depth, 5) * 24}px` } as React.CSSProperties}
+            >
+              {node.children.map((child) => (
+                <TreeItem
+                  key={child.id}
+                  node={child}
+                  onToggle={onToggle}
+                  loadingTasks={loadingTasks}
+                  disabled={disabled}
+                  expandedTasks={expandedTasks}
+                  onToggleExpand={onToggleExpand}
+                  contextMenuItems={contextMenuItems}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={isSelected}
+                  onSelectionClick={onSelectionClick}
+                  onSelect={onSelect}
+                  onEnterSelectionMode={onEnterSelectionMode}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
+
+  // Wrap in context menu if items provided
+  if (contextMenuItems) {
+    return (
+      <EntityContextMenu
+        entityId={node.id}
+        entity={node as ChecklistTask}
+        menuItems={contextMenuItems}
+        isSelectionMode={isSelectionMode}
+        isSelected={itemIsSelected}
+        onSelect={onSelect}
+        onEnterSelectionMode={onEnterSelectionMode}
+      >
+        {taskContent}
+      </EntityContextMenu>
+    );
+  }
+
+  return taskContent;
+}
+
+// ============================================================================
+// Helper: compute visible flat order of task IDs respecting expand/collapse
+// ============================================================================
+
+function getVisibleFlatIds(
+  nodes: TaskTreeNode[],
+  expandedTasks: Set<string>
+): string[] {
+  const ids: string[] = [];
+  for (const node of nodes) {
+    ids.push(node.id);
+    if (node.children.length > 0 && expandedTasks.has(node.id)) {
+      ids.push(...getVisibleFlatIds(node.children, expandedTasks));
+    }
+  }
+  return ids;
 }
 
 // ============================================================================
@@ -523,6 +649,12 @@ export function ChecklistTracker({
   tasks,
   onToggleTask,
   disabled = false,
+  contextMenuItems,
+  isSelectionMode = false,
+  isSelected,
+  onSelectionClick,
+  onSelect,
+  onEnterSelectionMode,
 }: ChecklistTrackerProps) {
   const [loadingTasks, setLoadingTasks] = useState<Set<string>>(new Set());
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(() => {
@@ -530,10 +662,10 @@ export function ChecklistTracker({
     // 1. For phases: only expand the phase containing the first incomplete task
     // 2. For regular parent tasks: expand all
     const expanded = new Set<string>();
-    
+
     // Find the first incomplete task
     const firstIncompleteTask = tasks.find(t => !t.isCompleted && t.itemType !== 'phase');
-    
+
     // Find which phase (if any) contains the first incomplete task
     const findPhaseAncestor = (taskId: string | null): string | null => {
       if (!taskId) return null;
@@ -542,9 +674,9 @@ export function ChecklistTracker({
       if (task.itemType === 'phase') return task.id;
       return findPhaseAncestor(task.parentId);
     };
-    
+
     const activePhaseId = firstIncompleteTask ? findPhaseAncestor(firstIncompleteTask.parentId) : null;
-    
+
     for (const task of tasks) {
       const hasChildren = tasks.some((t) => t.parentId === task.id);
       if (hasChildren) {
@@ -568,10 +700,12 @@ export function ChecklistTracker({
     }
     return expanded;
   });
+
+
   const { message: statusMessage, politeness, announce } = useStatusAnnouncer();
 
   // Build tree structure from flat tasks
-  const treeNodes = useMemo(() => buildTaskTree(tasks), [tasks]);
+  const treeNodes = useMemo(() => buildTree(tasks), [tasks]);
 
   // Handle task toggle with loading state and announcement
   const handleToggle = useCallback(
@@ -653,7 +787,7 @@ export function ChecklistTracker({
     <div className="space-y-1">
       {/* Live region for status announcements */}
       <LiveRegion message={statusMessage} politeness={politeness} />
-      
+
       {/* Expand/Collapse controls for nested tasks - Requirements: 13.2 */}
       {hasNestedTasks && (
         <div className="flex items-center justify-end gap-1 pb-3 mb-1 border-b border-border/50" role="group" aria-label="Expand and collapse controls">
@@ -686,8 +820,8 @@ export function ChecklistTracker({
       )}
 
       {/* Task tree */}
-      <div 
-        role="list" 
+      <div
+        role="list"
         aria-label={`Checklist tasks, ${completedCount} of ${tasks.length} completed`}
         className="space-y-0.5"
       >
@@ -700,9 +834,21 @@ export function ChecklistTracker({
             disabled={disabled}
             expandedTasks={expandedTasks}
             onToggleExpand={handleToggleExpand}
+            contextMenuItems={contextMenuItems}
+            isSelectionMode={isSelectionMode}
+            isSelected={isSelected}
+            onSelectionClick={onSelectionClick}
+            onSelect={onSelect}
+            onEnterSelectionMode={onEnterSelectionMode}
           />
         ))}
       </div>
     </div>
   );
 }
+
+/**
+ * Exported helper to compute visible flat IDs from tasks and expanded state.
+ * Used by parent components that need ordered IDs for useSelection range-select.
+ */
+export { getVisibleFlatIds };

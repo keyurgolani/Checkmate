@@ -13,6 +13,7 @@
  */
 
 import { WebResearchProvider, type WebResearchSettings } from '../pocketbase-types';
+import type { RequestSpec } from '../relay-utils';
 
 // ============================================================================
 // Types
@@ -55,55 +56,8 @@ export const WebResearchErrorCodes = {
 // Provider Configuration
 // ============================================================================
 
-export const WEB_RESEARCH_PROVIDER_CONFIG: Record<WebResearchProvider, { 
-  name: string; 
-  description: string;
-  docsUrl: string;
-  requiresApiKey: boolean;
-  requiresBaseUrl: boolean;
-  isSelfHosted: boolean;
-}> = {
-  tavily: { 
-    name: 'Tavily', 
-    description: 'AI-optimized search API with high-quality results',
-    docsUrl: 'https://tavily.com',
-    requiresApiKey: true,
-    requiresBaseUrl: false,
-    isSelfHosted: false,
-  },
-  exa: { 
-    name: 'Exa', 
-    description: 'Neural search engine for finding similar content',
-    docsUrl: 'https://exa.ai',
-    requiresApiKey: true,
-    requiresBaseUrl: false,
-    isSelfHosted: false,
-  },
-  firecrawl: {
-    name: 'Firecrawl',
-    description: 'Web scraping and search API with content extraction',
-    docsUrl: 'https://firecrawl.dev',
-    requiresApiKey: true,
-    requiresBaseUrl: false,
-    isSelfHosted: false,
-  },
-  brave: {
-    name: 'Brave Search',
-    description: 'Independent search API with its own web index',
-    docsUrl: 'https://brave.com/search/api',
-    requiresApiKey: true,
-    requiresBaseUrl: false,
-    isSelfHosted: false,
-  },
-  searxng: {
-    name: 'SearXNG',
-    description: 'Self-hosted privacy-focused meta-search engine',
-    docsUrl: 'https://docs.searxng.org',
-    requiresApiKey: false,
-    requiresBaseUrl: true,
-    isSelfHosted: true,
-  },
-};
+import { WEB_RESEARCH_PROVIDER_CONFIG } from '../web-research-config';
+export { WEB_RESEARCH_PROVIDER_CONFIG };
 
 // ============================================================================
 // Helper Functions
@@ -436,6 +390,56 @@ export class WebResearchService {
     }));
 
     return createSuccessResult(results);
+  }
+
+  /**
+   * Builds a RequestSpec for a SearXNG search, extracting the request
+   * construction logic so the relay orchestrator can call it separately.
+   */
+  buildSearchSpec(
+    settings: WebResearchSettings,
+    query: string,
+    options?: { maxResults?: number }
+  ): RequestSpec {
+    const normalizedUrl = (settings.baseUrl || '').replace(/\/+$/, '');
+    const params = new URLSearchParams({
+      q: query,
+      format: 'json',
+      pageno: '1',
+    });
+    return {
+      url: `${normalizedUrl}/search?${params}`,
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      responseHandling: 'json',
+    };
+  }
+
+  /**
+   * Parses a raw JSON response string from a search provider into a
+   * WebResearchResult, extracting the response parsing logic so the
+   * relay orchestrator can call it separately.
+   */
+  parseSearchResponse(
+    provider: WebResearchProvider,
+    responseText: string,
+    maxResults: number = 5
+  ): WebResearchResult {
+    try {
+      const data = JSON.parse(responseText);
+      const searxResults = (data.results || []).slice(0, maxResults);
+      const results: WebSearchResult[] = searxResults.map((r: {
+        title: string; url: string; content?: string; score?: number;
+      }) => ({
+        title: r.title, url: r.url, content: r.content || '', score: r.score,
+      }));
+      return createSuccessResult(results);
+    } catch {
+      return createErrorResult({
+        code: WebResearchErrorCodes.SEARCH_FAILED,
+        message: 'Failed to parse search response',
+      });
+    }
   }
 
   /**

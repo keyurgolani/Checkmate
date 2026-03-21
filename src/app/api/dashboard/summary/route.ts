@@ -11,6 +11,7 @@ import { LLMService } from '@/lib/services/llm';
 import { WorkspaceService, type WorkspaceStatistics } from '@/lib/services/workspace';
 import { ChecklistService } from '@/lib/services/checklist';
 import type { DashboardSummary, LLMSettings } from '@/lib/pocketbase-types';
+import { isLLMSelfHosted } from '@/lib/relay-utils';
 
 // ============================================================================
 // Constants
@@ -131,6 +132,20 @@ export async function GET(request: NextRequest) {
 
 Be conversational, warm, and motivating. Focus on what they've accomplished and gently encourage next steps. If they have no activity, welcome them and suggest getting started. Keep it under 50 words.`;
 
+    if (isLLMSelfHosted(llmSettings as LLMSettings)) {
+      const requestSpec = llmService.buildLLMRequestSpec(
+        llmSettings as LLMSettings,
+        '',
+        prompt
+      );
+      return NextResponse.json({
+        success: true,
+        selfHostedRelay: true,
+        requestSpec,
+        statsSnapshot,
+      });
+    }
+
     const result = await llmService.generateText(llmSettings as LLMSettings, prompt);
     
     if (!result.success || !result.text) {
@@ -165,9 +180,60 @@ Be conversational, warm, and motivating. Focus on what they've accomplished and 
 
   } catch (error) {
     console.error('Dashboard summary error:', error);
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: { message: 'Failed to generate summary' }
     }, { status: 500 });
   }
+}
+
+export async function POST(request: NextRequest) {
+  const { isAuthenticated, user, pb } = await getServerAuth();
+  if (!isAuthenticated || !user) {
+    return NextResponse.json(
+      { success: false, error: { message: 'Not authenticated' } },
+      { status: 401 }
+    );
+  }
+
+  const body = await request.json();
+  const { rawResponse, statsSnapshot } = body;
+
+  if (!rawResponse || !statsSnapshot) {
+    return NextResponse.json(
+      { success: false, error: { message: 'rawResponse and statsSnapshot are required' } },
+      { status: 400 }
+    );
+  }
+
+  const llmService = new LLMService();
+  const text = llmService.parseSSEStream(rawResponse);
+
+  if (!text) {
+    return NextResponse.json(
+      { success: false, error: { message: 'Failed to parse LLM response' } },
+      { status: 400 }
+    );
+  }
+
+  const newSummary: DashboardSummary = {
+    content: text,
+    generatedAt: new Date().toISOString(),
+    statsSnapshot,
+  };
+
+  const updatedPreferences = {
+    ...user.preferences,
+    dashboardSummary: newSummary,
+  };
+
+  await pb.collection('users').update(user.id, {
+    preferences: updatedPreferences,
+  });
+
+  return NextResponse.json({
+    success: true,
+    summary: newSummary,
+    cached: false,
+  });
 }

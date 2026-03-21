@@ -9,7 +9,7 @@
  * Requirements: 8.1, 8.2
  */
 
-import { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchInput, FilterDialog } from "@/components/search";
@@ -17,15 +17,20 @@ import { TemplateCard } from "@/components/templates/template-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Compass, Filter, X, ArrowUpDown, Check } from "lucide-react";
+import { Loader2, Search, Compass, Filter, X, ArrowUpDown, Check, Eye, PlayCircle, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSelection } from "@/lib/hooks/use-selection";
+import { BulkActionBar } from "@/components/shared/bulk-action-bar";
+import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
+import type { BulkAction } from "@/components/shared/bulk-action-bar";
 import type { SearchSuggestion, FilterState, Category, SortOption } from "@/components/search";
 import type { TemplateCardData } from "@/components/templates/template-card";
+import { bulkUseTemplates, bulkExportDiscoverTemplates } from "./actions";
 
 interface SearchResponse {
   success: boolean;
@@ -70,12 +75,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "date", label: "Most Recent" },
 ];
 
-const DEFAULT_FILTERS: FilterState = {
-  category: null,
-  sortBy: "relevance",
-  tags: [],
-};
-
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -104,6 +103,98 @@ function DiscoverPageContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  // Selection state
+  const templateIds = useMemo(() => templates.map((t) => t.id), [templates]);
+  const selection = useSelection(templateIds);
+
+  // Context menu items for discover templates
+  const contextMenuItems: ContextMenuItemConfig<TemplateCardData>[] = useMemo(() => [
+    {
+      label: "View Details",
+      icon: Eye,
+      action: (id) => {
+        router.push(`/discover/${id}`);
+      },
+    },
+    {
+      label: "Use Template",
+      icon: PlayCircle,
+      action: (id) => {
+        startTransition(async () => {
+          const result = await bulkUseTemplates([id]);
+          if (result.success) {
+            router.push("/checklists");
+          }
+        });
+      },
+    },
+    {
+      label: "Export",
+      icon: Download,
+      action: (id) => {
+        startTransition(async () => {
+          const result = await bulkExportDiscoverTemplates([id]);
+          if (result.success && result.exports && result.exports.length > 0) {
+            const exportData = result.exports[0];
+            if (!exportData) return;
+            const blob = new Blob(
+              [JSON.stringify(exportData.data, null, 2)],
+              { type: "application/json" }
+            );
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `template-${id}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        });
+      },
+      separator: "after",
+    },
+  ], [router, startTransition]);
+
+  // Bulk actions factory
+  const bulkActionFactory = useCallback((selectedIds: Set<string>): BulkAction[] => {
+    const ids = Array.from(selectedIds);
+    return [
+      {
+        label: "Use Templates",
+        icon: PlayCircle,
+        action: () => {
+          startTransition(async () => {
+            const result = await bulkUseTemplates(ids);
+            if (result.success) {
+              router.push("/checklists");
+            }
+          });
+        },
+      },
+      {
+        label: "Export",
+        icon: Download,
+        action: () => {
+          startTransition(async () => {
+            const result = await bulkExportDiscoverTemplates(ids);
+            if (result.success && result.exports) {
+              const blob = new Blob(
+                [JSON.stringify(result.exports, null, 2)],
+                { type: "application/json" }
+              );
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `templates-export.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          });
+        },
+      },
+    ];
+  }, [router, startTransition]);
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -378,8 +469,20 @@ function DiscoverPageContent() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <p className="text-base font-medium text-muted-foreground">
-                  {pagination.totalItems} template{pagination.totalItems !== 1 ? "s" : ""} found
+                  {selection.isSelectionMode
+                    ? `${selection.selectedIds.size} of ${templates.length} selected`
+                    : `${pagination.totalItems} template${pagination.totalItems !== 1 ? "s" : ""} found`
+                  }
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl text-xs h-8"
+                  onClick={() => selection.isSelectionMode ? selection.exitSelectionMode() : selection.enterSelectionMode()}
+                  aria-pressed={selection.isSelectionMode}
+                >
+                  {selection.isSelectionMode ? "Cancel" : "Select"}
+                </Button>
               </div>
 
               <motion.div 
@@ -395,7 +498,17 @@ function DiscoverPageContent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      <TemplateCard template={template} linkPrefix="/discover" currentUserId={currentUserId} />
+                      <TemplateCard
+                        template={template}
+                        linkPrefix="/discover"
+                        currentUserId={currentUserId}
+                        contextMenuItems={contextMenuItems}
+                        isSelectionMode={selection.isSelectionMode}
+                        isSelected={selection.isSelected(template.id)}
+                        onSelectionClick={(id, e) => selection.handleClick(id, e)}
+                        onSelect={(id) => selection.toggleItem(id)}
+                        onEnterSelectionMode={(id) => selection.enterSelectionMode(id)}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -427,6 +540,16 @@ function DiscoverPageContent() {
             </>
           )}
       </div>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selection.selectedIds.size}
+        actions={bulkActionFactory(selection.selectedIds)}
+        onSelectAll={() => selection.selectAll()}
+        onDeselectAll={() => selection.deselectAll()}
+        onCancel={() => selection.exitSelectionMode()}
+        isAllSelected={selection.selectedIds.size === templates.length && templates.length > 0}
+      />
     </div>
   );
 }

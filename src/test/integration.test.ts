@@ -300,7 +300,7 @@ describe('Integration Tests - Complex Scenarios', () => {
           content: `Child Task ${i + 1}`,
           position: i,
         });
-        childItems.push(child);
+        childItems.push(child as Item);
       }
 
       // Create checklist
@@ -326,10 +326,10 @@ describe('Integration Tests - Complex Scenarios', () => {
       for (let i = 0; i < childItems.length; i++) {
         await pbProgress.collection('instanceItems').create({
           instance: checklist.id, // DB field name
-          sourceItem: childItems[i].id,
+          sourceItem: childItems[i]!.id,
           parent: parentChecklistItem.id, // Use the correct parent ID (ChecklistItem ID)
           path: `1.${i + 1}`,
-          content: childItems[i].content,
+          content: childItems[i]!.content,
           isCompleted: false,
           isCustom: false,
           position: i + 1, // Change i to i + 1
@@ -515,14 +515,14 @@ describe('Integration Tests - Complex Scenarios', () => {
         filter: `blueprint="${publicTemplate.id}"`,
       });
       expect(user1Checklists).toHaveLength(1);
-      expect(user1Checklists[0].id).toBe(checklist1.id);
+      expect(user1Checklists[0]!.id).toBe(checklist1.id);
 
       // Verify User 2 sees their checklist
       const user2Checklists = await pbConcurrent2.collection('instances').getFullList({
         filter: `blueprint="${publicTemplate.id}"`,
       });
       expect(user2Checklists).toHaveLength(1);
-      expect(user2Checklists[0].id).toBe(checklist2.id);
+      expect(user2Checklists[0]!.id).toBe(checklist2.id);
     });
   });
 
@@ -671,7 +671,7 @@ describe('Integration Tests - Complex Scenarios', () => {
           tags: data.tags,
           visibility: Visibility.PUBLIC,
         });
-        searchTemplates.push(t);
+        searchTemplates.push(t as Template);
       }
     });
 
@@ -681,7 +681,7 @@ describe('Integration Tests - Complex Scenarios', () => {
       });
 
       expect(searchResults.length).toBeGreaterThan(0);
-      expect(searchResults[0].title).toContain('Wedding');
+      expect(searchResults[0]!.title).toContain('Wedding');
     });
 
     it('should filter templates by category', async () => {
@@ -717,8 +717,8 @@ describe('Integration Tests - Complex Scenarios', () => {
 
       // Verify sorting (newest first)
       for (let i = 0; i < sortedByNewest.length - 1; i++) {
-        const current = new Date(sortedByNewest[i].created);
-        const next = new Date(sortedByNewest[i + 1].created);
+        const current = new Date(sortedByNewest[i]!.created);
+        const next = new Date(sortedByNewest[i + 1]!.created);
         expect(current.getTime()).toBeGreaterThanOrEqual(next.getTime());
       }
     });
@@ -733,7 +733,7 @@ describe('Integration Tests - Complex Scenarios', () => {
 
       // Verify alphabetical sorting
       for (let i = 0; i < sortedByTitle.length - 1; i++) {
-        expect(sortedByTitle[i].title.localeCompare(sortedByTitle[i + 1].title)).toBeLessThanOrEqual(0);
+        expect(sortedByTitle[i]!.title.localeCompare(sortedByTitle[i + 1]!.title)).toBeLessThanOrEqual(0);
       }
     });
 

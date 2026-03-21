@@ -4,18 +4,23 @@
  * Checklist List Component
  *
  * Displays checklists in either grid or list format with view toggle.
- * Supports empty states, filtering by status, and sorting.
+ * Supports empty states, filtering by status, sorting, context menus,
+ * multi-select, and bulk actions.
  *
  * Requirements: 6.4, 6.7 - Display user's checklists with progress bars and completion status
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChecklistCard, type ChecklistCardData } from "./checklist-card";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { FilterTabs } from "@/components/ui/filter-tabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Search, CheckCircle2, Circle, LayoutList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, CheckCircle2, Circle, LayoutList, CheckSquare, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useSelection } from "@/lib/hooks/use-selection";
+import { BulkActionBar, type BulkAction } from "@/components/shared/bulk-action-bar";
+import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 
 type FilterStatus = "all" | "active" | "completed";
 
@@ -26,6 +31,9 @@ interface ChecklistListProps {
   showDiscoverButton?: boolean;
   discoverHref?: string;
   defaultViewMode?: "grid" | "list";
+  contextMenuItems?: ContextMenuItemConfig<ChecklistCardData>[];
+  bulkActions?: BulkAction[];
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
 export function ChecklistList({
@@ -35,6 +43,9 @@ export function ChecklistList({
   showDiscoverButton = true,
   discoverHref = "/discover",
   defaultViewMode = "list",
+  contextMenuItems,
+  bulkActions,
+  onSelectionChange,
 }: ChecklistListProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode);
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -50,6 +61,14 @@ export function ChecklistList({
     if (filter === "completed") return (checklist.progress ?? 0) >= 100;
     return true;
   });
+
+  const checklistIds = filteredChecklists.map((c) => c.id);
+  const selection = useSelection(checklistIds);
+
+  // Notify parent of selection changes for bulk action closures
+  useEffect(() => {
+    onSelectionChange?.(selection.selectedIds);
+  }, [selection.selectedIds, onSelectionChange]);
 
   const filterTabs = [
     { value: "all" as const, label: "All", icon: <LayoutList className="h-4 w-4" />, count: counts.all },
@@ -81,12 +100,35 @@ export function ChecklistList({
           activeTab={filter}
           onTabChange={setFilter}
         />
-        <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        <div className="flex items-center gap-2">
+          {selection.isSelectionMode ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={selection.exitSelectionMode}
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => selection.enterSelectionMode()}
+            >
+              <CheckSquare className="h-4 w-4" />
+              Select
+            </Button>
+          )}
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
       </div>
 
       {/* Filtered empty state */}
       {filteredChecklists.length === 0 ? (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           data-slot="card"
@@ -124,7 +166,16 @@ export function ChecklistList({
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                       layout
                     >
-                      <ChecklistCard checklist={checklist} viewMode="grid" />
+                      <ChecklistCard
+                        checklist={checklist}
+                        viewMode="grid"
+                        contextMenuItems={contextMenuItems}
+                        isSelectionMode={selection.isSelectionMode}
+                        isSelected={selection.isSelected(checklist.id)}
+                        onSelectionClick={selection.handleClick}
+                        onSelect={selection.toggleItem}
+                        onEnterSelectionMode={selection.enterSelectionMode}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -147,7 +198,16 @@ export function ChecklistList({
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                       layout
                     >
-                      <ChecklistCard checklist={checklist} viewMode="list" />
+                      <ChecklistCard
+                        checklist={checklist}
+                        viewMode="list"
+                        contextMenuItems={contextMenuItems}
+                        isSelectionMode={selection.isSelectionMode}
+                        isSelected={selection.isSelected(checklist.id)}
+                        onSelectionClick={selection.handleClick}
+                        onSelect={selection.toggleItem}
+                        onEnterSelectionMode={selection.enterSelectionMode}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -155,6 +215,18 @@ export function ChecklistList({
             )}
           </AnimatePresence>
         </>
+      )}
+
+      {/* Bulk action bar */}
+      {bulkActions && (
+        <BulkActionBar
+          selectedCount={selection.selectedIds.size}
+          actions={bulkActions}
+          onSelectAll={selection.selectAll}
+          onDeselectAll={selection.deselectAll}
+          onCancel={selection.exitSelectionMode}
+          isAllSelected={selection.selectedIds.size === filteredChecklists.length && filteredChecklists.length > 0}
+        />
       )}
     </div>
   );

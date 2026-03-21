@@ -2,20 +2,29 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { 
-  Activity, 
-  CheckCircle2, 
-  Layout, 
-  TrendingUp, 
+import {
+  Activity,
+  CheckCircle2,
+  Layout,
+  TrendingUp,
   Clock,
-  ArrowRight
+  ArrowRight,
+  ExternalLink,
+  Pencil,
+  RefreshCw,
+  Download,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AISummary } from "@/components/dashboard/ai-summary";
+import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { User, Checklist, DashboardSummary } from "@/lib/pocketbase-types";
+import { deleteChecklist } from "@/app/(dashboard)/checklists/actions";
+import { bulkSyncChecklists } from "@/app/(dashboard)/checklists/actions";
 
 interface DashboardViewProps {
   user: User | null;
@@ -38,10 +47,54 @@ function getGreeting() {
 
 export function DashboardView({ user, stats, recentChecklists, blueprintMap, llmConfigured, cachedSummary }: DashboardViewProps) {
   const [greeting, setGreeting] = React.useState("Welcome");
-  
+  const router = useRouter();
+
   React.useEffect(() => {
     setGreeting(getGreeting());
   }, []);
+
+  const checklistMenuItems: ContextMenuItemConfig<Checklist>[] = [
+    {
+      label: "Open",
+      icon: ExternalLink,
+      action: (id) => {
+        router.push(`/checklists/${id}`);
+      },
+    },
+    {
+      label: "Edit Name",
+      icon: Pencil,
+      action: (id) => {
+        router.push(`/checklists/${id}`);
+      },
+    },
+    {
+      label: "Sync with Template",
+      icon: RefreshCw,
+      action: async (id) => {
+        await bulkSyncChecklists([id]);
+        router.refresh();
+      },
+    },
+    {
+      label: "Export",
+      icon: Download,
+      action: (id) => {
+        window.open(`/checklists/${id}/print`, "_blank");
+      },
+      separator: "after",
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
+      action: async (id) => {
+        await deleteChecklist(id);
+        router.refresh();
+      },
+      separator: "before",
+    },
+  ];
 
   const container = {
     hidden: { opacity: 0 },
@@ -162,42 +215,47 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap, llm
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {recentChecklists.map((checklist) => (
-                <motion.div
+                <EntityContextMenu
                     key={checklist.id}
-                    whileHover={{ y: -4 }}
-                    className="group relative"
+                    entityId={checklist.id}
+                    entity={checklist}
+                    menuItems={checklistMenuItems}
                 >
-                    <Link href={`/checklists/${checklist.id}`}>
-                        <Card className="h-full p-5 transition-all hover:border-primary overflow-hidden">
-                             {/* Gradient glow - only visible on hover */}
-                             <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-primary/5 to-transparent -mr-6 -mt-6 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                             
-                             <div className="relative z-10">
-                                <h3 className="font-bold text-base md:text-lg mb-1 group-hover:text-primary transition-colors line-clamp-2">{checklist.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-4 line-clamp-1">
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {blueprintMap.get((checklist as any).blueprint) || "Unknown Template"}
-                                </p>
-                                
-                                <div className="flex items-center justify-between mt-4">
-                                    <div className="text-xs font-mono bg-muted px-2 py-1 rounded-lg">
-                                        {new Date(checklist.updated).toLocaleDateString()}
+                    <motion.div
+                        whileHover={{ y: -4 }}
+                        className="group relative"
+                    >
+                        <Link href={`/checklists/${checklist.id}`}>
+                            <Card className="h-full p-5 transition-all hover:border-primary overflow-hidden">
+                                 {/* Gradient glow - only visible on hover */}
+                                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-primary/5 to-transparent -mr-6 -mt-6 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                 <div className="relative z-10">
+                                    <h3 className="font-bold text-base md:text-lg mb-1 group-hover:text-primary transition-colors line-clamp-2">{checklist.name}</h3>
+                                    <p className="text-sm text-muted-foreground mb-4 line-clamp-1">
+                                        {blueprintMap.get(checklist.blueprint) || "Unknown Template"}
+                                    </p>
+
+                                    <div className="flex items-center justify-between mt-4">
+                                        <div className="text-xs font-mono bg-muted px-2 py-1 rounded-lg">
+                                            {new Date(checklist.updated).toLocaleDateString()}
+                                        </div>
+                                        <div className={`text-lg font-bold ${checklist.progress === 100 ? 'text-green-500' : 'text-primary'}`}>
+                                            {Math.round(checklist.progress || 0)}%
+                                        </div>
                                     </div>
-                                    <div className={`text-lg font-bold ${checklist.progress === 100 ? 'text-green-500' : 'text-primary'}`}>
-                                        {Math.round(checklist.progress || 0)}%
+
+                                    <div className="w-full bg-muted h-1.5 rounded-full mt-3 overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-primary relative overflow-hidden rounded-full"
+                                            style={{ width: `${checklist.progress || 0}%` }}
+                                        />
                                     </div>
-                                </div>
-                                
-                                <div className="w-full bg-muted h-1.5 rounded-full mt-3 overflow-hidden">
-                                    <motion.div 
-                                        className="h-full bg-primary relative overflow-hidden rounded-full" 
-                                        style={{ width: `${checklist.progress || 0}%` }}
-                                    />
-                                </div>
-                             </div>
-                        </Card>
-                    </Link>
-                </motion.div>
+                                 </div>
+                            </Card>
+                        </Link>
+                    </motion.div>
+                </EntityContextMenu>
             ))}
             
             {/* Create New Card */}

@@ -281,6 +281,42 @@
   }
 }
 
+/* AI magic glow animation */
+@keyframes magic-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px var(--primary)) drop-shadow(0 0 8px var(--primary));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--primary)) drop-shadow(0 0 24px var(--primary)) drop-shadow(0 0 36px var(--primary));
+    transform: scale(1.08);
+  }
+}
+
+@keyframes sparkle-drift {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(var(--sx), var(--sy)) scale(1);
+  }
+  100% {
+    transform: translate(var(--ex), var(--ey)) scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-magic-glow {
+  animation: magic-glow 2.5s ease-in-out infinite;
+}
+
+.animate-sparkle-drift {
+  animation: sparkle-drift var(--dur, 2.5s) ease-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
 /* Smooth page transitions */
 @layer utilities {
   .animate-shimmer {
@@ -419,84 +455,8 @@
 }
 
 @media print {
-  @page {
-    margin: 0.5in;
-    size: auto;
-  }
-
-  body {
-    background-color: white !important;
-    color: black !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Hide UI elements */
-  nav,
-  aside,
-  button,
-  .no-print,
-  [role="dialog"],
-  [data-radix-popper-content-wrapper] {
+  header, nav, aside, .no-print {
     display: none !important;
-  }
-
-  /* Reset layout for print */
-  main,
-  div[class*="pl-72"], /* Sidebar offset */
-  div[class*="pt-16"] /* Header offset */ {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    overflow: visible !important;
-  }
-
-  /* Container adjustments */
-  .container,
-  div[class*="max-w-"] {
-    max-width: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Card styling for print */
-  div[class*="rounded-"],
-  div[class*="border"] {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  /* Ensure text is readable */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p,
-  span,
-  div {
-    color: black !important;
-    text-shadow: none !important;
-  }
-
-  /* Checklist specific */
-  input[type="checkbox"] {
-    -webkit-appearance: none;
-    appearance: none;
-    border: 1px solid black !important;
-    background: white !important;
-    width: 16px !important;
-    height: 16px !important;
-    border-radius: 50% !important;
-    display: inline-block !important;
-  }
-
-  input[type="checkbox"]:checked {
-    background: black !important;
-    box-shadow: inset 0 0 0 2px white !important;
   }
 }
 
@@ -687,12 +647,14 @@
   outline-offset: 2px;
 }
 
-/* Theme transition */
-* {
-  transition-property: background-color, border-color, color, fill, stroke,
-    box-shadow;
-  transition-duration: var(--duration-normal);
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Theme transition - in @layer base so utilities can override transition-property */
+@layer base {
+  * {
+    transition-property: background-color, border-color, color, fill, stroke,
+      box-shadow;
+    transition-duration: var(--duration-normal);
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 /* Disable transitions for reduced motion */

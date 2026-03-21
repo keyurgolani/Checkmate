@@ -25,3 +25,7 @@ export {
   isFocusable,
   moveFocus,
 } from './use-keyboard-navigation';
+
+export { useSelection } from './use-selection';
+
+export { useLongPress } from './use-long-press';

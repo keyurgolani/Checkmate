@@ -6,11 +6,12 @@
  * Client-side component for the checklist detail page.
  * Handles item toggle interactions and progress updates.
  * Includes realtime subscriptions for live progress updates.
+ * Supports context menus and multi-select with bulk actions on tasks.
  *
  * Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 12.4
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -22,27 +23,32 @@ import {
   Clock,
   ExternalLink,
   ListChecks,
-  MoreVertical,
-  Plus,
-  Settings,
-  Share2,
   Trash2,
   Printer,
   Info,
   Link as LinkIcon,
+  CheckSquare,
+  Square,
+  X,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { useChecklistRealtime } from "@/lib/hooks/use-realtime";
+import type { ChecklistChangeEvent, ChecklistItemChangeEvent } from "@/lib/services/realtime";
+import { useSelection } from "@/lib/hooks/use-selection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChecklistTracker,
-  ProgressDisplay,
   type ChecklistTask,
 } from "@/components/checklists";
+import { BulkActionBar, type BulkAction } from "@/components/shared/bulk-action-bar";
+import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import { ResourceLink } from "@/lib/pocketbase-types";
-import { ResourceEditor } from "@/components/ui/resource-editor";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import {
+  bulkToggleChecklistTasks,
+  bulkDeleteChecklistTasks,
+} from "./actions";
 
 // ============================================================================
 // Types
@@ -68,20 +74,6 @@ interface ChecklistDetailClientProps {
   checklist: ChecklistData;
   tasks: ChecklistTask[];
 }
-
-// Animation variants
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const item = {
-  hidden: { y: 20, opacity: 0 },
-  show: { y: 0, opacity: 1 }
-};
 
 // ============================================================================
 // Status Badge Component
@@ -145,10 +137,16 @@ export function ChecklistDetailClient({
   // Checklist is complete only if it has a completedAt date AND progress is 100%
   const isComplete = checklist.completedAt !== null && checklist.progress >= 100;
 
+  // All task IDs for selection hook (ordered by position for range-select)
+  const allTaskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+
+  // Selection hook
+  const selection = useSelection(allTaskIds);
+
   // Subscribe to realtime updates for checklist progress
   // Requirements: 12.4
   useChecklistRealtime(checklist.id, {
-    onChecklistChange: useCallback((event: { action: string; record: { progress: number; completedAt: string | null; isSynced: boolean; description: string | null; resources?: unknown } }) => {
+    onChecklistChange: useCallback((event: ChecklistChangeEvent) => {
       if (event.action === 'update') {
         setChecklist((prev) => ({
           ...prev,
@@ -156,11 +154,11 @@ export function ChecklistDetailClient({
           completedAt: event.record.completedAt,
           isSynced: event.record.isSynced,
           description: event.record.description,
-          resources: (event.record as any).resources ?? null, // Cast as necessary
+          resources: event.record.resources ?? null,
         }));
       }
     }, []),
-    onItemChange: useCallback((event: any) => {
+    onItemChange: useCallback((event: ChecklistItemChangeEvent) => {
       if (event.action === 'update') {
         setTasks((prevTasks) =>
           prevTasks.map((task) =>
@@ -182,13 +180,13 @@ export function ChecklistDetailClient({
           parentId: event.record.parent,
           path: event.record.path,
           content: event.record.content,
-          description: (event.record as any).description ?? null,
-          resources: (event.record as any).resources ?? null,
+          description: event.record.description ?? null,
+          resources: event.record.resources ?? null,
           isCompleted: event.record.isCompleted,
           completedAt: event.record.completedAt,
           isCustom: event.record.isCustom,
           position: event.record.position,
-          itemType: (event.record as any).itemType, // Cast to handle potential missing type in generated definition
+          itemType: event.record.itemType ?? undefined,
         };
         setTasks((prevTasks) => [...prevTasks, newTask]);
       } else if (event.action === 'delete') {
@@ -244,7 +242,7 @@ export function ChecklistDetailClient({
                   : null,
             }));
           }
-          
+
           // Update task state immediately to fix checkbox visual sync issue
           setTasks((prevTasks) =>
             prevTasks.map((task) =>
@@ -274,24 +272,130 @@ export function ChecklistDetailClient({
     [checklist.id, isToggling]
   );
 
+  // ============================================================================
+  // Context menu items for task items
+  // ============================================================================
+
+  const contextMenuItems: ContextMenuItemConfig<ChecklistTask>[] = useMemo(
+    () => [
+      {
+        label: (task: ChecklistTask) =>
+          task.isCompleted ? "Mark Incomplete" : "Mark Complete",
+        icon: (task: ChecklistTask) =>
+          task.isCompleted ? Square : CheckSquare,
+        action: (id: string) => {
+          handleToggleTask(id);
+        },
+      },
+      {
+        label: "Select",
+        icon: CheckSquare,
+        separator: "before" as const,
+        action: () => {
+          // Handled by EntityContextMenu's onEnterSelectionMode
+        },
+      },
+      {
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive" as const,
+        separator: "before" as const,
+        action: async (id: string) => {
+          await bulkDeleteChecklistTasks(checklist.id, [id]);
+          // Remove from local state immediately
+          setTasks((prev) => prev.filter((t) => t.id !== id));
+          router.refresh();
+        },
+      },
+    ],
+    [checklist.id, handleToggleTask, router]
+  );
+
+  // ============================================================================
+  // Bulk actions
+  // ============================================================================
+
+  const bulkActions: BulkAction[] = useMemo(
+    () => [
+      {
+        label: "Mark Complete",
+        icon: CheckCircle2,
+        action: async () => {
+          if (selection.selectedIds.size === 0) return;
+          await bulkToggleChecklistTasks(
+            checklist.id,
+            Array.from(selection.selectedIds),
+            true
+          );
+          // Update local state
+          setTasks((prev) =>
+            prev.map((t) =>
+              selection.selectedIds.has(t.id)
+                ? { ...t, isCompleted: true, completedAt: new Date().toISOString() }
+                : t
+            )
+          );
+          selection.exitSelectionMode();
+          router.refresh();
+        },
+      },
+      {
+        label: "Mark Incomplete",
+        icon: Circle,
+        action: async () => {
+          if (selection.selectedIds.size === 0) return;
+          await bulkToggleChecklistTasks(
+            checklist.id,
+            Array.from(selection.selectedIds),
+            false
+          );
+          // Update local state
+          setTasks((prev) =>
+            prev.map((t) =>
+              selection.selectedIds.has(t.id)
+                ? { ...t, isCompleted: false, completedAt: null }
+                : t
+            )
+          );
+          selection.exitSelectionMode();
+          router.refresh();
+        },
+      },
+      {
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive" as const,
+        action: async () => {
+          if (selection.selectedIds.size === 0) return;
+          await bulkDeleteChecklistTasks(
+            checklist.id,
+            Array.from(selection.selectedIds)
+          );
+          // Remove from local state
+          setTasks((prev) =>
+            prev.filter((t) => !selection.selectedIds.has(t.id))
+          );
+          selection.exitSelectionMode();
+          router.refresh();
+        },
+      },
+    ],
+    [checklist.id, selection, router]
+  );
+
   return (
-    <motion.div 
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="w-full space-y-6"
-    >
+    <div className="w-full space-y-6">
       {/* Header */}
-      <motion.div variants={item} className="flex items-start justify-between gap-4">
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-start justify-between gap-4">
         <div className="space-y-3">
-          <Button variant="ghost" size="sm" asChild className="-ml-2 rounded-xl text-muted-foreground hover:text-foreground no-print">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 rounded-xl text-muted-foreground hover:text-foreground">
             <Link href="/checklists">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Link>
           </Button>
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-[var(--radius)] bg-primary/10 text-primary no-print">
+            <div className="p-3 rounded-[var(--radius)] bg-primary/10 text-primary">
               <ListChecks className="h-6 w-6" />
             </div>
             <div>
@@ -299,14 +403,14 @@ export function ChecklistDetailClient({
                 <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
                   {checklist.name}
                 </h1>
-                <div className="no-print">
+                <div>
                   <StatusBadge isComplete={isComplete} isSynced={checklist.isSynced} />
                 </div>
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => window.print()}
-                    className="hidden sm:flex ml-auto no-print h-8 rounded-full px-3 text-xs"
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/checklists/${checklist.id}/print`, '_blank')}
+                    className="hidden sm:flex ml-auto h-8 rounded-full px-3 text-xs"
                   >
                     <Printer className="h-3.5 w-3.5 mr-2" />
                     Print
@@ -325,7 +429,7 @@ export function ChecklistDetailClient({
                     className="text-primary hover:underline inline-flex items-center gap-1"
                   >
                     {checklist.blueprintTitle}
-                    <ExternalLink className="h-3 w-3 no-print" />
+                    <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
               </div>
@@ -336,7 +440,7 @@ export function ChecklistDetailClient({
 
       {/* Checklist Description & Resources */}
       {(checklist.description || (checklist.resources && checklist.resources.length > 0)) && (
-        <motion.div variants={item} className="space-y-3">
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3">
           {/* Description */}
           {checklist.description && checklist.description.trim().length > 0 && (
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -346,10 +450,10 @@ export function ChecklistDetailClient({
               </div>
             </div>
           )}
-          
+
           {/* Resources */}
           {checklist.resources && checklist.resources.length > 0 && (
-            <div 
+            <div
               className="flex flex-wrap gap-2"
               role="list"
               aria-label="Checklist resources"
@@ -376,7 +480,7 @@ export function ChecklistDetailClient({
       )}
 
       {/* Progress Card - Bento style */}
-      <motion.div variants={item} className="no-print">
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
         <div data-slot="card" className={cn(
           "card rounded-[var(--radius)] bg-gradient-to-br border p-6 sm:p-8 relative overflow-hidden",
           progressColor,
@@ -389,10 +493,10 @@ export function ChecklistDetailClient({
           )}>
             {isComplete ? <CheckCircle2 size={120} /> : <ListChecks size={120} />}
           </div>
-          
+
           <div className="relative z-10">
             <h2 className="text-lg font-semibold mb-4">Progress</h2>
-            
+
             <div className="flex items-end gap-2 mb-2">
               <span className={cn(
                 "text-4xl sm:text-5xl font-black",
@@ -404,9 +508,9 @@ export function ChecklistDetailClient({
                 ({checklist.completedItems} of {checklist.totalItems} tasks)
               </span>
             </div>
-            
+
             <div className="w-full bg-primary/20 h-3 rounded-full overflow-hidden mt-4">
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${checklist.progress}%` }}
                 transition={{ duration: 1, ease: "easeOut" }}
@@ -416,11 +520,11 @@ export function ChecklistDetailClient({
                 )}
               >
                 {!isComplete && (
-                  <div className="absolute inset-0 bg-white/20 w-full h-full animate-shimmer" 
-                    style={{ 
-                      backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,0.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.15) 75%,transparent 75%,transparent)', 
-                      backgroundSize: '1rem 1rem' 
-                    }} 
+                  <div className="absolute inset-0 bg-white/20 w-full h-full animate-shimmer"
+                    style={{
+                      backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,0.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.15) 75%,transparent 75%,transparent)',
+                      backgroundSize: '1rem 1rem'
+                    }}
                   />
                 )}
               </motion.div>
@@ -443,7 +547,7 @@ export function ChecklistDetailClient({
       </motion.div>
 
       {/* Checklist Tasks */}
-      <motion.div variants={item}>
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
         <Card className="rounded-[var(--radius)] border bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
           <CardHeader className="border-b bg-muted/20 py-4 px-6">
             <div className="flex items-center justify-between">
@@ -455,8 +559,30 @@ export function ChecklistDetailClient({
                   <CardTitle className="text-lg font-semibold">Tasks</CardTitle>
                 </div>
               </div>
-              {/* Controls removed - now handled internally by ChecklistTracker */}
-              <div></div>
+              {/* Selection mode toggle */}
+              <div>
+                {selection.isSelectionMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={selection.exitSelectionMode}
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => selection.enterSelectionMode()}
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    Select
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -464,10 +590,28 @@ export function ChecklistDetailClient({
               tasks={tasks}
               onToggleTask={handleToggleTask}
               disabled={isToggling}
+              contextMenuItems={contextMenuItems}
+              isSelectionMode={selection.isSelectionMode}
+              isSelected={selection.isSelected}
+              onSelectionClick={selection.handleClick}
+              onSelect={selection.toggleItem}
+              onEnterSelectionMode={selection.enterSelectionMode}
             />
           </CardContent>
         </Card>
       </motion.div>
-    </motion.div>
+
+      {/* Bulk action bar */}
+      <BulkActionBar
+        selectedCount={selection.selectedIds.size}
+        actions={bulkActions}
+        onSelectAll={selection.selectAll}
+        onDeselectAll={selection.deselectAll}
+        onCancel={selection.exitSelectionMode}
+        isAllSelected={
+          selection.selectedIds.size === tasks.length && tasks.length > 0
+        }
+      />
+    </div>
   );
 }

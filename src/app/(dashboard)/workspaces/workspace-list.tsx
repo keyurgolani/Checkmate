@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, FolderKanban, Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2, Loader2 } from "lucide-react";
-import { formatDate, cn } from "@/lib/utils";
-import { createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, deleteWorkspace } from "./actions";
+import { Plus, FolderKanban, Archive, ArchiveRestore, ExternalLink, Pencil, Trash2, Loader2, CheckSquare, X } from "lucide-react";
+import { createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, deleteWorkspace, bulkDeleteWorkspaces, bulkArchiveWorkspaces, bulkUnarchiveWorkspaces } from "./actions";
+import { WorkspaceCard } from "@/components/workspaces/workspace-card";
+import { BulkActionBar } from "@/components/shared/bulk-action-bar";
+import { BulkConfirmDialog } from "@/components/shared/bulk-confirm-dialog";
+import { useSelection } from "@/lib/hooks/use-selection";
+import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { WorkspaceData } from "./page";
 
 interface WorkspaceListProps {
@@ -43,6 +40,10 @@ export function WorkspaceList({ workspaces: initialWorkspaces, showArchived, ope
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [error, setError] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const orderedIds = useMemo(() => workspaces.map((w) => w.id), [workspaces]);
+  const selection = useSelection(orderedIds);
 
   useEffect(() => {
     setWorkspaces(initialWorkspaces);
@@ -121,6 +122,93 @@ export function WorkspaceList({ workspaces: initialWorkspaces, showArchived, ope
     setIsEditOpen(true);
   };
 
+  // Bulk actions
+  const handleBulkArchive = () => {
+    startTransition(async () => {
+      await bulkArchiveWorkspaces(Array.from(selection.selectedIds));
+      selection.exitSelectionMode();
+      router.refresh();
+    });
+  };
+
+  const handleBulkUnarchive = () => {
+    startTransition(async () => {
+      await bulkUnarchiveWorkspaces(Array.from(selection.selectedIds));
+      selection.exitSelectionMode();
+      router.refresh();
+    });
+  };
+
+  const handleBulkDelete = () => {
+    setBulkDeleteOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    startTransition(async () => {
+      await bulkDeleteWorkspaces(Array.from(selection.selectedIds));
+      setBulkDeleteOpen(false);
+      selection.exitSelectionMode();
+      router.refresh();
+    });
+  };
+
+  // Context menu items
+  const contextMenuItems: ContextMenuItemConfig<WorkspaceData>[] = [
+    {
+      label: "Open",
+      icon: ExternalLink,
+      action: (id) => router.push(`/workspaces/${id}`),
+    },
+    {
+      label: "Edit",
+      icon: Pencil,
+      action: (_id, entity) => openEditDialog(entity),
+    },
+    {
+      label: (entity) => (entity.isArchived ? "Unarchive" : "Archive"),
+      icon: (entity: WorkspaceData) => (entity.isArchived ? ArchiveRestore : Archive),
+      action: (_id, entity) =>
+        entity.isArchived ? handleUnarchive(entity) : handleArchive(entity),
+      separator: "before",
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      action: (_id, entity) => handleDelete(entity),
+      variant: "destructive",
+      separator: "before",
+    },
+  ];
+
+  // Bulk action definitions
+  const bulkActions = showArchived
+    ? [
+        {
+          label: "Unarchive",
+          icon: ArchiveRestore,
+          action: handleBulkUnarchive,
+        },
+        {
+          label: "Delete",
+          icon: Trash2,
+          action: handleBulkDelete,
+          variant: "destructive" as const,
+        },
+      ]
+    : [
+        {
+          label: "Archive",
+          icon: Archive,
+          action: handleBulkArchive,
+        },
+        {
+          label: "Delete",
+          icon: Trash2,
+          action: handleBulkDelete,
+          variant: "destructive" as const,
+        },
+      ];
+
   const filterTabs = [
     { value: "active" as const, label: "Active", icon: <FolderKanban className="h-4 w-4" /> },
     { value: "archived" as const, label: "Archived", icon: <Archive className="h-4 w-4" /> },
@@ -128,19 +216,44 @@ export function WorkspaceList({ workspaces: initialWorkspaces, showArchived, ope
 
   return (
     <>
-      {/* Filter tabs */}
-      <FilterTabs
-        tabs={filterTabs}
-        activeTab={showArchived ? "archived" : "active"}
-        onTabChange={(tab) => router.push(tab === "archived" ? "/workspaces?archived=true" : "/workspaces")}
-      />
+      {/* Filter tabs and selection toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <FilterTabs
+          tabs={filterTabs}
+          activeTab={showArchived ? "archived" : "active"}
+          onTabChange={(tab) => router.push(tab === "archived" ? "/workspaces?archived=true" : "/workspaces")}
+        />
+        {workspaces.length > 0 && (
+          selection.isSelectionMode ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={selection.exitSelectionMode}
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => selection.enterSelectionMode()}
+            >
+              <CheckSquare className="h-4 w-4" />
+              Select
+            </Button>
+          )
+        )}
+      </div>
 
       {/* Workspace grid */}
       {workspaces.length === 0 ? (
         <EmptyState
           icon={<FolderKanban className="h-8 w-8" />}
           title={showArchived ? "No archived workspaces" : "No workspaces yet"}
-          description={showArchived 
+          description={showArchived
             ? "Archived workspaces will appear here."
             : "Create your first workspace to start organizing your checklists."}
           action={!showArchived ? {
@@ -152,7 +265,7 @@ export function WorkspaceList({ workspaces: initialWorkspaces, showArchived, ope
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Create new workspace card */}
-          {!showArchived && (
+          {!showArchived && !selection.isSelectionMode && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -172,88 +285,47 @@ export function WorkspaceList({ workspaces: initialWorkspaces, showArchived, ope
           {/* Workspace cards */}
           <AnimatePresence>
             {workspaces.map((workspace, index) => (
-              <motion.div
+              <WorkspaceCard
                 key={workspace.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ y: -4 }}
-                onClick={() => router.push(`/workspaces/${workspace.id}`)}
-                data-slot="card"
-                className={cn(
-                  "card relative min-h-[160px] rounded-[var(--radius)] border bg-card/50 backdrop-blur-sm p-6 cursor-pointer",
-                  "transition-all duration-300 hover:border-primary/30",
-                  "overflow-hidden group"
-                )}
-              >
-                {/* Gradient glow - only visible on hover */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-transparent -mr-8 -mt-8 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                        <FolderKanban className="h-5 w-5" />
-                      </div>
-                      <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                        {workspace.name}
-                      </h3>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" 
-                          disabled={isPending}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => openEditDialog(workspace)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {workspace.isArchived ? (
-                          <DropdownMenuItem onClick={() => handleUnarchive(workspace)}>
-                            <ArchiveRestore className="mr-2 h-4 w-4" />
-                            Unarchive
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => handleArchive(workspace)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archive
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(workspace)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  
-                  {workspace.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                      {workspace.description}
-                    </p>
-                  )}
-                  
-                  <p className="text-xs text-muted-foreground mt-auto">
-                    Created {formatDate(workspace.createdAt)}
-                  </p>
-                </div>
-              </motion.div>
+                workspace={workspace}
+                index={index}
+                onEdit={openEditDialog}
+                onArchive={handleArchive}
+                onUnarchive={handleUnarchive}
+                onDelete={handleDelete}
+                isPending={isPending}
+                contextMenuItems={contextMenuItems}
+                isSelectionMode={selection.isSelectionMode}
+                isSelected={selection.isSelected(workspace.id)}
+                onSelectionClick={selection.handleClick}
+                onSelect={selection.toggleItem}
+                onEnterSelectionMode={selection.enterSelectionMode}
+              />
             ))}
           </AnimatePresence>
         </div>
       )}
+
+      {/* Bulk action bar */}
+      <BulkActionBar
+        selectedCount={selection.selectedIds.size}
+        actions={bulkActions}
+        onSelectAll={selection.selectAll}
+        onDeselectAll={selection.deselectAll}
+        onCancel={selection.exitSelectionMode}
+        isAllSelected={selection.selectedIds.size === workspaces.length}
+      />
+
+      {/* Bulk delete confirm dialog */}
+      <BulkConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Delete workspaces"
+        description={`Are you sure you want to delete ${selection.selectedIds.size} workspace${selection.selectedIds.size !== 1 ? "s" : ""}? This action cannot be undone.`}
+        actionLabel="Delete"
+        onConfirm={confirmBulkDelete}
+        variant="destructive"
+      />
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) setError(null); }}>

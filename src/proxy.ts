@@ -56,6 +56,7 @@ const PROTECTED_API_ROUTES = [
   '/api/collaborators',
   '/api/notifications',
   '/api/user',
+  '/api/relay',
 ];
 
 /**
@@ -93,6 +94,13 @@ function isAuthRoute(path: string): boolean {
 
 function isProtectedApiRoute(path: string): boolean {
   if (matchesRoute(path, PUBLIC_API_ROUTES)) {
+    return false;
+  }
+  // Allow public read access to individual template details and their items.
+  // The route handlers enforce their own authorization (rejecting
+  // private/shared templates for unauthenticated users).
+  const templateDetailPattern = /^\/api\/templates\/[^/]+(\/items)?$/;
+  if (templateDetailPattern.test(path)) {
     return false;
   }
   return matchesRoute(path, PROTECTED_API_ROUTES);

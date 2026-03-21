@@ -82,3 +82,12 @@ docker-compose.override.yml
 # PocketBase
 /pb_data
 /pb_migrations
+
+# superpowers (auto-generated specs/plans)
+docs/superpowers/
+
+# worktrees
+.worktrees/
+
+# brainstorming companion
+.superpowers/

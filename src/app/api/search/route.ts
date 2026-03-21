@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SearchService, SearchErrorCodes } from '@/lib/services/search';
 import { ItemService } from '@/lib/services/item';
+import { createAdminClient } from '@/lib/pocketbase';
 import type { SearchFilters } from '@/lib/services/search';
 
 // ============================================================================
@@ -223,7 +224,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<SearchResp
 
     // Fetch step counts for all templates in parallel
     // Requirements: 8.3 - Show step count in search results
-    const itemService = new ItemService();
+    // Use admin client because items collection RLS requires authentication,
+    // but this is a public search endpoint accessible to anonymous users.
+    const adminPb = await createAdminClient();
+    const itemService = new ItemService(adminPb);
     const stepCounts = await Promise.all(
       result.result.items.map(async (blueprint) => {
         try {

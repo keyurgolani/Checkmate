@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { LLMProvider, WebResearchProvider, type LLMSettings, type LLMModel, type WebResearchSettings } from "@/lib/pocketbase-types";
 import { PROVIDER_CONFIG } from "@/lib/services/llm";
+import { llmClient } from "@/lib/services/llm-client";
 import { WEB_RESEARCH_PROVIDER_CONFIG } from "@/lib/services/web-research";
 import { Mail, Calendar, Palette, AlertTriangle, Check, Sparkles, Shield, Bot, Key, Server, Loader2, RefreshCw, Globe, Search } from "lucide-react";
 
@@ -92,6 +93,9 @@ export function SettingsForm({ user }: SettingsFormProps) {
   const [llmSelectedModel, setLlmSelectedModel] = React.useState(
     user.preferences?.llmSettings?.selectedModel || ''
   );
+  const [llmSelfHosted, setLLMSelfHosted] = React.useState(
+    user.preferences?.llmSettings?.selfHosted ?? (user.preferences?.llmSettings?.provider === 'ollama')
+  );
   const [llmModels, setLlmModels] = React.useState<LLMModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = React.useState(false);
   const [isSavingLLM, setIsSavingLLM] = React.useState(false);
@@ -109,6 +113,9 @@ export function SettingsForm({ user }: SettingsFormProps) {
   );
   const [webResearchBaseUrl, setWebResearchBaseUrl] = React.useState(
     user.preferences?.llmSettings?.webResearch?.baseUrl || ''
+  );
+  const [webResearchSelfHosted, setWebResearchSelfHosted] = React.useState(
+    user.preferences?.llmSettings?.webResearch?.selfHosted ?? true
   );
 
   // Get the current web research provider config
@@ -133,18 +140,14 @@ export function SettingsForm({ user }: SettingsFormProps) {
     setLlmMessage(null);
 
     try {
-      const response = await fetch('/api/llm/models', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: llmProvider,
-          apiKey: llmApiKey,
-          baseUrl: llmBaseUrl || undefined,
-        }),
+      const data = await llmClient.fetchModels({
+        provider: llmProvider as any,
+        apiKey: llmApiKey,
+        baseUrl: llmBaseUrl,
+        selectedModel: null,
+        selfHosted: llmSelfHosted,
       });
 
-      const data = await response.json();
-      
       if (data.success) {
         setLlmModels(data.models);
         if (data.models.length > 0 && !llmSelectedModel) {
@@ -158,7 +161,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
     } finally {
       setIsLoadingModels(false);
     }
-  }, [llmProvider, llmApiKey, llmBaseUrl, llmSelectedModel]);
+  }, [llmProvider, llmApiKey, llmBaseUrl, llmSelectedModel, llmSelfHosted]);
 
   const handleSaveLLMSettings = async () => {
     setIsSavingLLM(true);
@@ -171,6 +174,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
           provider: webResearchProvider as WebResearchProvider || null,
           apiKey: webResearchApiKey || null,
           baseUrl: webResearchBaseUrl || null,
+          selfHosted: webResearchProvider === 'searxng' ? webResearchSelfHosted : false,
         }
       : null;
 
@@ -180,6 +184,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
         apiKey: llmApiKey || null,
         baseUrl: llmBaseUrl || null,
         selectedModel: llmSelectedModel || null,
+        selfHosted: (llmProvider === 'ollama' || llmProvider === 'openai-compatible') ? llmSelfHosted : false,
         webResearch,
       },
     });
@@ -384,9 +389,17 @@ export function SettingsForm({ user }: SettingsFormProps) {
           <div className="space-y-2">
             <Label htmlFor="llm-provider">Provider</Label>
             <Select value={llmProvider} onValueChange={(v) => {
-              setLlmProvider(v as LLMProvider);
+              const newProvider = v as LLMProvider;
+              setLlmProvider(newProvider);
               setLlmModels([]);
               setLlmSelectedModel('');
+              if (newProvider === 'ollama') {
+                setLLMSelfHosted(true);
+              } else if (newProvider === 'openai-compatible') {
+                setLLMSelfHosted(true);
+              } else {
+                setLLMSelfHosted(false);
+              }
             }}>
               <SelectTrigger id="llm-provider" className="rounded-lg">
                 <SelectValue placeholder="Select a provider" />
@@ -402,22 +415,23 @@ export function SettingsForm({ user }: SettingsFormProps) {
                 <SelectItem value="xai">xAI (Grok)</SelectItem>
                 <SelectItem value="openrouter">OpenRouter</SelectItem>
                 <SelectItem value="perplexity">Perplexity</SelectItem>
+                <SelectItem value="openai-compatible">OpenAI Compatible</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Ollama Base URL */}
-          {llmProvider === LLMProvider.OLLAMA && (
+          {/* Base URL */}
+          {(llmProvider === LLMProvider.OLLAMA || llmProvider === LLMProvider.OPENAI_COMPATIBLE) && (
             <div className="space-y-2">
               <Label htmlFor="llm-base-url" className="flex items-center gap-1.5">
                 <Server className="h-3.5 w-3.5" />
-                Ollama URL
+                {llmProvider === LLMProvider.OLLAMA ? 'Ollama URL' : 'Base URL'}
               </Label>
               <Input
                 id="llm-base-url"
                 value={llmBaseUrl}
                 onChange={(e) => setLlmBaseUrl(e.target.value)}
-                placeholder="http://localhost:11434"
+                placeholder={llmProvider === LLMProvider.OLLAMA ? "http://localhost:11434" : "https://your-api-endpoint.com/v1"}
                 className="rounded-lg"
               />
             </div>
@@ -437,6 +451,22 @@ export function SettingsForm({ user }: SettingsFormProps) {
                 onChange={(e) => setLlmApiKey(e.target.value)}
                 placeholder="Enter your API key"
                 className="rounded-lg"
+              />
+            </div>
+          )}
+
+          {/* Self-hosted Toggle */}
+          {(llmProvider === LLMProvider.OLLAMA || llmProvider === LLMProvider.OPENAI_COMPATIBLE) && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Local network</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable if this service runs on your local network. Requests route through your browser.
+                </p>
+              </div>
+              <Switch
+                checked={llmSelfHosted}
+                onCheckedChange={setLLMSelfHosted}
               />
             </div>
           )}
@@ -602,12 +632,20 @@ export function SettingsForm({ user }: SettingsFormProps) {
                     </div>
                   )}
 
-                  {/* Self-hosted indicator */}
+                  {/* Self-hosted toggle for SearXNG */}
                   {webResearchProviderConfig?.isSelfHosted && (
-                    <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg flex items-center gap-1.5">
-                      <Shield className="h-3 w-3" />
-                      Self-hosted provider - your searches stay private on your own infrastructure
-                    </p>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">Local network</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Enable if SearXNG runs on your local network. Requests route through your browser.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={webResearchSelfHosted}
+                        onCheckedChange={setWebResearchSelfHosted}
+                      />
+                    </div>
                   )}
                 </div>
               )}
@@ -619,6 +657,18 @@ export function SettingsForm({ user }: SettingsFormProps) {
             <div className="space-y-4 pt-4 border-t">
               <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg">
                 Perplexity has built-in web search capabilities, so additional web research is not needed.
+              </p>
+            </div>
+          )}
+
+          {/* CORS Info Banner */}
+          {(((llmProvider === LLMProvider.OLLAMA || llmProvider === LLMProvider.OPENAI_COMPATIBLE) && llmSelfHosted) || (webResearchProvider === 'searxng' && webResearchSelfHosted)) && (
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-3">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Local network provider detected</p>
+              <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                Requests will be routed through your browser to reach your local service.
+                Make sure CORS is configured on your service.
+                {llmProvider === LLMProvider.OLLAMA && llmSelfHosted && ' For Ollama, set OLLAMA_ORIGINS=* before starting.'}
               </p>
             </div>
           )}

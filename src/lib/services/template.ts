@@ -811,6 +811,63 @@ export class TemplateService {
   }
 
   /**
+   * Duplicates a template and all its items.
+   * Creates a new private copy with "Copy of" prepended to the title.
+   *
+   * @param templateId - Template ID to duplicate
+   * @returns TemplateResult with the new template on success
+   */
+  async duplicate(templateId: string): Promise<TemplateResult> {
+    try {
+      const original = await this.pb.collection(Collections.TEMPLATES).getOne(templateId);
+
+      const newTemplate = await this.pb.collection(Collections.TEMPLATES).create({
+        owner: original.owner,
+        workspace: original.workspace,
+        title: `Copy of ${original.title}`,
+        description: original.description,
+        visibility: Visibility.PRIVATE,
+        category: original.category,
+        tags: original.tags,
+        questions: original.questions,
+        resources: original.resources,
+      });
+
+      // Copy all items
+      const items = await this.pb.collection(Collections.ITEMS).getFullList({
+        filter: `blueprint = "${templateId}"`,
+        sort: "path",
+      });
+
+      const idMap = new Map<string, string>();
+
+      for (const item of items) {
+        const newParent = item.parent ? idMap.get(item.parent) ?? null : null;
+        const newItem = await this.pb.collection(Collections.ITEMS).create({
+          blueprint: newTemplate.id,
+          parent: newParent,
+          path: item.path,
+          itemType: item.itemType,
+          content: item.content,
+          description: item.description,
+          resources: item.resources,
+          reference: item.reference,
+          position: item.position,
+          metadata: item.metadata,
+        });
+        idMap.set(item.id, newItem.id);
+      }
+
+      return createSuccessResult(newTemplate as Template);
+    } catch (error) {
+      return createErrorResult({
+        code: "TEMPLATE_DUPLICATE_FAILED",
+        message: error instanceof Error ? error.message : "Failed to duplicate template",
+      });
+    }
+  }
+
+  /**
    * Gets the underlying PocketBase client.
    * Useful for advanced operations.
    */

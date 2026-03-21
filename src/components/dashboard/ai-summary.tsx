@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import type { DashboardSummary } from "@/lib/pocketbase-types";
+import { streamCollect, simpleFetch, classifyFetchError } from "@/lib/services/relay-client";
 
 // ============================================================================
 // Types
@@ -35,6 +36,9 @@ interface SummaryResponse {
   summary?: DashboardSummary;
   cached?: boolean;
   needsConfiguration?: boolean;
+  selfHostedRelay?: boolean;
+  requestSpec?: { url: string; method: string; headers: Record<string, string>; body?: string; responseHandling: string };
+  statsSnapshot?: Record<string, unknown>;
   error?: { message: string };
 }
 
@@ -108,12 +112,41 @@ export function AISummary({ initialSummary, llmConfigured }: AISummaryProps) {
     setError(null);
 
     try {
-      const url = forceRefresh 
-        ? '/api/dashboard/summary?refresh=true' 
+      const url = forceRefresh
+        ? '/api/dashboard/summary?refresh=true'
         : '/api/dashboard/summary';
       const response = await fetch(url);
       const data: SummaryResponse = await response.json();
 
+      // Handle self-hosted relay response
+      if (data.success && data.selfHostedRelay) {
+        let rawResponse: string;
+        try {
+          if (data.requestSpec?.responseHandling === 'stream-collect') {
+            rawResponse = await streamCollect(data.requestSpec as Parameters<typeof streamCollect>[0]);
+          } else {
+            rawResponse = await simpleFetch(data.requestSpec as Parameters<typeof simpleFetch>[0]);
+          }
+        } catch (err) {
+          setError(classifyFetchError(err, data.requestSpec?.url ?? ''));
+          return;
+        }
+
+        const saveResponse = await fetch('/api/dashboard/summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawResponse, statsSnapshot: data.statsSnapshot }),
+        });
+        const saveData = await saveResponse.json();
+        if (saveData.success && saveData.summary) {
+          setSummary(saveData.summary);
+        } else {
+          setError(saveData.error?.message || 'Failed to process summary');
+        }
+        return;
+      }
+
+      // Normal cloud path
       if (data.success && data.summary) {
         setSummary(data.summary);
       } else if (data.needsConfiguration) {

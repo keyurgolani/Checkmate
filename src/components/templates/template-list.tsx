@@ -2,16 +2,21 @@
 
 /**
  * Template List Component
- * 
+ *
  * Displays templates in grid or list view with consistent design.
+ * Supports context menus, multi-select, and bulk actions.
  */
 
 import { useState } from "react";
 import { TemplateCard, type TemplateCardData } from "./template-card";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useSelection } from "@/lib/hooks/use-selection";
+import { BulkActionBar, type BulkAction } from "@/components/shared/bulk-action-bar";
+import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 
 interface TemplateListProps {
   templates: TemplateCardData[];
@@ -23,6 +28,10 @@ interface TemplateListProps {
   linkPrefix?: string;
   /** Current user ID - passed to cards to determine ownership display */
   currentUserId?: string | null;
+  contextMenuItems?: ContextMenuItemConfig<TemplateCardData>[];
+  bulkActions?: BulkAction[];
+  /** Factory function that creates bulk actions with access to selected IDs */
+  bulkActionFactory?: (selectedIds: Set<string>) => BulkAction[];
 }
 
 export function TemplateList({
@@ -34,8 +43,13 @@ export function TemplateList({
   defaultViewMode = "grid",
   linkPrefix = "/templates",
   currentUserId,
+  contextMenuItems,
+  bulkActions,
+  bulkActionFactory,
 }: TemplateListProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode);
+  const templateIds = templates.map((t) => t.id);
+  const selection = useSelection(templateIds);
 
   if (templates.length === 0) {
     return (
@@ -54,12 +68,28 @@ export function TemplateList({
 
   return (
     <div className="space-y-6">
-      {/* Header with view toggle */}
+      {/* Header with view toggle and selection controls */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {templates.length} template{templates.length !== 1 ? "s" : ""}
+          {selection.isSelectionMode
+            ? `${selection.selectedIds.size} of ${templates.length} selected`
+            : `${templates.length} template${templates.length !== 1 ? "s" : ""}`
+          }
         </p>
-        <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        <div className="flex items-center gap-2">
+          {templates.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs h-8"
+              onClick={() => selection.isSelectionMode ? selection.exitSelectionMode() : selection.enterSelectionMode()}
+              aria-pressed={selection.isSelectionMode}
+            >
+              {selection.isSelectionMode ? "Cancel" : "Select"}
+            </Button>
+          )}
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
       </div>
 
       {/* Template grid/list */}
@@ -82,7 +112,18 @@ export function TemplateList({
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   layout
                 >
-                  <TemplateCard template={template} viewMode="grid" linkPrefix={linkPrefix} currentUserId={currentUserId} />
+                  <TemplateCard
+                    template={template}
+                    viewMode="grid"
+                    linkPrefix={linkPrefix}
+                    currentUserId={currentUserId}
+                    contextMenuItems={contextMenuItems}
+                    isSelectionMode={selection.isSelectionMode}
+                    isSelected={selection.isSelected(template.id)}
+                    onSelectionClick={(id, e) => selection.handleClick(id, e)}
+                    onSelect={(id) => selection.toggleItem(id)}
+                    onEnterSelectionMode={(id) => selection.enterSelectionMode(id)}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -105,13 +146,35 @@ export function TemplateList({
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   layout
                 >
-                  <TemplateCard template={template} viewMode="list" linkPrefix={linkPrefix} currentUserId={currentUserId} />
+                  <TemplateCard
+                    template={template}
+                    viewMode="list"
+                    linkPrefix={linkPrefix}
+                    currentUserId={currentUserId}
+                    contextMenuItems={contextMenuItems}
+                    isSelectionMode={selection.isSelectionMode}
+                    isSelected={selection.isSelected(template.id)}
+                    onSelectionClick={(id, e) => selection.handleClick(id, e)}
+                    onSelect={(id) => selection.toggleItem(id)}
+                    onEnterSelectionMode={(id) => selection.enterSelectionMode(id)}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {(bulkActions || bulkActionFactory) && (
+        <BulkActionBar
+          selectedCount={selection.selectedIds.size}
+          actions={bulkActionFactory ? bulkActionFactory(selection.selectedIds) : bulkActions!}
+          onSelectAll={() => selection.selectAll()}
+          onDeselectAll={() => selection.deselectAll()}
+          onCancel={() => selection.exitSelectionMode()}
+          isAllSelected={selection.selectedIds.size === templates.length}
+        />
+      )}
     </div>
   );
 }

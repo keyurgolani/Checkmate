@@ -50,10 +50,12 @@ export default async function TemplateDetailPage({ params }: PageProps) {
     // 2. If full access failed, try to get basic info for "Request Access" view
     // This allows showing private templates metadata to everyone (as per requirements)
     const basicInfo = await templateService.getBasicInfoById(id);
-    
+
     if (basicInfo) {
       template = basicInfo;
-      accessLevel = 'limited';
+      // Public templates get full access (anonymous users can view all items).
+      // Non-public templates get limited access (metadata only, no items).
+      accessLevel = basicInfo.visibility === 'public' ? 'full' : 'limited';
     } else {
       // 3. If neither works, it really doesn't exist
       notFound();
@@ -62,9 +64,8 @@ export default async function TemplateDetailPage({ params }: PageProps) {
 
   // 4. Fetch items only if we have full access
   if (accessLevel === 'full' && template) {
-    // For public templates, anonymous users need to see items too.
-    // Since PocketBase items collection requires auth, we use admin client
-    // when the user is not authenticated to fetch items for public templates.
+    // Items collection RLS requires authentication, so use admin client
+    // when the user is not authenticated.
     let itemsPb = pb;
     if (!isAuthenticated) {
       itemsPb = await createAdminClient();

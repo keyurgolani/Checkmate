@@ -673,7 +673,7 @@ export function TemplateDetailClient({
     >
       {/* Back button */}
       <motion.div variants={item}>
-        <Button variant="ghost" size="sm" asChild className="rounded-xl -ml-2 no-print">
+        <Button variant="ghost" size="sm" asChild className="rounded-xl -ml-2">
           <Link href="/discover">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Discover
@@ -765,8 +765,8 @@ export function TemplateDetailClient({
             <Button
               variant="outline"
               size="lg"
-              onClick={() => window.print()}
-              className="hidden sm:flex rounded-xl h-11 no-print"
+              onClick={() => window.open(`/discover/${template.id}/print`, '_blank')}
+              className="hidden sm:flex rounded-xl h-11"
             >
               <Printer className="h-4 w-4 mr-2" />
               Print
@@ -779,7 +779,7 @@ export function TemplateDetailClient({
                 size="lg"
                 onClick={handleCopyTemplate}
                 disabled={isCopying}
-                className="hidden sm:flex rounded-xl h-11 no-print"
+                className="hidden sm:flex rounded-xl h-11"
               >
                 {isCopying ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

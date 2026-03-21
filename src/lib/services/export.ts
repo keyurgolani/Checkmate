@@ -22,6 +22,7 @@ import type {
   ItemCreate,
   ItemMetadata,
   ResourceLink,
+  TemplateQuestion,
   User,
 } from '../pocketbase-types';
 import { Collections, ItemType, Visibility } from '../pocketbase-types';
@@ -82,6 +83,7 @@ export interface ExportedBlueprint {
     tags: string[] | null;
     visibility: string;
     version: number;
+    questions: TemplateQuestion[] | null;
     createdAt: string;
     updatedAt: string;
     owner?: {
@@ -180,6 +182,7 @@ export interface ParsedImportData {
   description: string | null;
   category: string | null;
   tags: string[];
+  questions: TemplateQuestion[] | null;
   items: ParsedImportItem[];
 }
 
@@ -556,6 +559,13 @@ function parseExportedBlueprintFormat(
     return { isValid: false, errors, warnings, parsedData: null };
   }
   
+  // Parse questions
+  const questions = Array.isArray(templateData.questions)
+    ? (templateData.questions as TemplateQuestion[]).filter(
+        (q) => q && typeof q.id === 'string' && typeof q.question === 'string'
+      )
+    : null;
+
   return {
     isValid: true,
     errors: [],
@@ -565,6 +575,7 @@ function parseExportedBlueprintFormat(
       description: (templateData.description as string | null) || null,
       category: (templateData.category as string | null) || null,
       tags: Array.isArray(templateData.tags) ? templateData.tags.filter((t): t is string => typeof t === 'string') : [],
+      questions: questions && questions.length > 0 ? questions : null,
       items: parsedItems,
     },
   };
@@ -672,6 +683,7 @@ function parseSimpleJSONFormat(
       description: (obj.description as string | null) || null,
       category: (obj.category as string | null) || null,
       tags: Array.isArray(obj.tags) ? obj.tags.filter((t): t is string => typeof t === 'string') : [],
+      questions: null,
       items: parsedItems,
     },
   };
@@ -807,6 +819,7 @@ function parseCSVImport(data: string): ImportValidationResult {
       description,
       category,
       tags,
+      questions: null,
       items,
     },
   };
@@ -1105,6 +1118,7 @@ function parseMarkdownImport(data: string): ImportValidationResult {
       description,
       category: null,
       tags: [],
+      questions: null,
       items,
     },
   };
@@ -1227,6 +1241,7 @@ export class ExportService {
           tags: template.tags,
           visibility: template.visibility,
           version: template.version,
+          questions: template.questions || null,
           createdAt: template.created,
           updatedAt: template.updated,
           owner: owner ? {
@@ -1541,6 +1556,7 @@ export class ExportService {
         visibility: Visibility.PRIVATE,
         category: parsedData.category || undefined,
         tags: parsedData.tags,
+        questions: parsedData.questions || undefined,
         version: 1,
         instanceCount: 0,
         ratingSum: 0,

@@ -15,6 +15,10 @@ import { Visibility } from "@/lib/pocketbase-types";
 import { Globe, Lock, Users, Star, ListChecks, Copy } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDate } from "@/lib/utils";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
+import { SelectionOverlay } from "@/components/shared/selection-overlay";
+import { useLongPress } from "@/lib/hooks/use-long-press";
 
 export interface TemplateCardData {
   id: string;
@@ -40,6 +44,12 @@ interface TemplateCardProps {
   linkPrefix?: string;
   /** Current user ID - if provided and different from ownerId, shows owner prefix */
   currentUserId?: string | null;
+  contextMenuItems?: ContextMenuItemConfig<TemplateCardData>[];
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectionClick?: (id: string, event: React.MouseEvent) => void;
+  onSelect?: (id: string) => void;
+  onEnterSelectionMode?: (id: string) => void;
 }
 
 function VisibilityBadge({ visibility }: { visibility: Visibility | string }) {
@@ -116,7 +126,23 @@ function formatTemplateTitle(
   return { displayTitle: title, ownerPrefix };
 }
 
-export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templates", currentUserId }: TemplateCardProps) {
+export function TemplateCard({
+  template,
+  viewMode = "grid",
+  linkPrefix = "/templates",
+  currentUserId,
+  contextMenuItems,
+  isSelectionMode,
+  isSelected,
+  onSelectionClick,
+  onSelect,
+  onEnterSelectionMode,
+}: TemplateCardProps) {
+  const longPressHandlers = useLongPress({
+    onLongPress: () => onEnterSelectionMode?.(template.id),
+    disabled: !!isSelectionMode || !onEnterSelectionMode,
+  });
+
   const formattedDate = formatDate(template.updatedAt);
   const { displayTitle, ownerPrefix } = formatTemplateTitle(
     template.title,
@@ -127,8 +153,8 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
   );
 
   if (viewMode === "list") {
-    return (
-      <Link href={`${linkPrefix}/${template.id}`} className="block group">
+    const listCardContent = (
+      <SelectionOverlay isSelectionMode={!!isSelectionMode} isSelected={!!isSelected}>
         <motion.div
           whileHover={{ x: 4 }}
           data-slot="card"
@@ -150,9 +176,9 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
               <VisibilityBadge visibility={template.visibility} />
             </div>
             {template.description && (
-              <p className="text-sm text-muted-foreground truncate">
-                {template.description}
-              </p>
+              <div className="text-sm text-muted-foreground truncate">
+                <MarkdownRenderer content={template.description} compact />
+              </div>
             )}
           </div>
           <div className="flex items-center gap-4 flex-shrink-0 text-sm text-muted-foreground">
@@ -175,13 +201,43 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
             <span className="hidden lg:inline">{formattedDate}</span>
           </div>
         </motion.div>
+      </SelectionOverlay>
+    );
+
+    const wrappedListCard = isSelectionMode ? (
+      <div
+        className="block group cursor-pointer"
+        onClick={(e) => onSelectionClick?.(template.id, e)}
+      >
+        {listCardContent}
+      </div>
+    ) : (
+      <Link href={`${linkPrefix}/${template.id}`} className="block group" {...longPressHandlers}>
+        {listCardContent}
       </Link>
     );
+
+    if (contextMenuItems) {
+      return (
+        <EntityContextMenu
+          entityId={template.id}
+          entity={template}
+          menuItems={contextMenuItems}
+          isSelectionMode={isSelectionMode}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          onEnterSelectionMode={onEnterSelectionMode}
+        >
+          {wrappedListCard}
+        </EntityContextMenu>
+      );
+    }
+    return wrappedListCard;
   }
 
   // Grid view
-  return (
-    <Link href={`${linkPrefix}/${template.id}`} className="block h-full group">
+  const cardContent = (
+    <SelectionOverlay isSelectionMode={!!isSelectionMode} isSelected={!!isSelected}>
       <motion.div
         whileHover={{ y: -4 }}
         transition={{ type: "spring", stiffness: 300 }}
@@ -194,7 +250,7 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
       >
         {/* Gradient glow - only visible on hover */}
         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-transparent -mr-8 -mt-8 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-        
+
         <div className="relative z-10">
           {/* Owner prefix for non-owned templates */}
           {ownerPrefix && (
@@ -208,17 +264,17 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
             </h3>
             <VisibilityBadge visibility={template.visibility} />
           </div>
-          
+
           {template.description ? (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-              {template.description}
-            </p>
+            <div className="text-sm text-muted-foreground line-clamp-2 mb-4">
+              <MarkdownRenderer content={template.description} compact />
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground/60 italic mb-4">
               No description
             </p>
           )}
-          
+
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
             <div className="flex items-center gap-3">
               {template.category && (
@@ -241,7 +297,7 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
               </span>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
             {template.tags && template.tags.length > 0 ? (
               <div className="flex flex-wrap gap-1">
@@ -266,6 +322,36 @@ export function TemplateCard({ template, viewMode = "grid", linkPrefix = "/templ
           </div>
         </div>
       </motion.div>
+    </SelectionOverlay>
+  );
+
+  const wrappedCard = isSelectionMode ? (
+    <div
+      className="block h-full group cursor-pointer"
+      onClick={(e) => onSelectionClick?.(template.id, e)}
+    >
+      {cardContent}
+    </div>
+  ) : (
+    <Link href={`${linkPrefix}/${template.id}`} className="block h-full group" {...longPressHandlers}>
+      {cardContent}
     </Link>
   );
+
+  if (contextMenuItems) {
+    return (
+      <EntityContextMenu
+        entityId={template.id}
+        entity={template}
+        menuItems={contextMenuItems}
+        isSelectionMode={isSelectionMode}
+        isSelected={isSelected}
+        onSelect={onSelect}
+        onEnterSelectionMode={onEnterSelectionMode}
+      >
+        {wrappedCard}
+      </EntityContextMenu>
+    );
+  }
+  return wrappedCard;
 }

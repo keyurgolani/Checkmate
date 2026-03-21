@@ -6,7 +6,7 @@
 
 export { ChecklistCard, type ChecklistCardData } from './checklist-card';
 export { ChecklistList } from './checklist-list';
-export { ChecklistTracker, type ChecklistTask, type ChecklistTrackerProps } from './checklist-tracker';
+export { ChecklistTracker, getVisibleFlatIds, type ChecklistTask, type ChecklistTrackerProps, type TaskTreeNode } from './checklist-tracker';
 /** @deprecated Use ChecklistTask instead */
 export type { ChecklistTask as ChecklistTrackerItem } from './checklist-tracker';
 export { 

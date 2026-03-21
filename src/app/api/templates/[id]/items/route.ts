@@ -12,6 +12,7 @@ import { getServerAuth } from '@/lib/server-auth';
 import { ItemService, ItemErrorCodes } from '@/lib/services/item';
 import { TemplateService, TemplateErrorCodes } from '@/lib/services/template';
 import { CollaborationService } from '@/lib/services/collaboration';
+import { createAdminClient } from '@/lib/pocketbase';
 import { Visibility, PermissionLevel, ItemType } from '@/lib/pocketbase-types';
 import type { Item, ItemMetadata, ResourceLink } from '@/lib/pocketbase-types';
 
@@ -82,9 +83,25 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
 
     const templateService = new TemplateService(pb);
     const collaborationService = new CollaborationService(pb);
-    const itemService = new ItemService(pb);
 
-    const templateResult = await templateService.getById(templateId);
+    // First try with user's pb client (respects RLS — works for authenticated users
+    // and for public templates since blueprints viewRule allows public access).
+    let templateResult = await templateService.getById(templateId);
+
+    // If unauthenticated and template not found via RLS, try admin client
+    // to check if it's a public template (PocketBase may not resolve the
+    // viewRule for completely unauthenticated requests in all configurations).
+    if (!isAuthenticated && (!templateResult.success || !templateResult.template)) {
+      const adminPb = await createAdminClient();
+      const adminTemplateService = new TemplateService(adminPb);
+      templateResult = await adminTemplateService.getById(templateId);
+
+      // Only allow public templates for unauthenticated users
+      if (templateResult.success && templateResult.template && templateResult.template.visibility !== Visibility.PUBLIC) {
+        return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
+      }
+    }
+
     if (!templateResult.success || !templateResult.template) {
       return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
     }
@@ -104,6 +121,19 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       if (!hasAccess) {
         return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
       }
+    }
+
+    // For public templates viewed by anonymous users, use admin client to
+    // bypass items RLS (which requires authentication). This is safe because:
+    // 1. We only reach here for verified-public templates
+    // 2. The admin client is only used for a scoped read-only query
+    // 3. It is never exposed to the caller
+    let itemService: ItemService;
+    if (template.visibility === Visibility.PUBLIC && !isAuthenticated) {
+      const adminPb = await createAdminClient();
+      itemService = new ItemService(adminPb);
+    } else {
+      itemService = new ItemService(pb);
     }
 
     const { searchParams } = new URL(request.url);

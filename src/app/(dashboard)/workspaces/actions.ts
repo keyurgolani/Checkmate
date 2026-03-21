@@ -95,7 +95,7 @@ export async function unarchiveWorkspace(id: string): Promise<WorkspaceActionRes
 
 export async function deleteWorkspace(id: string): Promise<WorkspaceActionResult> {
   const { isAuthenticated, pb } = await getServerAuth();
-  
+
   if (!isAuthenticated) {
     return { success: false, error: "Not authenticated" };
   }
@@ -109,4 +109,55 @@ export async function deleteWorkspace(id: string): Promise<WorkspaceActionResult
 
   revalidatePath("/workspaces");
   return { success: true };
+}
+
+export async function bulkDeleteWorkspaces(workspaceIds: string[]) {
+  const { isAuthenticated, pb } = await getServerAuth();
+  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
+
+  const service = new WorkspaceService(pb);
+  const errors: string[] = [];
+  for (const id of workspaceIds) {
+    const result = await service.delete(id);
+    if (!result.success) {
+      errors.push(result.error?.message ?? `Failed to delete ${id}`);
+    }
+  }
+
+  revalidatePath("/workspaces");
+  return { success: errors.length === 0, errors, deletedCount: workspaceIds.length - errors.length };
+}
+
+export async function bulkArchiveWorkspaces(workspaceIds: string[]) {
+  const { isAuthenticated, pb } = await getServerAuth();
+  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
+
+  const service = new WorkspaceService(pb);
+  const errors: string[] = [];
+  for (const id of workspaceIds) {
+    const result = await service.archive(id);
+    if (!result.success) {
+      errors.push(result.error?.message ?? `Failed to archive ${id}`);
+    }
+  }
+
+  revalidatePath("/workspaces");
+  return { success: errors.length === 0, errors };
+}
+
+export async function bulkUnarchiveWorkspaces(workspaceIds: string[]) {
+  const { isAuthenticated, pb } = await getServerAuth();
+  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
+
+  const service = new WorkspaceService(pb);
+  const errors: string[] = [];
+  for (const id of workspaceIds) {
+    const result = await service.unarchive(id);
+    if (!result.success) {
+      errors.push(result.error?.message ?? `Failed to unarchive ${id}`);
+    }
+  }
+
+  revalidatePath("/workspaces");
+  return { success: errors.length === 0, errors };
 }

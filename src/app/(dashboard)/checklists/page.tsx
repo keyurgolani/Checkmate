@@ -1,18 +1,20 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { ChecklistService } from "@/lib/services/checklist";
 import { TemplateService } from "@/lib/services"; // Updated import
-import { ChecklistList, type ChecklistCardData } from "@/components/checklists";
+import type { ChecklistCardData } from "@/components/checklists";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ListChecks, Search, LogIn } from "lucide-react";
 import Link from "next/link";
+import { ChecklistListClient } from "./checklist-list-client";
 
 /**
  * Checklists Page - Server Component
  *
  * Displays user's checklists with progress bars and completion status.
  * Supports filtering by status (all, active, completed) and grid/list view toggle.
+ * Context menus and bulk actions are handled by the client wrapper.
  *
  * Requirements: 6.4, 6.7
  */
@@ -32,12 +34,12 @@ export default async function ChecklistsPage() {
 
     const templateTitleMap = new Map<string, string>();
     const templateIdsToFetch: string[] = [];
-    
+
     for (const checklist of rawChecklists) {
       const templateId = checklist.blueprint; // DB field name
       // @ts-expect-error - Handle possible expansion naming differences
       const expandedTemplate = checklist.expand?.blueprint || checklist.expand?.template;
-      
+
       if (expandedTemplate) {
         templateTitleMap.set(templateId, expandedTemplate.title);
       } else if (!templateTitleMap.has(templateId)) {
@@ -102,14 +104,7 @@ export default async function ChecklistsPage() {
         )}
       </PageHeader>
 
-      <ChecklistList
-        checklists={checklists}
-        emptyMessage="No checklists yet"
-        emptyDescription="Create a checklist from a template to start tracking your progress!"
-        showDiscoverButton={true}
-        discoverHref="/discover"
-        defaultViewMode="list"
-      />
+      <ChecklistListClient checklists={checklists} />
     </div>
   );
 }

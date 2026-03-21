@@ -111,17 +111,17 @@ export function clearAuth(pb: PocketBase): void {
  */
 export async function createAdminClient(): Promise<PocketBase> {
   const pb = createPocketBaseClient();
-  const email = process.env.POCKETBASE_ADMIN_EMAIL || 'admin@checkmate.dev';
-  const password = process.env.POCKETBASE_ADMIN_PASSWORD || 'password123456';
-  
+  const email = process.env.PB_ADMIN_EMAIL || process.env.POCKETBASE_ADMIN_EMAIL || 'admin@checkmate.local';
+  const password = process.env.PB_ADMIN_PASSWORD || process.env.POCKETBASE_ADMIN_PASSWORD || 'checkmate_admin_2026';
+
   try {
-    await pb.admins.authWithPassword(email, password);
-    // console.log('Admin client authenticated successfully for URL:', POCKETBASE_URL);
+    // PocketBase v0.23+ uses _superusers collection instead of pb.admins
+    await pb.collection('_superusers').authWithPassword(email, password);
   } catch (error) {
     console.error('Failed to authenticate as admin:', error);
     // Return unauthenticated client (operations will likely fail)
   }
-  
+
   return pb;
 }
 

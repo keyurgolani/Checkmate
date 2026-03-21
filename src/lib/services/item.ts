@@ -957,9 +957,57 @@ export class ItemService {
   }
 
   /**
+   * Duplicates a set of items within a template.
+   * Creates copies with "(Copy)" appended to content, same parent, and position incremented by 1.
+   *
+   * @param itemIds - Array of item IDs to duplicate
+   * @param templateId - Template ID the items belong to
+   * @returns BatchItemResult with created copies on success
+   */
+  async duplicateItems(itemIds: string[], templateId: string): Promise<BatchItemResult> {
+    const createdItems: Item[] = [];
+    const errors: ItemError[] = [];
+
+    for (const itemId of itemIds) {
+      try {
+        const original = await this.pb
+          .collection(Collections.ITEMS)
+          .getOne<Item>(itemId);
+
+        const createData: ItemCreate = {
+          blueprint: templateId,
+          parent: original.parent ?? undefined,
+          path: original.path,
+          itemType: original.itemType,
+          content: `${original.content} (Copy)`,
+          description: original.description ?? undefined,
+          resources: original.resources ?? undefined,
+          reference: original.reference ?? undefined,
+          position: original.position + 1,
+          metadata: original.metadata ?? undefined,
+        };
+
+        const newItem = await this.pb
+          .collection(Collections.ITEMS)
+          .create<Item>(createData);
+
+        createdItems.push(newItem);
+      } catch (err) {
+        errors.push(parseError(err));
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      items: createdItems,
+      errors,
+    };
+  }
+
+  /**
    * Detects circular dependencies in blueprint references.
    * A cycle exists if template A references template B, and template B references template A (directly or indirectly).
-   * 
+   *
    * @param rootTemplateId - The ID of the template where the reference is being added
    * @param targetTemplateId - The ID of the template being referenced
    * @returns Result indicating if cycle exists and the path

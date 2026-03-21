@@ -57,30 +57,37 @@ import { Label } from "@/components/ui/label";
 import { ItemType, Visibility } from "@/lib/pocketbase-types";
 import type { ItemMetadata, ResourceLink } from "@/lib/pocketbase-types";
 import { useTemplateRealtime } from "@/lib/hooks/use-realtime";
+import { useSelection } from "@/lib/hooks/use-selection";
 import { SortableStep } from "./sortable-step";
 import { StepEditor } from "./step-editor";
+import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import { formatTodayDate } from "@/lib/utils";
-import { 
-  Plus, 
-  Save, 
-  Loader2, 
-  Globe, 
-  Lock, 
-  Users, 
-  Link as LinkIcon, 
-  Download, 
-  Upload, 
-  Play, 
-  Trash2, 
-  MoreVertical, 
-  Printer, 
-  Settings, 
+import {
+  Plus,
+  Save,
+  Loader2,
+  Globe,
+  Lock,
+  Users,
+  Link as LinkIcon,
+  Download,
+  Upload,
+  Play,
+  Trash2,
+  MoreVertical,
+  Printer,
+  Settings,
   LayoutList,
   CheckCircle2,
   ArrowLeft,
   Filter,
   Sparkles,
-  Layers
+  Layers,
+  CheckSquare,
+  Copy,
+  ArrowUp,
+  ArrowDown,
+  X,
 } from "lucide-react";
 import { VisibilitySettingsPanel } from "./visibility-settings-panel";
 import { ExportDialog } from "./export-dialog";
@@ -424,6 +431,8 @@ export function TemplateEditor({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+  // Empty sensors to disable dnd-kit when selection mode is active
+  const emptySensors = useSensors();
 
 
   // Sync steps when initialSteps changes (e.g., after browser back navigation)
@@ -531,6 +540,10 @@ export function TemplateEditor({
 
   // Flatten steps for rendering
   const flattenedSteps = flattenTreeWithDepth(steps, steps);
+  const flattenedStepIds = flattenedSteps.map((s) => s.id);
+
+  // Selection hook for multi-select mode
+  const selection = useSelection(flattenedStepIds);
 
   // Get the active step for drag overlay
   const activeStep = activeId
@@ -955,6 +968,162 @@ export function TemplateEditor({
     [canEdit, template.id, announce, announceAssertive]
   );
 
+  const handleDuplicateStep = useCallback(
+    async (stepId: string) => {
+      if (!canEdit) return;
+      const stepToDuplicate = steps.find((s) => s.id === stepId);
+      if (!stepToDuplicate) return;
+
+      try {
+        const response = await fetch(`/api/templates/${template.id}/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            parentId: stepToDuplicate.parentId || null,
+            itemType: stepToDuplicate.itemType,
+            content: stepToDuplicate.content,
+            description: stepToDuplicate.description || null,
+            resources: stepToDuplicate.resources || null,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.item) {
+            recentlyAddedStepsRef.current.add(data.item.id);
+            setTimeout(() => {
+              recentlyAddedStepsRef.current.delete(data.item.id);
+            }, 5000);
+
+            setSteps((prev) => [
+              ...prev,
+              {
+                ...data.item,
+                itemType: data.item.itemType as "task" | "reference" | "phase",
+              },
+            ]);
+            announce(`Step "${stepToDuplicate.content}" duplicated`);
+          }
+        } else {
+          announceAssertive("Failed to duplicate step");
+        }
+      } catch (error) {
+        console.error("Failed to duplicate step:", error);
+        announceAssertive("Failed to duplicate step");
+      }
+    },
+    [canEdit, steps, template.id, announce, announceAssertive]
+  );
+
+  // Bulk action handlers for selection mode
+  const handleBulkDuplicate = useCallback(async () => {
+    if (!canEdit || selection.selectedIds.size === 0) return;
+    for (const id of selection.selectedIds) {
+      await handleDuplicateStep(id);
+    }
+    selection.exitSelectionMode();
+  }, [canEdit, selection, handleDuplicateStep]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!canEdit || selection.selectedIds.size === 0) return;
+    const idsToDelete = Array.from(selection.selectedIds);
+    for (const id of idsToDelete) {
+      await handleDeleteStep(id);
+    }
+    selection.exitSelectionMode();
+  }, [canEdit, selection, handleDeleteStep]);
+
+  const handleBulkMoveUp = useCallback(async () => {
+    if (!canEdit || selection.selectedIds.size === 0) return;
+    // Find the first selected step in the list
+    const firstSelectedIndex = flattenedSteps.findIndex((s) => selection.selectedIds.has(s.id));
+    if (firstSelectedIndex <= 0) return;
+
+    const stepAbove = flattenedSteps[firstSelectedIndex - 1];
+    const firstSelected = flattenedSteps[firstSelectedIndex];
+    if (!stepAbove || !firstSelected) return;
+
+    try {
+      const response = await fetch(
+        `/api/templates/${template.id}/items/reorder`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            move: {
+              itemId: firstSelected.id,
+              newParentId: firstSelected.parentId,
+              newPosition: stepAbove.position,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const stepsResponse = await fetch(`/api/templates/${template.id}/items`);
+        if (stepsResponse.ok) {
+          const data = await stepsResponse.json();
+          if (data.success && data.items) {
+            setSteps(data.items.map((step: StepData) => ({
+              ...step,
+              itemType: step.itemType as "task" | "reference" | "phase",
+            })));
+            announce("Moved up");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to move step:", error);
+    }
+  }, [canEdit, selection, flattenedSteps, template.id, announce]);
+
+  const handleBulkMoveDown = useCallback(async () => {
+    if (!canEdit || selection.selectedIds.size === 0) return;
+    // Find the last selected step in the list
+    const selectedIndices = flattenedSteps
+      .map((s, i) => (selection.selectedIds.has(s.id) ? i : -1))
+      .filter((i) => i >= 0);
+    const lastSelectedIndex = Math.max(...selectedIndices);
+    if (lastSelectedIndex >= flattenedSteps.length - 1) return;
+
+    const stepBelow = flattenedSteps[lastSelectedIndex + 1];
+    const lastSelected = flattenedSteps[lastSelectedIndex];
+    if (!stepBelow || !lastSelected) return;
+
+    try {
+      const response = await fetch(
+        `/api/templates/${template.id}/items/reorder`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            move: {
+              itemId: lastSelected.id,
+              newParentId: lastSelected.parentId,
+              newPosition: stepBelow.position + 1,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const stepsResponse = await fetch(`/api/templates/${template.id}/items`);
+        if (stepsResponse.ok) {
+          const data = await stepsResponse.json();
+          if (data.success && data.items) {
+            setSteps(data.items.map((step: StepData) => ({
+              ...step,
+              itemType: step.itemType as "task" | "reference" | "phase",
+            })));
+            announce("Moved down");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to move step:", error);
+    }
+  }, [canEdit, selection, flattenedSteps, template.id, announce]);
+
   const handleAddStepWithEditor = useCallback(
     async (data: {
       content: string;
@@ -1347,7 +1516,7 @@ export function TemplateEditor({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.print()}
+                        onClick={() => window.open(`/templates/${template.id}/print`, '_blank')}
                         className="hidden sm:flex h-8 rounded-full px-3 text-xs"
                       >
                         <Printer className="h-3.5 w-3.5 mr-2" />
@@ -1376,7 +1545,7 @@ export function TemplateEditor({
                               <Download className="h-4 w-4 mr-2" />
                               Export Template
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.print()} className="sm:hidden">
+                            <DropdownMenuItem onClick={() => window.open(`/templates/${template.id}/print`, '_blank')} className="sm:hidden">
                               <Printer className="h-4 w-4 mr-2" />
                               Print Template
                             </DropdownMenuItem>
@@ -1479,6 +1648,34 @@ export function TemplateEditor({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Select / Cancel Selection Button */}
+                  {canEdit && flattenedSteps.length > 0 && (
+                    <Button
+                      variant={selection.isSelectionMode ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        if (selection.isSelectionMode) {
+                          selection.exitSelectionMode();
+                        } else {
+                          selection.enterSelectionMode();
+                        }
+                      }}
+                      className="rounded-lg h-8 px-3 text-xs"
+                    >
+                      {selection.isSelectionMode ? (
+                        <>
+                          <X className="h-3.5 w-3.5 mr-1.5" />
+                          Cancel
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+                          Select
+                        </>
+                      )}
+                    </Button>
+                  )}
+
                   {/* Conditions Button */}
                   {canEdit && (
                     <TooltipProvider>
@@ -1622,7 +1819,7 @@ export function TemplateEditor({
                 {flattenedSteps.length > 0 ? (
                   <div className="min-h-[100px]">
                     <DndContext
-                      sensors={sensors}
+                      sensors={selection.isSelectionMode ? emptySensors : sensors}
                       collisionDetection={closestCenter}
                       onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
@@ -1631,8 +1828,8 @@ export function TemplateEditor({
                         items={flattenedSteps.map((step) => step.id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        <div 
-                          className="space-y-2" 
+                        <div
+                          className="space-y-2"
                           role="list"
                           aria-label={`Template steps, ${steps.length} total`}
                         >
@@ -1658,6 +1855,7 @@ export function TemplateEditor({
                               onSaveEdit={(content, itemType, referenceId, description, resources) => handleUpdateStep(step.id, content, itemType, referenceId, description, resources)}
                               onDelete={() => handleDeleteStep(step.id)}
                               onAddSubStep={() => handleAddSubStep(step.id)}
+                              onDuplicate={() => handleDuplicateStep(step.id)}
                               onAddSubStepsWithContent={async (subSteps) => handleAddSubStepsWithContent(step.id, subSteps)}
                               onUpdateConditions={async (conditions) => {
                                 const newMetadata = { ...step.metadata, conditions };
@@ -1672,6 +1870,11 @@ export function TemplateEditor({
                                   announce("Conditions saved");
                                 } catch(e) { console.error(e); }
                               }}
+                              isSelectionMode={selection.isSelectionMode}
+                              isSelected={selection.isSelected(step.id)}
+                              onSelectionClick={(id, e) => selection.handleClick(id, e)}
+                              onToggleSelection={(id) => selection.toggleItem(id)}
+                              onEnterSelectionMode={(id) => selection.enterSelectionMode(id)}
                             />
                           ))}
                         </div>
@@ -1679,7 +1882,7 @@ export function TemplateEditor({
 
                       <DragOverlay>
                         {activeStep ? (
-                          <div 
+                          <div
                             className="bg-card border rounded-xl p-3 shadow-xl opacity-90 backdrop-blur-md flex items-center gap-3"
                           >
                             <span className="font-medium">{activeStep.content}</span>
@@ -1704,6 +1907,23 @@ export function TemplateEditor({
               </CardContent>
             </Card>
           </div>
+
+          {/* Bulk Action Bar for selection mode */}
+          {canEdit && (
+            <BulkActionBar
+              selectedCount={selection.selectedIds.size}
+              actions={[
+                { label: "Duplicate", icon: Copy, action: handleBulkDuplicate },
+                { label: "Move Up", icon: ArrowUp, action: handleBulkMoveUp },
+                { label: "Move Down", icon: ArrowDown, action: handleBulkMoveDown },
+                { label: "Delete", icon: Trash2, action: handleBulkDelete, variant: "destructive" as const },
+              ]}
+              onSelectAll={() => selection.selectAll()}
+              onDeselectAll={() => selection.deselectAll()}
+              onCancel={() => selection.exitSelectionMode()}
+              isAllSelected={selection.selectedIds.size === flattenedSteps.length}
+            />
+          )}
         </div>
 
       {/* Conditions Dialog */}

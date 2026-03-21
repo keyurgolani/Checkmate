@@ -11,7 +11,8 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { TemplateService } from "@/lib/services/template";
 import { WorkspaceService } from "@/lib/services/workspace";
-import { TemplateList, TemplatesPageHeader, type TemplateCardData } from "@/components/templates";
+import { TemplatesPageHeader, type TemplateCardData } from "@/components/templates";
+import { TemplatesListClient } from "./templates-list-client";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileText, LogIn } from "lucide-react";
@@ -93,12 +94,9 @@ export default async function TemplatesPage() {
         workspaces={workspaceOptions}
         llmSettings={llmSettings}
       />
-      <TemplateList
+      <TemplatesListClient
         templates={allTemplates}
-        emptyMessage="No templates yet"
-        emptyDescription="Create your first template to get started organizing your tasks!"
-        showCreateButton={true}
-        createHref="/templates/new"
+        currentUserId={user?.id}
       />
     </div>
   );

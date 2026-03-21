@@ -93,6 +93,8 @@ export interface WebResearchSettings {
   apiKey: string | null;
   /** Base URL for self-hosted providers like SearXNG */
   baseUrl?: string | null;
+  /** Whether this provider is running on the user's local network */
+  selfHosted?: boolean;
 }
 
 // ============================================================================
@@ -110,6 +112,7 @@ export enum LLMProvider {
   MISTRAL = 'mistral',
   DEEPSEEK = 'deepseek',
   XAI = 'xai',
+  OPENAI_COMPATIBLE = 'openai-compatible',
 }
 
 export interface LLMModel {
@@ -121,8 +124,9 @@ export interface LLMModel {
 export interface LLMSettings {
   provider: LLMProvider | null;
   apiKey: string | null;
-  baseUrl?: string | null; // For Ollama custom URL
+  baseUrl?: string | null; // For Ollama custom URL or OpenAI-compatible base URL
   selectedModel: string | null;
+  selfHosted?: boolean; // true for ollama, configurable for openai-compatible
   webResearch?: WebResearchSettings | null;
 }
 

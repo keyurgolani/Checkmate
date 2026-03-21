@@ -14,7 +14,7 @@
  * Requirements: 3.5, 3.6
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
@@ -33,14 +33,17 @@ import {
   Layers,
   Check,
   X,
+  Copy,
+  CheckSquare,
 } from "lucide-react";
 import { DescriptionPreview } from "@/components/ui/description-preview";
 import { ResourceIndicator } from "@/components/ui/resource-indicator";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { StepData } from "./template-editor";
 import type { TemplateQuestion, ItemCondition, LLMSettings, ResourceLink } from "@/lib/pocketbase-types";
 import { StepEditor } from "./step-editor";
-import { ConditionEditor, ConditionBadge } from "./condition-editor";
+import { ConditionEditor } from "./condition-editor";
 import { AIImproveStepDialog } from "./ai-improve-dialog";
 
 // ============================================================================
@@ -139,10 +142,18 @@ interface SortableStepProps {
   onSaveEdit: (content: string, itemType?: "task" | "reference" | "phase", referenceId?: string | null, description?: string | null, resources?: import("@/lib/pocketbase-types").ResourceLink[] | null) => void;
   onDelete: () => void;
   onAddSubStep: () => void;
+  /** Callback to duplicate this step */
+  onDuplicate?: () => void;
   /** Callback to add multiple sub-steps with content (for AI suggestions) */
   onAddSubStepsWithContent?: (subSteps: Array<{ content: string; description?: string }>) => Promise<void>;
   /** Callback when conditions are updated */
   onUpdateConditions?: (conditions: ItemCondition[]) => void;
+  /** Selection mode props */
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectionClick?: (id: string, event: React.MouseEvent) => void;
+  onToggleSelection?: (id: string) => void;
+  onEnterSelectionMode?: (id: string) => void;
 }
 
 // ============================================================================
@@ -170,8 +181,14 @@ export function SortableStep({
   onSaveEdit,
   onDelete,
   onAddSubStep,
+  onDuplicate,
   onAddSubStepsWithContent,
   onUpdateConditions,
+  isSelectionMode = false,
+  isSelected = false,
+  onSelectionClick,
+  onToggleSelection,
+  onEnterSelectionMode,
 }: SortableStepProps) {
   const [showConditionEditor, setShowConditionEditor] = useState(false);
   const [showAIImproveDialog, setShowAIImproveDialog] = useState(false);
@@ -219,13 +236,62 @@ export function SortableStep({
     }
   };
 
+  // Handle click in selection mode
+  const handleSelectionClick = (e: React.MouseEvent) => {
+    if (isSelectionMode && onSelectionClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      onSelectionClick(step.id, e);
+    }
+  };
+
   const isReference = step.itemType === "reference";
   const isPhase = step.itemType === "phase";
   const canAddSubStep = depth < MAX_DEPTH - 1;
 
+  // Build context menu items
+  const contextMenuItems = useMemo<ContextMenuItemConfig<StepData>[]>(() => {
+    if (!canEdit) return [];
+    const items: ContextMenuItemConfig<StepData>[] = [
+      {
+        label: "Edit",
+        icon: Pencil,
+        action: () => onStartEdit(),
+      },
+    ];
+    if (onDuplicate) {
+      items.push({
+        label: "Duplicate",
+        icon: Copy,
+        action: () => onDuplicate(),
+      });
+    }
+    if (canAddSubStep) {
+      items.push({
+        label: "Add Sub-step",
+        icon: Plus,
+        action: () => onAddSubStep(),
+      });
+    }
+    items.push({
+      label: "Select",
+      icon: CheckSquare,
+      action: () => onEnterSelectionMode?.(step.id),
+      separator: "before",
+    });
+    items.push({
+      label: "Delete",
+      icon: Trash2,
+      action: () => onDelete(),
+      variant: "destructive",
+      separator: "before",
+    });
+    return items;
+  }, [canEdit, canAddSubStep, onStartEdit, onDuplicate, onAddSubStep, onDelete, onEnterSelectionMode, step.id]);
+
   // Phase items render differently - they are section headers
   if (isPhase) {
-    return (
+    const phaseContent = (
       <div
         ref={setNodeRef}
         style={style}
@@ -235,13 +301,17 @@ export function SortableStep({
           border-amber-300 dark:border-amber-700/60
           ${isDragging ? "opacity-50 shadow-lg" : ""}
           ${isEditing ? "ring-2 ring-amber-500" : "hover:bg-amber-50/80 dark:hover:bg-amber-950/50"}
+          ${isSelectionMode && isSelected ? "ring-2 ring-primary bg-primary/5" : ""}
+          ${isSelectionMode && !isSelected ? "opacity-60" : ""}
+          ${isSelectionMode ? "cursor-pointer" : ""}
           transition-colors
         `}
+        onClick={isSelectionMode ? handleSelectionClick : undefined}
       >
         {/* Phase header row */}
         <div className="flex items-center gap-4 p-4">
           {/* Drag handle */}
-          {canEdit && (
+          {canEdit && !isSelectionMode && (
             <button
               {...attributes}
               {...listeners}
@@ -255,6 +325,13 @@ export function SortableStep({
                 Press Space or Enter to start dragging. Use arrow keys to move. Press Space or Enter again to drop.
               </span>
             </button>
+          )}
+
+          {/* Selection checkbox indicator */}
+          {isSelectionMode && (
+            <div className={`flex items-center justify-center h-5 w-5 rounded border-2 flex-shrink-0 ${isSelected ? "bg-primary border-primary" : "border-amber-400 dark:border-amber-600"}`}>
+              {isSelected && <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />}
+            </div>
           )}
 
           {/* Phase icon */}
@@ -286,8 +363,8 @@ export function SortableStep({
           </div>
 
           {/* Actions */}
-          {!isEditing && canEdit && (
-            <div 
+          {!isEditing && canEdit && !isSelectionMode && (
+            <div
               className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
               role="group"
               aria-label="Phase actions"
@@ -333,38 +410,65 @@ export function SortableStep({
         </div>
       </div>
     );
+
+    if (canEdit) {
+      return (
+        <EntityContextMenu
+          entityId={step.id}
+          entity={step}
+          menuItems={contextMenuItems}
+          isSelectionMode={isSelectionMode}
+          isSelected={isSelected}
+          onSelect={onToggleSelection}
+          onEnterSelectionMode={onEnterSelectionMode}
+        >
+          {phaseContent}
+        </EntityContextMenu>
+      );
+    }
+    return phaseContent;
   }
 
-  return (
+  const stepContent = (
     <div
       ref={setNodeRef}
       style={style}
       className={`
         group rounded-xl border
-        ${isReference 
-          ? "bg-gradient-to-r from-blue-50 to-card dark:from-blue-950/30 dark:to-card border-blue-200 dark:border-blue-800/50" 
+        ${isReference
+          ? "bg-gradient-to-r from-blue-50 to-card dark:from-blue-950/30 dark:to-card border-blue-200 dark:border-blue-800/50"
           : "bg-card"}
         ${isDragging ? "opacity-50 shadow-lg" : ""}
         ${isEditing ? "ring-2 ring-primary" : isReference ? "hover:bg-blue-50/80 dark:hover:bg-blue-950/40" : "hover:bg-accent/50"}
-        ${hasExpandableContent && !isEditing ? "cursor-pointer" : ""}
+        ${hasExpandableContent && !isEditing && !isSelectionMode ? "cursor-pointer" : ""}
+        ${isSelectionMode && isSelected ? "ring-2 ring-primary bg-primary/5" : ""}
+        ${isSelectionMode && !isSelected ? "opacity-60" : ""}
+        ${isSelectionMode ? "cursor-pointer" : ""}
         transition-colors
       `}
-      onClick={handleToggleExpand}
-      role={hasExpandableContent && !isEditing ? "button" : undefined}
-      aria-expanded={hasExpandableContent && !isEditing ? isExpanded : undefined}
-      tabIndex={hasExpandableContent && !isEditing ? 0 : undefined}
+      onClick={isSelectionMode ? handleSelectionClick : handleToggleExpand}
+      role={hasExpandableContent && !isEditing && !isSelectionMode ? "button" : undefined}
+      aria-expanded={hasExpandableContent && !isEditing && !isSelectionMode ? isExpanded : undefined}
+      tabIndex={hasExpandableContent && !isEditing && !isSelectionMode ? 0 : undefined}
       onKeyDown={(e) => {
-        if (hasExpandableContent && !isEditing && (e.key === "Enter" || e.key === " ")) {
+        if (hasExpandableContent && !isEditing && !isSelectionMode && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           setIsExpanded(!isExpanded);
         }
       }}
     >
       {/* Main row */}
-      <div className="flex items-center gap-4 p-3">
+      <div className="flex items-start gap-4 p-3">
+        {/* Selection checkbox indicator */}
+        {isSelectionMode && (
+          <div className={`flex items-center justify-center h-5 w-5 rounded border-2 flex-shrink-0 mt-0.5 ${isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
+            {isSelected && <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />}
+          </div>
+        )}
+
         {/* Expand/collapse indicator */}
-        {hasExpandableContent && !isEditing && (
-          <div className="text-muted-foreground flex-shrink-0">
+        {hasExpandableContent && !isEditing && !isSelectionMode && (
+          <div className="text-muted-foreground flex-shrink-0 mt-0.5">
             {isExpanded ? (
               <ChevronDown className="h-4 w-4" aria-hidden="true" />
             ) : (
@@ -374,11 +478,11 @@ export function SortableStep({
         )}
 
         {/* Drag handle - Requirements: 13.2 keyboard navigation */}
-        {canEdit && (
+        {canEdit && !isSelectionMode && (
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded flex-shrink-0"
+            className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded flex-shrink-0 mt-px"
             aria-label={`Drag to reorder ${step.content}`}
             aria-describedby={`drag-instructions-${step.id}`}
             type="button"
@@ -391,7 +495,7 @@ export function SortableStep({
         )}
 
         {/* Depth indicator - only show if no expandable content indicator */}
-        {depth > 0 && !hasExpandableContent && (
+        {depth > 0 && !hasExpandableContent && !isSelectionMode && (
           <div className="flex items-center text-muted-foreground">
             <ChevronRight className="h-3 w-3" />
           </div>
@@ -449,21 +553,12 @@ export function SortableStep({
           )}
         </div>
 
-        {/* Condition Badge - shows when item has conditions */}
-        {!isEditing && step.metadata?.conditions && step.metadata.conditions.length > 0 && (
-          <ConditionBadge
-            conditions={step.metadata.conditions}
-            questions={questions}
-            onClick={canEdit ? () => setShowConditionEditor(true) : undefined}
-          />
-        )}
-
         {/* Right side container - actions appear on hover, resource indicator always at edge */}
-        {!isEditing && (
+        {!isEditing && !isSelectionMode && (
           <div className="flex items-center gap-1 flex-shrink-0" data-no-expand>
             {/* Actions - appear on hover, positioned before resource indicator */}
             {canEdit && (
-              <div 
+              <div
                 className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
                 role="group"
                 aria-label="Step actions"
@@ -546,9 +641,54 @@ export function SortableStep({
         )}
       </div>
 
-      {/* Expanded content - readonly view of description and resources */}
+      {/* Condition display - full-width strip below main row */}
+      {!isEditing && step.metadata?.conditions && step.metadata.conditions.length > 0 && (
+        <div
+          className="px-3 pb-2.5 -mt-0.5"
+          data-no-expand
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={canEdit ? () => setShowConditionEditor(true) : undefined}
+            className={`
+              w-full flex items-start gap-2 px-3 py-2 rounded-lg text-left
+              bg-violet-50/60 dark:bg-violet-950/30
+              border border-violet-200/50 dark:border-violet-800/30
+              text-xs leading-relaxed text-violet-700 dark:text-violet-300
+              ${canEdit ? "hover:bg-violet-100/70 dark:hover:bg-violet-900/40 cursor-pointer" : "cursor-default"}
+              transition-colors
+            `}
+            aria-label={`${step.metadata.conditions.length} condition${step.metadata.conditions.length > 1 ? "s" : ""} applied${canEdit ? ". Click to edit." : ""}`}
+          >
+            <Filter className="h-3.5 w-3.5 mt-0.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden="true" />
+            <span>
+              {step.metadata.conditions.map((condition, i) => {
+                const question = questions.find(q => q.id === condition.questionId);
+                const operatorText = condition.operator === "equals" ? "is" : "is not";
+                const valueText = typeof condition.value === "boolean"
+                  ? (condition.value ? "Yes" : "No")
+                  : String(condition.value);
+                return (
+                  <span key={i}>
+                    {i > 0 && <span className="text-violet-400 dark:text-violet-500"> and </span>}
+                    {i === 0 ? "Show when " : ""}
+                    <span className="font-medium">{question?.question ?? "Unknown question"}</span>
+                    {" "}{operatorText}{" "}
+                    <span className="font-semibold bg-violet-100/80 dark:bg-violet-900/50 px-1.5 py-0.5 rounded">
+                      {valueText}
+                    </span>
+                  </span>
+                );
+              })}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Expanded content */}
       {isExpanded && !isEditing && hasExpandableContent && (
-        <div 
+        <div
           className="px-3 pb-3 pt-0 border-t border-border/50 mt-0"
           onClick={(e) => e.stopPropagation()}
         >
@@ -635,6 +775,23 @@ export function SortableStep({
       )}
     </div>
   );
+
+  if (canEdit) {
+    return (
+      <EntityContextMenu
+        entityId={step.id}
+        entity={step}
+        menuItems={contextMenuItems}
+        isSelectionMode={isSelectionMode}
+        isSelected={isSelected}
+        onSelect={onToggleSelection}
+        onEnterSelectionMode={onEnterSelectionMode}
+      >
+        {stepContent}
+      </EntityContextMenu>
+    );
+  }
+  return stepContent;
 }
 
 // Keep backward compatibility alias

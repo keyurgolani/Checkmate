@@ -30,6 +30,7 @@ import {
 import type { LLMSettings, ResourceLink } from "@/lib/pocketbase-types";
 import type { TemplateImprovements, StepImprovement, GeneratedTemplateItem } from "@/lib/services/llm";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { llmClient } from '@/lib/services/llm-client';
 
 // ============================================================================
 // Types
@@ -112,24 +113,14 @@ export function AIImproveTemplateDialog({
     setError(null);
 
     try {
-      const response = await fetch("/api/llm/improve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "template",
-          settings: llmSettings,
-          template: {
-            title: template.title,
-            description: template.description,
-            items: template.items.map((item) => ({
-              content: item.content,
-              description: item.description,
-            })),
-          },
-        }),
+      const data = await llmClient.improve(llmSettings!, {
+        type: 'template',
+        template: {
+          title: template.title,
+          description: template.description,
+          items: template.items.map(item => ({ content: item.content, description: item.description })),
+        },
       });
-
-      const data = await response.json();
 
       if (data.success && data.improvements) {
         setImprovements(data.improvements);
@@ -438,22 +429,17 @@ export function AIImproveStepDialog({
     setError(null);
 
     try {
-      const response = await fetch("/api/llm/improve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "step",
-          settings: llmSettings,
-          step: {
-            content: step.content,
-            description: step.description,
-            resources: step.resources,
-          },
-          templateContext,
-        }),
+      const data = await llmClient.improve(llmSettings!, {
+        type: 'step',
+        step: { content: step.content, description: step.description, resources: step.resources },
+        templateContext: {
+          title: templateContext.title,
+          description: templateContext.description,
+          resources: templateContext.resources,
+          allSteps: templateContext.allSteps.map(item => ({ content: item.content, description: item.description })),
+          currentStepIndex: templateContext.currentStepIndex,
+        },
       });
-
-      const data = await response.json();
 
       if (data.success && data.improvement) {
         setImprovement(data.improvement);
@@ -785,26 +771,19 @@ export function AIEnhanceTemplateDialog({
     setError(null);
 
     try {
-      const response = await fetch("/api/llm/enhance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: llmSettings,
-          template: {
-            title: template.title,
-            description: template.description,
-            items: template.items.map((item) => ({
-              id: item.id,
-              content: item.content,
-              description: item.description,
-              resources: item.resources,
-              itemType: item.itemType,
-            })),
-          },
-        }),
+      const data = await llmClient.enhance(llmSettings!, {
+        template: {
+          title: template.title,
+          description: template.description,
+          items: template.items.map(item => ({
+            id: item.id,
+            content: item.content,
+            description: item.description,
+            resources: item.resources,
+            itemType: item.itemType,
+          })),
+        },
       });
-
-      const data = await response.json();
 
       if (data.success && data.enhancement) {
         setEnhancement(data.enhancement);
