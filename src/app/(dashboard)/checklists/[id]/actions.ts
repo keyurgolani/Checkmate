@@ -6,20 +6,6 @@ import { ChecklistService } from "@/lib/services/checklist";
 import { Collections } from "@/lib/pocketbase-types";
 
 /**
- * Toggle completion status for a single checklist task.
- */
-export async function toggleChecklistTask(checklistId: string, taskId: string) {
-  const { isAuthenticated, pb } = await getServerAuth();
-  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
-
-  const service = new ChecklistService(pb);
-  const result = await service.toggleTaskCompletion(checklistId, taskId);
-
-  revalidatePath(`/checklists/${checklistId}`);
-  return { success: result.success, error: result.error?.message ?? null };
-}
-
-/**
  * Bulk toggle completion status for multiple checklist tasks.
  * Toggles each task to the specified completed state.
  */
@@ -58,31 +44,6 @@ export async function bulkToggleChecklistTasks(
     errors,
     toggledCount: taskIds.length - errors.length,
   };
-}
-
-/**
- * Delete a single checklist task item.
- */
-export async function deleteChecklistTask(checklistId: string, taskId: string) {
-  const { isAuthenticated, pb } = await getServerAuth();
-  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
-
-  try {
-    await pb.collection(Collections.CHECKLIST_ITEMS).delete(taskId);
-
-    // Recalculate progress
-    const service = new ChecklistService(pb);
-    const progress = await service.calculateProgress(checklistId);
-    await pb.collection(Collections.CHECKLISTS).update(checklistId, {
-      progress: progress.percentage,
-      completedAt: progress.percentage >= 100 ? new Date().toISOString() : null,
-    });
-
-    revalidatePath(`/checklists/${checklistId}`);
-    return { success: true, error: null };
-  } catch (err) {
-    return { success: false, error: "Failed to delete task" };
-  }
 }
 
 /**
