@@ -127,6 +127,5 @@ export * from './web-research';
 export * from '../server-auth';
 export * from '../auth-cookies';
 
-// Re-export PocketBase types and typed client
+// Re-export PocketBase types
 export * from '../pocketbase-types';
-export * from '../pocketbase-client';
