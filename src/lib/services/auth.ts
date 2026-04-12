@@ -9,7 +9,7 @@
 
 import PocketBase, { ClientResponseError, RecordAuthResponse } from 'pocketbase';
 import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
-import type { User, UserPreferences } from '../pocketbase-types';
+import type { User } from '../pocketbase-types';
 import { WorkspaceService } from './workspace';
 
 // ============================================================================
@@ -33,7 +33,6 @@ export const LOCKOUT_DURATION_MINUTES = 15;
 /**
  * Supported OAuth providers
  */
-export type OAuthProvider = 'google' | 'github' | 'apple';
 
 /**
  * Authentication result returned by auth operations
@@ -91,7 +90,6 @@ export const AuthErrorCodes = {
   ACCOUNT_LOCKED: 'AUTH_002',
   EMAIL_NOT_VERIFIED: 'AUTH_003',
   SESSION_EXPIRED: 'AUTH_004',
-  OAUTH_ERROR: 'AUTH_005',
   VALIDATION_ERROR: 'AUTH_006',
   USER_EXISTS: 'AUTH_007',
   UNKNOWN_ERROR: 'AUTH_999',
@@ -490,124 +488,6 @@ export class AuthService {
   }
 
   /**
-   * Initiates OAuth authentication with the specified provider.
-   * 
-   * Requirements: 1.4
-   * 
-   * Note: This method returns the OAuth2 URL and code verifier for the client
-   * to handle the redirect flow. The actual authentication is completed
-   * via authWithOAuth2Code after the provider redirects back.
-   * 
-   * @param provider - OAuth provider (google, github, apple)
-   * @param redirectUrl - URL to redirect to after OAuth completion
-   * @returns Promise with OAuth URL and code verifier, or error
-   */
-  async getOAuthUrl(
-    provider: OAuthProvider,
-    redirectUrl: string
-  ): Promise<{ url: string; codeVerifier: string } | AuthError> {
-    try {
-      const authMethods = await this.pb.collection('users').listAuthMethods();
-      const providerConfig = authMethods.oauth2?.providers?.find(
-        (p) => p.name === provider
-      );
-
-      if (!providerConfig) {
-        return {
-          code: AuthErrorCodes.OAUTH_ERROR,
-          message: `OAuth provider '${provider}' is not configured`,
-        };
-      }
-
-      // Generate code verifier for PKCE
-      const codeVerifier = this.generateCodeVerifier();
-      const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-
-      // Build OAuth URL - use type assertion for provider config properties
-      // PocketBase SDK types may vary between versions
-      const config = providerConfig as {
-        name: string;
-        clientId?: string;
-        authURL?: string;
-        scopes?: string[];
-        state: string;
-        authUrl?: string;
-      };
-      
-      const clientId = config.clientId ?? '';
-      const authURL = config.authURL ?? config.authUrl ?? '';
-      const scopes = config.scopes ?? [];
-      
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUrl,
-        response_type: 'code',
-        scope: scopes.join(' '),
-        state: config.state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-      });
-
-      return {
-        url: `${authURL}?${params.toString()}`,
-        codeVerifier,
-      };
-    } catch (err) {
-      const error = parseError(err);
-      error.code = AuthErrorCodes.OAUTH_ERROR;
-      return error;
-    }
-  }
-
-  /**
-   * Completes OAuth authentication after provider redirect.
-   * Creates a default "Personal" workspace for new OAuth users.
-   * 
-   * Requirements: 1.4, 9.2
-   * 
-   * @param provider - OAuth provider
-   * @param code - Authorization code from provider
-   * @param codeVerifier - Code verifier from getOAuthUrl
-   * @param redirectUrl - Same redirect URL used in getOAuthUrl
-   * @returns AuthResult with user data on success
-   */
-  async signInWithOAuth(
-    provider: OAuthProvider,
-    code: string,
-    codeVerifier: string,
-    redirectUrl: string
-  ): Promise<AuthResult> {
-    try {
-      const authResult = await this.pb.collection('users').authWithOAuth2Code<User>(
-        provider,
-        code,
-        codeVerifier,
-        redirectUrl
-      );
-
-      // Check if this is a new user (created just now) by comparing created and updated timestamps
-      // For new OAuth users, create a default workspace
-      // Requirements: 9.2
-      const isNewUser = authResult.meta?.isNew === true;
-      if (isNewUser) {
-        try {
-          const workspaceService = new WorkspaceService(this.pb);
-          await workspaceService.createDefaultWorkspace();
-        } catch {
-          // Default workspace creation failure shouldn't fail the OAuth flow
-          console.warn('Failed to create default workspace for new OAuth user');
-        }
-      }
-
-      return createSuccessResult(authResult.record, authResult.token);
-    } catch (err) {
-      const error = parseError(err);
-      error.code = AuthErrorCodes.OAUTH_ERROR;
-      return createErrorResult(error);
-    }
-  }
-
-  /**
    * Requests a password reset email.
    * 
    * Requirements: 1.3
@@ -708,67 +588,6 @@ export class AuthService {
   }
 
   /**
-   * Refreshes the current authentication token.
-   * 
-   * @returns AuthResult with refreshed token on success
-   */
-  async refreshAuth(): Promise<AuthResult> {
-    try {
-      const authResult = await this.pb.collection('users').authRefresh<User>();
-      return createSuccessResult(authResult.record, authResult.token);
-    } catch (err) {
-      return createErrorResult(parseError(err));
-    }
-  }
-
-  /**
-   * Updates the current user's profile.
-   * 
-   * @param data - Profile data to update
-   * @returns Updated user on success, error otherwise
-   */
-  async updateProfile(data: {
-    displayName?: string;
-    avatarUrl?: string;
-    preferences?: UserPreferences;
-  }): Promise<{ user: User | null; error?: AuthError }> {
-    try {
-      const userId = this.pb.authStore.record?.id;
-      if (!userId) {
-        return {
-          user: null,
-          error: {
-            code: AuthErrorCodes.SESSION_EXPIRED,
-            message: 'Not authenticated',
-          },
-        };
-      }
-
-      const record = await this.pb.collection('users').update<User>(userId, data);
-      return {
-        user: {
-          id: record.id,
-          collectionId: record.collectionId,
-          collectionName: 'users',
-          created: record.created,
-          updated: record.updated,
-          email: record.email,
-          emailVisibility: record.emailVisibility ?? false,
-          verified: record.verified ?? false,
-          displayName: record.displayName ?? null,
-          avatarUrl: record.avatarUrl ?? null,
-          preferences: record.preferences ?? null,
-          failedLoginAttempts: record.failedLoginAttempts ?? null,
-          lastFailedLogin: record.lastFailedLogin ?? null,
-          lockedUntil: record.lockedUntil ?? null,
-        },
-      };
-    } catch (err) {
-      return { user: null, error: parseError(err) };
-    }
-  }
-
-  /**
    * Checks if the current session is valid.
    * 
    * @returns true if authenticated with valid session
@@ -785,47 +604,6 @@ export class AuthService {
     return this.pb;
   }
 
-  // ============================================================================
-  // Private Helper Methods
-  // ============================================================================
-
-  /**
-   * Generates a random code verifier for PKCE
-   */
-  private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      crypto.getRandomValues(array);
-    } else {
-      // Fallback for environments without crypto
-      for (let i = 0; i < array.length; i++) {
-        array[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return this.base64UrlEncode(array);
-  }
-
-  /**
-   * Generates a code challenge from the verifier for PKCE
-   */
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(verifier);
-      const hash = await crypto.subtle.digest('SHA-256', data);
-      return this.base64UrlEncode(new Uint8Array(hash));
-    }
-    // Fallback: return verifier as-is (less secure but works)
-    return verifier;
-  }
-
-  /**
-   * Base64 URL encodes a byte array
-   */
-  private base64UrlEncode(array: Uint8Array): string {
-    const base64 = btoa(String.fromCharCode(...array));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
 }
 
 // ============================================================================
