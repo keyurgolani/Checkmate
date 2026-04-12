@@ -17,8 +17,7 @@ export const Logo = ({
   size = 40,
   className,
 }: LogoProps) => {
-  // Use cache-busted logo path
-  const logoSrc = "/logo_v2.png";
+  const logoSrc = "/logo.png";
 
   const IconPart = (
     <div

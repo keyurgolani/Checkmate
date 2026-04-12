@@ -8,15 +8,10 @@
   "theme_color": "#10B981",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/logo.svg",
-      "sizes": "48x48",
-      "type": "image/svg+xml"
     }
   ],
   "categories": ["productivity", "utilities"],

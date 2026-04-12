@@ -61,7 +61,7 @@ export const metadata: Metadata = {
       "Create, share, and track checklist templates for any life event",
   },
   icons: {
-    icon: "/icon.svg",
+    icon: "/logo.svg",
     apple: "/logo.png",
   },
   appleWebApp: {
