@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef } from "react";
 // Types
 // ============================================================================
 
-export interface KeyboardShortcut {
+interface KeyboardShortcut {
   /** Key to trigger the shortcut (e.g., 'k', 'Enter', 'Escape') */
   key: string;
   /** Whether Ctrl/Cmd key must be pressed */
@@ -30,7 +30,7 @@ export interface KeyboardShortcut {
   preventDefault?: boolean;
 }
 
-export interface FocusTrapOptions {
+interface FocusTrapOptions {
   /** Whether the focus trap is active */
   enabled?: boolean;
   /** Initial element to focus when trap activates */
