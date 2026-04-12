@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getServerAuth } from "@/lib/server-auth";
 import { WorkspaceService } from "@/lib/services/workspace";
 
-export interface CreateWorkspaceInput {
+interface CreateWorkspaceInput {
   name: string;
   description?: string;
 }
 
-export interface WorkspaceActionResult {
+interface WorkspaceActionResult {
   success: boolean;
   error?: string;
   workspaceId?: string;

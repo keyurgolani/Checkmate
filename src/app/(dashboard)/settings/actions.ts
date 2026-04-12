@@ -5,15 +5,15 @@ import { getServerAuth } from "@/lib/server-auth";
 import { setAuthCookie, type AuthCookieData } from "@/lib/auth-cookies";
 import type { LLMSettings } from "@/lib/pocketbase-types";
 
-export interface UpdateProfileInput {
+interface UpdateProfileInput {
   displayName: string;
 }
 
-export interface UpdateLLMSettingsInput {
+interface UpdateLLMSettingsInput {
   llmSettings: LLMSettings;
 }
 
-export interface SettingsActionResult {
+interface SettingsActionResult {
   success: boolean;
   error?: string;
 }

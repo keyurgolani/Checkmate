@@ -6,12 +6,12 @@ import { TemplateService } from "@/lib/services/template";
 import { ChecklistService } from "@/lib/services/checklist";
 import { Collections } from "@/lib/pocketbase-types";
 
-export interface ActionResult {
+interface ActionResult {
   success: boolean;
   error?: string;
 }
 
-export interface BulkActionResult {
+interface BulkActionResult {
   success: boolean;
   movedCount: number;
   errors: string[];
