@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   Workspace,
   WorkspaceCreate,
@@ -681,29 +682,6 @@ export class WorkspaceService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new WorkspaceService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createWorkspaceService(): WorkspaceService {
-  return new WorkspaceService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton WorkspaceService instance for client-side usage.
- */
-let clientWorkspaceService: WorkspaceService | null = null;
-
-export function getWorkspaceService(): WorkspaceService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createWorkspaceService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientWorkspaceService) {
-    clientWorkspaceService = new WorkspaceService();
-  }
-
-  return clientWorkspaceService;
-}
+const _workspace = makeServiceAccessor(WorkspaceService);
+export const createWorkspaceService = _workspace.create;
+export const getWorkspaceService = _workspace.get;

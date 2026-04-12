@@ -9,6 +9,7 @@
 
 import PocketBase, { ClientResponseError, RecordAuthResponse } from 'pocketbase';
 import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type { User } from '../pocketbase-types';
 import { WorkspaceService } from './workspace';
 
@@ -610,29 +611,6 @@ export class AuthService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new AuthService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createAuthService(): AuthService {
-  return new AuthService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton AuthService instance for client-side usage.
- */
-let clientAuthService: AuthService | null = null;
-
-export function getAuthService(): AuthService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createAuthService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientAuthService) {
-    clientAuthService = new AuthService();
-  }
-
-  return clientAuthService;
-}
+const _auth = makeServiceAccessor(AuthService);
+export const createAuthService = _auth.create;
+export const getAuthService = _auth.get;

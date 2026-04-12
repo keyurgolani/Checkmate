@@ -15,7 +15,8 @@
  */
 
 import PocketBase from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   Blueprint,
   Item,
@@ -1728,29 +1729,6 @@ export class ExportService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new ExportService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createExportService(): ExportService {
-  return new ExportService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton ExportService instance for client-side usage.
- */
-let clientExportService: ExportService | null = null;
-
-export function getExportService(): ExportService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createExportService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientExportService) {
-    clientExportService = new ExportService();
-  }
-
-  return clientExportService;
-}
+const _export = makeServiceAccessor(ExportService);
+export const createExportService = _export.create;
+export const getExportService = _export.get;

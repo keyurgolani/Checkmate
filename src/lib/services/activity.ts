@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   ActivityLog,
   ActivityLogCreate,
@@ -483,29 +484,6 @@ export class ActivityService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new ActivityService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createActivityService(): ActivityService {
-  return new ActivityService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton ActivityService instance for client-side usage.
- */
-let clientActivityService: ActivityService | null = null;
-
-export function getActivityService(): ActivityService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createActivityService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientActivityService) {
-    clientActivityService = new ActivityService();
-  }
-
-  return clientActivityService;
-}
+const _activity = makeServiceAccessor(ActivityService);
+export const createActivityService = _activity.create;
+export const getActivityService = _activity.get;

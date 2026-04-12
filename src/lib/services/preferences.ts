@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type { User, UserPreferences } from '../pocketbase-types';
 
 // ============================================================================
@@ -391,29 +392,6 @@ export class PreferencesService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new PreferencesService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createPreferencesService(): PreferencesService {
-  return new PreferencesService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton PreferencesService instance for client-side usage.
- */
-let clientPreferencesService: PreferencesService | null = null;
-
-export function getPreferencesService(): PreferencesService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createPreferencesService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientPreferencesService) {
-    clientPreferencesService = new PreferencesService();
-  }
-
-  return clientPreferencesService;
-}
+const _preferences = makeServiceAccessor(PreferencesService);
+export const createPreferencesService = _preferences.create;
+export const getPreferencesService = _preferences.get;

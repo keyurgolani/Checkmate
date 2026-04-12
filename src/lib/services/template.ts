@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   Template,
   TemplateCreate,
@@ -932,29 +933,6 @@ export class TemplateService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new TemplateService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createTemplateService(): TemplateService {
-  return new TemplateService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton TemplateService instance for client-side usage.
- */
-let clientTemplateService: TemplateService | null = null;
-
-export function getTemplateService(): TemplateService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createTemplateService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientTemplateService) {
-    clientTemplateService = new TemplateService();
-  }
-
-  return clientTemplateService;
-}
+const _template = makeServiceAccessor(TemplateService);
+export const createTemplateService = _template.create;
+export const getTemplateService = _template.get;

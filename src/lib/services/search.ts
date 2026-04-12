@@ -9,7 +9,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type { Blueprint } from '../pocketbase-types';
 import { Collections, Visibility } from '../pocketbase-types';
 
@@ -527,29 +528,6 @@ export class SearchService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new SearchService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createSearchService(): SearchService {
-  return new SearchService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton SearchService instance for client-side usage.
- */
-let clientSearchService: SearchService | null = null;
-
-export function getSearchService(): SearchService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createSearchService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientSearchService) {
-    clientSearchService = new SearchService();
-  }
-
-  return clientSearchService;
-}
+const _search = makeServiceAccessor(SearchService);
+export const createSearchService = _search.create;
+export const getSearchService = _search.get;

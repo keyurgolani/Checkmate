@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   Blueprint,
   Collaborator,
@@ -779,29 +780,6 @@ export class CollaborationService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new CollaborationService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createCollaborationService(): CollaborationService {
-  return new CollaborationService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton CollaborationService instance for client-side usage.
- */
-let clientCollaborationService: CollaborationService | null = null;
-
-export function getCollaborationService(): CollaborationService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createCollaborationService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientCollaborationService) {
-    clientCollaborationService = new CollaborationService();
-  }
-
-  return clientCollaborationService;
-}
+const _collaboration = makeServiceAccessor(CollaborationService);
+export const createCollaborationService = _collaboration.create;
+export const getCollaborationService = _collaboration.get;

@@ -8,7 +8,8 @@
  */
 
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
+import { getPocketBaseClient } from '../pocketbase';
+import { makeServiceAccessor } from './_service-factory';
 import type {
   Notification,
   NotificationCreate,
@@ -738,29 +739,6 @@ export class NotificationService {
 // Factory Functions
 // ============================================================================
 
-/**
- * Creates a new NotificationService instance with a fresh PocketBase client.
- * Use this for server-side operations.
- */
-export function createNotificationService(): NotificationService {
-  return new NotificationService(createPocketBaseClient());
-}
-
-/**
- * Gets the singleton NotificationService instance for client-side usage.
- */
-let clientNotificationService: NotificationService | null = null;
-
-export function getNotificationService(): NotificationService {
-  if (typeof window === 'undefined') {
-    // Server-side: always create a new instance
-    return createNotificationService();
-  }
-
-  // Client-side: reuse the same instance
-  if (!clientNotificationService) {
-    clientNotificationService = new NotificationService();
-  }
-
-  return clientNotificationService;
-}
+const _notification = makeServiceAccessor(NotificationService);
+export const createNotificationService = _notification.create;
+export const getNotificationService = _notification.get;
