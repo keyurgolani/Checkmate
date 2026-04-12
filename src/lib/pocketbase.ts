@@ -70,42 +70,6 @@ export function getPocketBaseClient(): PocketBase {
 }
 
 /**
- * Get the PocketBase URL for configuration purposes.
- * Returns the client-accessible URL.
- */
-export function getPocketBaseUrl(): string {
-  return getClientUrl();
-}
-
-/**
- * Type-safe wrapper for PocketBase authentication state.
- */
-export interface AuthState {
-  isValid: boolean;
-  token: string;
-  userId: string | null;
-}
-
-/**
- * Get current authentication state from a PocketBase client.
- */
-export function getAuthState(pb: PocketBase): AuthState {
-  return {
-    isValid: pb.authStore.isValid,
-    token: pb.authStore.token,
-    userId: pb.authStore.record?.id ?? null,
-  };
-}
-
-/**
- * Clear authentication state from a PocketBase client.
- */
-export function clearAuth(pb: PocketBase): void {
-  pb.authStore.clear();
-}
-
-
-/**
  * Creates a new PocketBase client instance authenticated as admin.
  * Use this for server-side privileged operations (like searching users).
  */
