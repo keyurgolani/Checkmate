@@ -22,7 +22,7 @@ import type {
 /**
  * Result of condition evaluation
  */
-export interface ConditionEvaluationResult {
+interface ConditionEvaluationResult {
   /** Whether all conditions are satisfied */
   satisfied: boolean;
   /** Details about each condition evaluation */
@@ -38,7 +38,7 @@ export interface ConditionEvaluationResult {
 /**
  * Result of filtering items by conditions
  */
-export interface FilteredItemsResult {
+interface FilteredItemsResult {
   /** Items that passed all conditions */
   includedItems: Item[];
   /** Items that were excluded due to conditions */
@@ -58,7 +58,7 @@ export interface FilteredItemsResult {
  * @param answers - User-provided answers to questions
  * @returns Whether the condition is satisfied
  */
-export function evaluateCondition(
+function evaluateCondition(
   condition: ItemCondition,
   answers: ConditionAnswers
 ): boolean {
@@ -87,7 +87,7 @@ export function evaluateCondition(
  * @param answers - User-provided answers to questions
  * @returns Detailed evaluation result
  */
-export function evaluateConditions(
+function evaluateConditions(
   conditions: ItemCondition[] | undefined | null,
   answers: ConditionAnswers
 ): ConditionEvaluationResult {
@@ -128,7 +128,7 @@ export function evaluateConditions(
  * @param answers - User-provided answers to questions
  * @returns Whether the item should be included
  */
-export function shouldIncludeItem(
+function shouldIncludeItem(
   item: Item,
   answers: ConditionAnswers
 ): boolean {
@@ -219,100 +219,3 @@ export function generateQuestionId(): string {
   return `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-/**
- * Creates a new boolean question
- */
-export function createBooleanQuestion(
-  question: string,
-  defaultValue?: boolean
-): TemplateQuestion {
-  return {
-    id: generateQuestionId(),
-    question,
-    answerType: 'boolean',
-    defaultValue,
-  };
-}
-
-/**
- * Creates a new enum question
- */
-export function createEnumQuestion(
-  question: string,
-  options: string[],
-  defaultValue?: string
-): TemplateQuestion {
-  return {
-    id: generateQuestionId(),
-    question,
-    answerType: 'enum',
-    enumOptions: options,
-    defaultValue,
-  };
-}
-
-/**
- * Creates a condition for an item
- */
-export function createCondition(
-  questionId: string,
-  operator: 'equals' | 'notEquals',
-  value: boolean | string
-): ItemCondition {
-  return {
-    questionId,
-    operator,
-    value,
-  };
-}
-
-/**
- * Gets default answers from questions
- */
-export function getDefaultAnswers(questions: TemplateQuestion[]): ConditionAnswers {
-  const answers: ConditionAnswers = {};
-  
-  for (const question of questions) {
-    if (question.defaultValue !== undefined) {
-      answers[question.id] = question.defaultValue;
-    }
-  }
-  
-  return answers;
-}
-
-/**
- * Validates that all conditions reference valid questions
- */
-export function validateConditions(
-  conditions: ItemCondition[],
-  questions: TemplateQuestion[]
-): { valid: boolean; errors: string[] } {
-  const questionIds = new Set(questions.map(q => q.id));
-  const errors: string[] = [];
-  
-  for (const condition of conditions) {
-    if (!questionIds.has(condition.questionId)) {
-      errors.push(`Condition references unknown question: ${condition.questionId}`);
-    }
-    
-    const question = questions.find(q => q.id === condition.questionId);
-    if (question) {
-      if (question.answerType === 'boolean' && typeof condition.value !== 'boolean') {
-        errors.push(`Condition value must be boolean for question: ${question.question}`);
-      }
-      if (question.answerType === 'enum') {
-        if (typeof condition.value !== 'string') {
-          errors.push(`Condition value must be string for enum question: ${question.question}`);
-        } else if (question.enumOptions && !question.enumOptions.includes(condition.value)) {
-          errors.push(`Invalid enum value "${condition.value}" for question: ${question.question}`);
-        }
-      }
-    }
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
