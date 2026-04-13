@@ -49,8 +49,8 @@ export default async function ChecklistsPage() {
 
     for (const templateId of templateIdsToFetch) {
       const templateResult = await templateService.getById(templateId);
-      if (templateResult.success && templateResult.template) {
-        templateTitleMap.set(templateId, templateResult.template.title);
+      if (templateResult.success && templateResult.data) {
+        templateTitleMap.set(templateId, templateResult.data.title);
       }
     }
 

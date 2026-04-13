@@ -109,14 +109,14 @@ export async function GET(
     const collaborationService = new CollaborationService(pb);
 
     const templateResult = await templateService.getById(templateId);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json(
         { success: false, error: { code: CollaborationErrorCodes.BLUEPRINT_NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } },
         { status: 404 }
       );
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     const isOwner = template.owner === user.id;
     const hasAccess = isOwner || await collaborationService.hasPermission(templateId, user.id, PermissionLevel.VIEWER);
 
@@ -195,14 +195,14 @@ export async function POST(
     const collaborationService = new CollaborationService(pb);
 
     const templateResult = await templateService.getById(templateId);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json(
         { success: false, error: { code: CollaborationErrorCodes.BLUEPRINT_NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } },
         { status: 404 }
       );
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
 
     if (template.visibility === Visibility.PUBLIC) {
       return NextResponse.json(

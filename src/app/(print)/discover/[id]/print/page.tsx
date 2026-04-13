@@ -19,11 +19,11 @@ export default async function DiscoverTemplatePrintPage({ params }: PageProps) {
   const templateService = new TemplateService(effectivePb);
 
   const result = await templateService.getById(id);
-  if (!result.success || !result.template) {
+  if (!result.success || !result.data) {
     notFound();
   }
 
-  const template = result.template;
+  const template = result.data;
 
   // Only allow public templates for unauthenticated users
   if (!isAuthenticated && template.visibility !== Visibility.PUBLIC) {

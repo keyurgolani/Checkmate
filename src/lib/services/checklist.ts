@@ -326,7 +326,7 @@ export class ChecklistService {
 
       // Verify template exists and user has access
       const templateResult = await this.templateService.getById(input.templateId);
-      if (!templateResult.success || !templateResult.template) {
+      if (!templateResult.success || !templateResult.data) {
         return {
           success: false,
           checklist: null,
@@ -342,10 +342,10 @@ export class ChecklistService {
       const checklistData: InstanceCreate = {
         blueprint: input.templateId, // DB field name
         user: userId,
-        workspace: input.workspaceId ?? templateResult.template.workspace, // Use provided workspace or template's workspace
+        workspace: input.workspaceId ?? templateResult.data.workspace, // Use provided workspace or template's workspace
         name: input.name.trim(),
-        description: templateResult.template.description ?? undefined,
-        resources: templateResult.template.resources ?? undefined,
+        description: templateResult.data.description ?? undefined,
+        resources: templateResult.data.resources ?? undefined,
         isSynced: true,
         progress: 0,
       };
@@ -420,7 +420,7 @@ export class ChecklistService {
         if (templateItem.itemType === ItemType.REFERENCE && templateItem.reference) {
           // Check access by checking if getById succeeds
           const accessResult = await this.templateService.getById(templateItem.reference);
-          const hasAccess = accessResult.success && accessResult.template !== null;
+          const hasAccess = accessResult.success && accessResult.data !== null;
 
           // Determine the content for the reference task
           let taskContent = templateItem.content;
@@ -645,7 +645,7 @@ export class ChecklistService {
         if (refItem.itemType === ItemType.REFERENCE && refItem.reference) {
           // Check access for nested references
           const accessResult = await this.templateService.getById(refItem.reference);
-          hasAccess = accessResult.success && accessResult.template !== null;
+          hasAccess = accessResult.success && accessResult.data !== null;
           
           if (!hasAccess) {
             // No access - get just the title of the private template
@@ -785,7 +785,7 @@ export class ChecklistService {
         if (childItem.itemType === ItemType.REFERENCE && childItem.reference) {
           // Check access for reference items
           const accessResult = await this.templateService.getById(childItem.reference);
-          hasAccess = accessResult.success && accessResult.template !== null;
+          hasAccess = accessResult.success && accessResult.data !== null;
           
           if (!hasAccess) {
             // No access - get just the title of the private template
@@ -1191,7 +1191,7 @@ export class ChecklistService {
 
       // Get the template
       const templateResult = await this.templateService.getById(templateId);
-      if (!templateResult.success || !templateResult.template) {
+      if (!templateResult.success || !templateResult.data) {
         return {
           success: false,
           added: 0,

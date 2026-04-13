@@ -87,8 +87,8 @@ export default async function DashboardPage() {
             } else if (!templateMap.has(templateId)) {
                  try {
                     const result = await templateService.getById(templateId);
-                    if (result.success && result.template) {
-                        templateMap.set(templateId, result.template.title);
+                    if (result.success && result.data) {
+                        templateMap.set(templateId, result.data.title);
                     }
                  } catch (e) {
                      templateMap.set(templateId, "Unknown Template");

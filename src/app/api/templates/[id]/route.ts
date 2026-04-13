@@ -149,11 +149,11 @@ export const GET = withPublicAccess<{ id: string }, TemplateResponse>(
     const collaborationService = new CollaborationService(pb);
 
     const result = await templateService.getById(id);
-    if (!result.success || !result.template) {
+    if (!result.success || !result.data) {
       return apiError(TemplateErrorCodes.NOT_FOUND, 'Template not found', 404);
     }
 
-    const template = result.template;
+    const template = result.data;
 
     if (template.visibility === Visibility.PUBLIC) {
       return NextResponse.json<TemplateResponse>({
@@ -218,11 +218,11 @@ export const PUT = withAuth<{ id: string }, TemplateResponse>(
     const collaborationService = new CollaborationService(pb);
 
     const getResult = await templateService.getById(id);
-    if (!getResult.success || !getResult.template) {
+    if (!getResult.success || !getResult.data) {
       return apiError(TemplateErrorCodes.NOT_FOUND, 'Template not found', 404);
     }
 
-    const template = getResult.template;
+    const template = getResult.data;
     const isOwner = template.owner === user.id;
     const hasEditPermission =
       isOwner ||
@@ -245,7 +245,7 @@ export const PUT = withAuth<{ id: string }, TemplateResponse>(
       resources: body.resources,
     });
 
-    if (!result.success || !result.template) {
+    if (!result.success || !result.data) {
       return apiError(
         result.error?.code ?? TemplateErrorCodes.UNKNOWN_ERROR,
         result.error?.message ?? 'Failed to update template',
@@ -256,7 +256,7 @@ export const PUT = withAuth<{ id: string }, TemplateResponse>(
 
     return NextResponse.json<TemplateResponse>({
       success: true,
-      template: formatTemplate(result.template as any),
+      template: formatTemplate(result.data as any),
     });
   }
 );
@@ -285,11 +285,11 @@ export const DELETE = withAuth<{ id: string }, { success: boolean }>(
     const templateService = new TemplateService(pb);
 
     const getResult = await templateService.getById(id);
-    if (!getResult.success || !getResult.template) {
+    if (!getResult.success || !getResult.data) {
       return apiError(TemplateErrorCodes.NOT_FOUND, 'Template not found', 404);
     }
 
-    if (getResult.template.owner !== user.id) {
+    if (getResult.data.owner !== user.id) {
       return apiError(
         TemplateErrorCodes.PERMISSION_DENIED,
         'Only the owner can delete a template',

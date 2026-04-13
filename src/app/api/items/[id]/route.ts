@@ -132,11 +132,11 @@ export const GET = withPublicAccess<{ id: string }, ItemResponse>(
     const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
 
     if (template.visibility === Visibility.PUBLIC) {
       return NextResponse.json<ItemResponse>({
@@ -212,11 +212,11 @@ export const PUT = withAuth<{ id: string }, ItemResponse>(
     const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     const isOwner = template.owner === user.id;
     const hasEditPermission =
       isOwner ||
@@ -292,11 +292,11 @@ export const DELETE = withAuth<{ id: string }, { success: boolean }>(
     const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     const isOwner = template.owner === user.id;
     const hasEditPermission =
       isOwner ||

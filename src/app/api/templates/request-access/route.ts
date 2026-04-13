@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
     // Get template with owner
     const templateResult = await templateService.getById(templateId, "owner");
 
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json(
         { success: false, error: "Template not found" },
         { status: 404 }
       );
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
 
     if (!template.owner) {
       return NextResponse.json(

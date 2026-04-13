@@ -332,7 +332,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<TemplateR
       resources: body.resources,
     });
 
-    if (!result.success || !result.template) {
+    if (!result.success || !result.data) {
       const statusCode = getStatusCodeForError(result.error?.code);
       return NextResponse.json(
         {
@@ -351,7 +351,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<TemplateR
     return NextResponse.json(
       {
         success: true,
-        template: formatTemplate(result.template as any),
+        template: formatTemplate(result.data as any),
       },
       { status: 201 }
     );

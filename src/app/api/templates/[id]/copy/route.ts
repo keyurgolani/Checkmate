@@ -86,7 +86,7 @@ export async function POST(
     // Get the source template
     const sourceResult = await templateService.getById(id);
 
-    if (!sourceResult.success || !sourceResult.template) {
+    if (!sourceResult.success || !sourceResult.data) {
       return NextResponse.json(
         {
           success: false,
@@ -100,7 +100,7 @@ export async function POST(
       );
     }
 
-    const sourceTemplate = sourceResult.template;
+    const sourceTemplate = sourceResult.data;
 
     // Check access - user must have at least viewer access
     let hasAccess = false;
@@ -144,7 +144,7 @@ export async function POST(
       visibility: Visibility.PRIVATE, // Always start as private
     });
 
-    if (!createResult.success || !createResult.template) {
+    if (!createResult.success || !createResult.data) {
       return NextResponse.json(
         {
           success: false,
@@ -158,7 +158,7 @@ export async function POST(
       );
     }
 
-    const newTemplate = createResult.template;
+    const newTemplate = createResult.data;
 
     // Copy all items from source template
     const sourceItems = await itemService.getByTemplate(id);

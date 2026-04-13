@@ -55,11 +55,11 @@ export default async function TemplateDetailPage({ params }: PageProps) {
   // Get the template
   const result = await templateService.getById(id);
 
-  if (!result.success || !result.template) {
+  if (!result.success || !result.data) {
     notFound();
   }
 
-  const template = result.template;
+  const template = result.data;
 
   // Check access based on visibility
   let canEdit = false;

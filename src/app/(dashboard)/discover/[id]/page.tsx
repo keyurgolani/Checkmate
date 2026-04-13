@@ -37,8 +37,8 @@ export default async function TemplateDetailPage({ params }: PageProps) {
   // 1. Try to get full template access
   const result = await templateService.getById(id, "owner");
 
-  if (result.success && result.template) {
-    template = result.template;
+  if (result.success && result.data) {
+    template = result.data;
     
     // Check if public (or user has access)
     // Note: getById already checks RLS, but if it's not public we might want to double check logic

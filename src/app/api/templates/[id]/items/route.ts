@@ -91,22 +91,22 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     // If unauthenticated and template not found via RLS, try admin client
     // to check if it's a public template (PocketBase may not resolve the
     // viewRule for completely unauthenticated requests in all configurations).
-    if (!isAuthenticated && (!templateResult.success || !templateResult.template)) {
+    if (!isAuthenticated && (!templateResult.success || !templateResult.data)) {
       const adminPb = await createAdminClient();
       const adminTemplateService = new TemplateService(adminPb);
       templateResult = await adminTemplateService.getById(templateId);
 
       // Only allow public templates for unauthenticated users
-      if (templateResult.success && templateResult.template && templateResult.template.visibility !== Visibility.PUBLIC) {
+      if (templateResult.success && templateResult.data && templateResult.data.visibility !== Visibility.PUBLIC) {
         return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
       }
     }
 
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
 
     if (template.visibility === Visibility.PRIVATE) {
       if (!isAuthenticated || !user || template.owner !== user.id) {
@@ -171,11 +171,11 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     const itemService = new ItemService(pb);
 
     const templateResult = await templateService.getById(templateId);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     const isOwner = template.owner === user.id;
     const hasEditPermission = isOwner || await collaborationService.hasPermission(templateId, user.id, PermissionLevel.EDITOR);
 

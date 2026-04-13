@@ -19,6 +19,7 @@ import type {
 } from '../pocketbase-types';
 import { Collections, Visibility } from '../pocketbase-types';
 import { ItemService } from './item';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -88,11 +89,7 @@ export interface PaginatedResult<T> {
 /**
  * Template operation result
  */
-export interface TemplateResult {
-  success: boolean;
-  template: Template | null;
-  error: TemplateError | null;
-}
+export type TemplateResult = Result<Template, TemplateError>;
 
 /**
  * Template error with code and message
@@ -174,27 +171,6 @@ export function validateVisibility(visibility: string): TemplateError | null {
   return null;
 }
 
-/**
- * Creates a successful TemplateResult
- */
-function createSuccessResult(template: Template): TemplateResult {
-  return {
-    success: true,
-    template,
-    error: null,
-  };
-}
-
-/**
- * Creates an error TemplateResult
- */
-function createErrorResult(error: TemplateError): TemplateResult {
-  return {
-    success: false,
-    template: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into TemplateError
@@ -317,13 +293,13 @@ export class TemplateService {
       // Validate title
       const titleError = validateTitle(input.title);
       if (titleError) {
-        return createErrorResult(titleError);
+        return err(titleError);
       }
 
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: TemplateErrorCodes.PERMISSION_DENIED,
           message: 'You must be authenticated to create a template',
         });
@@ -333,7 +309,7 @@ export class TemplateService {
       try {
         await this.pb.collection(Collections.WORKSPACES).getOne(input.workspaceId);
       } catch {
-        return createErrorResult({
+        return err({
           code: TemplateErrorCodes.WORKSPACE_NOT_FOUND,
           message: 'Workspace not found or you do not have access',
         });
@@ -360,9 +336,9 @@ export class TemplateService {
         .collection(Collections.TEMPLATES)
         .create<Template>(createData);
 
-      return createSuccessResult(template);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(template);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -381,7 +357,7 @@ export class TemplateService {
       if (input.title !== undefined) {
         const titleError = validateTitle(input.title);
         if (titleError) {
-          return createErrorResult(titleError);
+          return err(titleError);
         }
       }
 
@@ -414,9 +390,9 @@ export class TemplateService {
         .collection(Collections.TEMPLATES)
         .update<Template>(id, updateData);
 
-      return createSuccessResult(template);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(template);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -453,8 +429,8 @@ export class TemplateService {
 
       await this.pb.collection(Collections.TEMPLATES).delete(id);
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -476,9 +452,9 @@ export class TemplateService {
         .collection(Collections.TEMPLATES)
         .getOne<Template>(id, options);
 
-      return createSuccessResult(template);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(template);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -660,9 +636,9 @@ export class TemplateService {
           instanceCount: (current.instanceCount ?? 0) + 1,
         });
 
-      return createSuccessResult(template);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(template);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -686,9 +662,9 @@ export class TemplateService {
           version: (current.version ?? 1) + 1,
         });
 
-      return createSuccessResult(template);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(template);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -730,13 +706,13 @@ export class TemplateService {
       // Validate visibility value
       const visibilityError = validateVisibility(visibility);
       if (visibilityError) {
-        return createErrorResult(visibilityError);
+        return err(visibilityError);
       }
 
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: TemplateErrorCodes.PERMISSION_DENIED,
           message: 'You must be authenticated to change template visibility',
         });
@@ -749,14 +725,14 @@ export class TemplateService {
           .collection(Collections.TEMPLATES)
           .getOne<Template>(templateId);
       } catch {
-        return createErrorResult({
+        return err({
           code: TemplateErrorCodes.NOT_FOUND,
           message: 'Template not found',
         });
       }
 
       if (template.owner !== userId) {
-        return createErrorResult({
+        return err({
           code: TemplateErrorCodes.PERMISSION_DENIED,
           message: 'Only the owner can change template visibility',
         });
@@ -771,7 +747,7 @@ export class TemplateService {
           });
 
         if (collaborators.totalItems === 0) {
-          return createErrorResult({
+          return err({
             code: TemplateErrorCodes.SHARED_REQUIRES_COLLABORATORS,
             message: 'Cannot set visibility to shared without at least one collaborator',
             details: { 
@@ -786,9 +762,9 @@ export class TemplateService {
         .collection(Collections.TEMPLATES)
         .update<Template>(templateId, { visibility });
 
-      return createSuccessResult(updatedTemplate);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(updatedTemplate);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -859,9 +835,9 @@ export class TemplateService {
         idMap.set(item.id, newItem.id);
       }
 
-      return createSuccessResult(newTemplate as Template);
+      return ok(newTemplate as Template);
     } catch (error) {
-      return createErrorResult({
+      return err({
         code: "TEMPLATE_DUPLICATE_FAILED",
         message: error instanceof Error ? error.message : "Failed to duplicate template",
       });

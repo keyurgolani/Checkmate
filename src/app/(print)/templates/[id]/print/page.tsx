@@ -18,11 +18,11 @@ export default async function TemplatePrintPage({ params }: PageProps) {
   const itemService = new ItemService(pb);
 
   const result = await templateService.getById(id);
-  if (!result.success || !result.template) {
+  if (!result.success || !result.data) {
     notFound();
   }
 
-  const template = result.template;
+  const template = result.data;
 
   // Check access — same logic as the main template page
   if (template.visibility === Visibility.PUBLIC) {

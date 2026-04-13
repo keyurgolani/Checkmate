@@ -50,11 +50,11 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     const exportService = new ExportService(pb);
 
     const templateResult = await templateService.getById(id);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json({ success: false, error: { code: ExportErrorCodes.BLUEPRINT_NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     let hasAccess = false;
 
     if (template.visibility === Visibility.PUBLIC) {

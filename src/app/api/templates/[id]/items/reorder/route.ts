@@ -81,11 +81,11 @@ export async function PUT(request: NextRequest, context: RouteContext): Promise<
     const itemService = new ItemService(pb);
 
     const templateResult = await templateService.getById(templateId);
-    if (!templateResult.success || !templateResult.template) {
+    if (!templateResult.success || !templateResult.data) {
       return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.NOT_FOUND, message: 'Template not found', timestamp: new Date().toISOString() } }, { status: 404 });
     }
 
-    const template = templateResult.template;
+    const template = templateResult.data;
     const isOwner = template.owner === user.id;
     const hasEditPermission = isOwner || await collaborationService.hasPermission(templateId, user.id, PermissionLevel.EDITOR);
 

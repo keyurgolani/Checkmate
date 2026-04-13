@@ -56,8 +56,8 @@ export default async function ChecklistDetailPage({
     // @ts-ignore - Runtime uses blueprint
     const blueprintId = checklist.template || (checklist as any).blueprint;
     const templateResult = await templateService.getById(blueprintId);
-    if (templateResult.success && templateResult.template) {
-      blueprintTitle = templateResult.template.title;
+    if (templateResult.success && templateResult.data) {
+      blueprintTitle = templateResult.data.title;
     }
   }
 

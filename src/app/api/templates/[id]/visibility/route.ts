@@ -63,12 +63,12 @@ export async function PUT(request: NextRequest, context: RouteContext): Promise<
     const templateService = new TemplateService(pb);
     const result = await templateService.setVisibility(id, body.visibility);
 
-    if (!result.success || !result.template) {
+    if (!result.success || !result.data) {
       const statusCode = getStatusCodeForError(result.error?.code);
       return NextResponse.json({ success: false, error: { code: result.error?.code ?? TemplateErrorCodes.UNKNOWN_ERROR, message: result.error?.message ?? 'Failed to update visibility', details: result.error?.details, timestamp: new Date().toISOString() } }, { status: statusCode });
     }
 
-    return NextResponse.json({ success: true, template: formatTemplate(result.template) });
+    return NextResponse.json({ success: true, template: formatTemplate(result.data) });
   } catch (error) {
     console.error('Update visibility error:', error);
     return NextResponse.json({ success: false, error: { code: TemplateErrorCodes.UNKNOWN_ERROR, message: 'An unexpected error occurred', timestamp: new Date().toISOString() } }, { status: 500 });
