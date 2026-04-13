@@ -91,3 +91,9 @@ docs/superpowers/
 
 # brainstorming companion
 .superpowers/
+
+# graphify audit output
+/graphify-out/
+
+# Claude Code session artifacts
+/.claude/
