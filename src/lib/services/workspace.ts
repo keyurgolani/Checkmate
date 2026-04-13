@@ -19,6 +19,7 @@ import type {
   Instance, // Should be Checklist
 } from '../pocketbase-types';
 import { Collections, Visibility } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -56,11 +57,7 @@ export interface PaginatedResult<T> {
 /**
  * Workspace operation result
  */
-export interface WorkspaceResult {
-  success: boolean;
-  workspace: Workspace | null;
-  error: WorkspaceError | null;
-}
+export type WorkspaceResult = Result<Workspace, WorkspaceError>;
 
 /**
  * Workspace error with code and message
@@ -140,27 +137,6 @@ export function validateName(name: string): WorkspaceError | null {
   return null;
 }
 
-/**
- * Creates a successful WorkspaceResult
- */
-function createSuccessResult(workspace: Workspace): WorkspaceResult {
-  return {
-    success: true,
-    workspace,
-    error: null,
-  };
-}
-
-/**
- * Creates an error WorkspaceResult
- */
-function createErrorResult(error: WorkspaceError): WorkspaceResult {
-  return {
-    success: false,
-    workspace: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into WorkspaceError
@@ -243,13 +219,13 @@ export class WorkspaceService {
       // Validate name
       const nameError = validateName(input.name);
       if (nameError) {
-        return createErrorResult(nameError);
+        return err(nameError);
       }
 
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: WorkspaceErrorCodes.PERMISSION_DENIED,
           message: 'You must be authenticated to create a workspace',
         });
@@ -268,9 +244,9 @@ export class WorkspaceService {
         .collection(Collections.WORKSPACES)
         .create<Workspace>(createData);
 
-      return createSuccessResult(workspace);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(workspace);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -289,7 +265,7 @@ export class WorkspaceService {
       if (input.name !== undefined) {
         const nameError = validateName(input.name);
         if (nameError) {
-          return createErrorResult(nameError);
+          return err(nameError);
         }
       }
 
@@ -310,9 +286,9 @@ export class WorkspaceService {
         .collection(Collections.WORKSPACES)
         .update<Workspace>(id, updateData);
 
-      return createSuccessResult(workspace);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(workspace);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -333,7 +309,7 @@ export class WorkspaceService {
         .getOne<Workspace>(id);
 
       if (current.isArchived) {
-        return createErrorResult({
+        return err({
           code: WorkspaceErrorCodes.ALREADY_ARCHIVED,
           message: 'Workspace is already archived',
         });
@@ -343,9 +319,9 @@ export class WorkspaceService {
         .collection(Collections.WORKSPACES)
         .update<Workspace>(id, { isArchived: true });
 
-      return createSuccessResult(workspace);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(workspace);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -364,7 +340,7 @@ export class WorkspaceService {
         .getOne<Workspace>(id);
 
       if (!current.isArchived) {
-        return createErrorResult({
+        return err({
           code: WorkspaceErrorCodes.NOT_ARCHIVED,
           message: 'Workspace is not archived',
         });
@@ -374,9 +350,9 @@ export class WorkspaceService {
         .collection(Collections.WORKSPACES)
         .update<Workspace>(id, { isArchived: false });
 
-      return createSuccessResult(workspace);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(workspace);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -390,8 +366,8 @@ export class WorkspaceService {
     try {
       await this.pb.collection(Collections.WORKSPACES).delete(id);
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -413,9 +389,9 @@ export class WorkspaceService {
         .collection(Collections.WORKSPACES)
         .getOne<Workspace>(id, options);
 
-      return createSuccessResult(workspace);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(workspace);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 

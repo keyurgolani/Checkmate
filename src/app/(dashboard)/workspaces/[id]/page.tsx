@@ -36,11 +36,11 @@ export default async function WorkspaceDetailPage({
   // Get the workspace
   const workspaceResult = await workspaceService.getById(id);
 
-  if (!workspaceResult.success || !workspaceResult.workspace) {
+  if (!workspaceResult.success) {
     notFound();
   }
 
-  const workspace = workspaceResult.workspace;
+  const workspace = workspaceResult.data;
 
   // Verify user owns this workspace
   if (workspace.owner !== user.id) {

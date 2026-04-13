@@ -28,12 +28,12 @@ export async function createWorkspace(input: CreateWorkspaceInput): Promise<Work
     description: input.description,
   });
 
-  if (!result.success || !result.workspace) {
-    return { success: false, error: result.error?.message || "Failed to create workspace" };
+  if (!result.success) {
+    return { success: false, error: result.error.message };
   }
 
   revalidatePath("/workspaces");
-  return { success: true, workspaceId: result.workspace.id };
+  return { success: true, workspaceId: result.data.id };
 }
 
 export async function updateWorkspace(
