@@ -19,6 +19,7 @@ import type {
   User,
 } from '../pocketbase-types';
 import { Collections, NotificationType } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -27,21 +28,15 @@ import { Collections, NotificationType } from '../pocketbase-types';
 /**
  * Result for notification operations
  */
-export interface NotificationResult {
-  success: boolean;
-  notification: Notification | null;
-  error: NotificationError | null;
-}
+export type NotificationResult = Result<Notification, NotificationError>;
 
 /**
  * Result for listing notifications
  */
-export interface NotificationsListResult {
-  success: boolean;
-  notifications: Notification[];
-  totalItems: number;
-  error: NotificationError | null;
-}
+export type NotificationsListResult = Result<
+  { notifications: Notification[]; totalItems: number },
+  NotificationError
+>;
 
 /**
  * Notification error with code and message
@@ -80,28 +75,6 @@ export const NotificationErrorCodes = {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Creates a successful NotificationResult
- */
-function createSuccessResult(notification: Notification): NotificationResult {
-  return {
-    success: true,
-    notification,
-    error: null,
-  };
-}
-
-/**
- * Creates an error NotificationResult
- */
-function createErrorResult(error: NotificationError): NotificationResult {
-  return {
-    success: false,
-    notification: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into NotificationError
@@ -174,9 +147,9 @@ export class NotificationService {
         .collection(Collections.NOTIFICATIONS)
         .create<Notification>(data);
 
-      return createSuccessResult(notification);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(notification);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -319,15 +292,10 @@ export class NotificationService {
     try {
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return {
-          success: false,
-          notifications: [],
-          totalItems: 0,
-          error: {
-            code: NotificationErrorCodes.NOT_AUTHENTICATED,
-            message: 'You must be authenticated to view notifications',
-          },
-        };
+        return err({
+          code: NotificationErrorCodes.NOT_AUTHENTICATED,
+          message: 'You must be authenticated to view notifications',
+        });
       }
 
       let filter = `user = "${currentUserId}"`;
@@ -343,19 +311,9 @@ export class NotificationService {
           requestKey: 'notifications-list',
         });
 
-      return {
-        success: true,
-        notifications: result.items,
-        totalItems: result.totalItems,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        notifications: [],
-        totalItems: 0,
-        error: parseError(err),
-      };
+      return ok({ notifications: result.items, totalItems: result.totalItems });
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -369,7 +327,7 @@ export class NotificationService {
     try {
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return createErrorResult({
+        return err({
           code: NotificationErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to update notifications',
         });
@@ -381,7 +339,7 @@ export class NotificationService {
         .getOne<Notification>(notificationId);
 
       if (notification.user !== currentUserId) {
-        return createErrorResult({
+        return err({
           code: NotificationErrorCodes.PERMISSION_DENIED,
           message: 'You can only update your own notifications',
         });
@@ -395,9 +353,9 @@ export class NotificationService {
         .collection(Collections.NOTIFICATIONS)
         .update<Notification>(notificationId, updateData);
 
-      return createSuccessResult(updatedNotification);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(updatedNotification);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -436,8 +394,8 @@ export class NotificationService {
       await Promise.all(updatePromises);
 
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -478,8 +436,8 @@ export class NotificationService {
       await this.pb.collection(Collections.NOTIFICATIONS).delete(notificationId);
 
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -509,8 +467,8 @@ export class NotificationService {
         });
 
       return { count: result.totalItems, error: null };
-    } catch (err) {
-      return { count: 0, error: parseError(err) };
+    } catch (caught) {
+      return { count: 0, error: parseError(caught) };
     }
   }
 
@@ -524,7 +482,7 @@ export class NotificationService {
     try {
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return createErrorResult({
+        return err({
           code: NotificationErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to view notifications',
         });
@@ -536,15 +494,15 @@ export class NotificationService {
 
       // Verify the notification belongs to the current user
       if (notification.user !== currentUserId) {
-        return createErrorResult({
+        return err({
           code: NotificationErrorCodes.PERMISSION_DENIED,
           message: 'You can only view your own notifications',
         });
       }
 
-      return createSuccessResult(notification);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(notification);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -610,8 +568,8 @@ export class NotificationService {
         updatedCount: ownedNotifications.length,
         error: null,
       };
-    } catch (err) {
-      return { success: false, updatedCount: 0, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, updatedCount: 0, error: parseError(caught) };
     }
   }
 
@@ -675,8 +633,8 @@ export class NotificationService {
         deletedCount: ownedNotifications.length,
         error: null,
       };
-    } catch (err) {
-      return { success: false, deletedCount: 0, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, deletedCount: 0, error: parseError(caught) };
     }
   }
 
@@ -722,8 +680,8 @@ export class NotificationService {
         deletedCount: notifications.length,
         error: null,
       };
-    } catch (err) {
-      return { success: false, deletedCount: 0, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, deletedCount: 0, error: parseError(caught) };
     }
   }
 

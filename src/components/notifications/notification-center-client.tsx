@@ -52,7 +52,7 @@ export function NotificationCenterClient({ pbAuth }: NotificationCenterClientPro
       ]);
 
       if (notificationsResult.success) {
-        setNotifications(notificationsResult.notifications);
+        setNotifications(notificationsResult.data.notifications);
       }
 
       if (!countResult.error) {
