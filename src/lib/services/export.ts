@@ -26,6 +26,7 @@ import type {
   User,
 } from '../pocketbase-types';
 import { Collections, ItemType, Visibility } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 import {
   type ExportFormat,
   type ExportedItem,
@@ -52,37 +53,10 @@ import {
   parseMarkdownImport,
 } from './export/import-parsers';
 
-// Re-export foundational types/constants so external consumers can
-// keep importing them from `@/lib/services/export`.
-// Note: getPathDepth is intentionally not re-exported here — ItemService
-// exports its own getPathDepth and re-exporting would create an
-// ambiguous re-export through services/index.ts.
-export type { ExportFormat, ExportedItem } from './export/utils';
-export {
-  EXPORT_VERSION,
-  MIME_TYPES,
-  FILE_EXTENSIONS,
-  sanitizeFilename,
-  escapeCSV,
-  buildItemTree,
-  flattenItems,
-} from './export/utils';
-export type {
-  ImportError,
-  ImportResult,
-  ImportValidationResult,
-  ParsedImportData,
-  ParsedImportItem,
-} from './export/import-parsers';
-export {
-  ImportErrorCodes,
-  createImportSuccessResult,
-  createImportErrorResult,
-  detectImportFormat,
-  parseJSONImport,
-  parseCSVImport,
-  parseMarkdownImport,
-} from './export/import-parsers';
+// Re-exports for the two API routes that import from this module.
+export type { ExportFormat } from './export/utils';
+export { MIME_TYPES } from './export/utils';
+export { ImportErrorCodes } from './export/import-parsers';
 
 // ============================================================================
 // Types
@@ -141,15 +115,18 @@ export interface ExportedBlueprint {
 }
 
 /**
+ * Export result payload shape — lives inside result.data when successful.
+ */
+export interface ExportPayload {
+  payload: string;
+  filename: string;
+  mimeType: string;
+}
+
+/**
  * Export result
  */
-export interface ExportResult {
-  success: boolean;
-  data: string | null;
-  filename: string | null;
-  mimeType: string | null;
-  error: ExportError | null;
-}
+export type ExportResult = Result<ExportPayload, ExportError>;
 
 /**
  * Export error
@@ -195,33 +172,15 @@ export const ExportErrorCodes = {
 // ============================================================================
 
 /**
- * Creates a successful ExportResult
+ * Creates a successful ExportResult. Keeps three-arg signature since export
+ * methods construct the payload at the call site from pieces.
  */
-function createSuccessResult(
-  data: string,
+function createExportOk(
+  payload: string,
   filename: string,
   mimeType: string
 ): ExportResult {
-  return {
-    success: true,
-    data,
-    filename,
-    mimeType,
-    error: null,
-  };
-}
-
-/**
- * Creates an error ExportResult
- */
-function createErrorResult(error: ExportError): ExportResult {
-  return {
-    success: false,
-    data: null,
-    filename: null,
-    mimeType: null,
-    error,
-  };
+  return ok({ payload, filename, mimeType });
 }
 
 // Note: file helpers (sanitizeFilename, escapeCSV, getPathDepth,
@@ -262,7 +221,7 @@ export class ExportService {
     try {
       // Validate format
       if (!['json', 'csv', 'markdown'].includes(options.format)) {
-        return createErrorResult({
+        return err({
           code: ExportErrorCodes.INVALID_FORMAT,
           message: `Invalid export format: ${options.format}. Must be one of: json, csv, markdown`,
         });
@@ -277,7 +236,7 @@ export class ExportService {
             expand: 'owner',
           });
       } catch {
-        return createErrorResult({
+        return err({
           code: ExportErrorCodes.BLUEPRINT_NOT_FOUND,
           message: 'Blueprint not found or you do not have access',
         });
@@ -374,17 +333,17 @@ export class ExportService {
         case 'markdown':
           return this.exportAsMarkdown(exportedBlueprint, filename, options);
         default:
-          return createErrorResult({
+          return err({
             code: ExportErrorCodes.INVALID_FORMAT,
             message: `Unsupported format: ${options.format}`,
           });
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Export failed';
-      return createErrorResult({
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Export failed';
+      return err({
         code: ExportErrorCodes.EXPORT_FAILED,
         message,
-        details: { error: String(err) },
+        details: { error: String(caught) },
       });
     }
   }
@@ -397,7 +356,7 @@ export class ExportService {
     filename: string
   ): ExportResult {
     const jsonString = JSON.stringify(data, null, 2);
-    return createSuccessResult(jsonString, filename, MIME_TYPES.json);
+    return createExportOk(jsonString, filename, MIME_TYPES.json);
   }
 
   /**
@@ -461,7 +420,7 @@ export class ExportService {
     rows.push(`# Exported: ${data.exportedAt}`);
 
     const csvString = rows.join('\n');
-    return createSuccessResult(csvString, filename, MIME_TYPES.csv);
+    return createExportOk(csvString, filename, MIME_TYPES.csv);
   }
 
   /**
@@ -577,7 +536,7 @@ export class ExportService {
     lines.push(`*Exported from CheckMate on ${new Date(data.exportedAt).toLocaleDateString()}*`);
 
     const markdownString = lines.join('\n');
-    return createSuccessResult(markdownString, filename, MIME_TYPES.markdown);
+    return createExportOk(markdownString, filename, MIME_TYPES.markdown);
   }
 
   /**
@@ -682,7 +641,7 @@ export class ExportService {
           null, // No parent for root items
           null  // No parent path for root items
         );
-      } catch (err) {
+      } catch (caught) {
         // If item creation fails, delete the blueprint and return error
         try {
           await this.pb.collection(Collections.TEMPLATES).delete(blueprint.id);
@@ -690,21 +649,21 @@ export class ExportService {
           // Ignore cleanup errors
         }
         
-        const message = err instanceof Error ? err.message : 'Failed to create items';
+        const message = caught instanceof Error ? caught.message : 'Failed to create items';
         return createImportErrorResult({
           code: ImportErrorCodes.IMPORT_FAILED,
           message,
-          details: { error: String(err) },
+          details: { error: String(caught) },
         });
       }
 
       return createImportSuccessResult(blueprint.id, itemCount, warnings);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Import failed';
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Import failed';
       return createImportErrorResult({
         code: ImportErrorCodes.IMPORT_FAILED,
         message,
-        details: { error: String(err) },
+        details: { error: String(caught) },
       });
     }
   }

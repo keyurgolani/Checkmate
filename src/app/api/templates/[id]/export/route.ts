@@ -72,15 +72,14 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }
 
     const exportResult = await exportService.exportBlueprint(id, { format, includeMetadata, expandReferences });
-    if (!exportResult.success || !exportResult.data) {
-      const statusCode = getStatusCodeForError(exportResult.error?.code);
-      return NextResponse.json({ success: false, error: { code: exportResult.error?.code ?? ExportErrorCodes.EXPORT_FAILED, message: exportResult.error?.message ?? 'Failed to export template', details: exportResult.error?.details, timestamp: new Date().toISOString() } }, { status: statusCode });
+    if (!exportResult.success) {
+      const statusCode = getStatusCodeForError(exportResult.error.code);
+      return NextResponse.json({ success: false, error: { code: exportResult.error.code, message: exportResult.error.message, details: exportResult.error.details, timestamp: new Date().toISOString() } }, { status: statusCode });
     }
 
-    const mimeType = exportResult.mimeType ?? MIME_TYPES[format];
-    const filename = exportResult.filename ?? `template-${id}.${format}`;
+    const { payload, filename, mimeType } = exportResult.data;
 
-    return new NextResponse(exportResult.data, { status: 200, headers: { 'Content-Type': mimeType, 'Content-Disposition': `attachment; filename="${filename}"` } });
+    return new NextResponse(payload, { status: 200, headers: { 'Content-Type': mimeType, 'Content-Disposition': `attachment; filename="${filename}"` } });
   } catch (error) {
     console.error('Export template error:', error);
     return NextResponse.json({ success: false, error: { code: ExportErrorCodes.UNKNOWN_ERROR, message: 'An unexpected error occurred', timestamp: new Date().toISOString() } }, { status: 500 });

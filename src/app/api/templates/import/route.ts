@@ -176,15 +176,15 @@ export async function POST(
       description: body.description,
     });
 
-    if (!result.success || !result.templateId) {
-      const statusCode = getStatusCodeForError(result.error?.code);
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: result.error?.code ?? ImportErrorCodes.IMPORT_FAILED,
-            message: result.error?.message ?? 'Failed to import template',
-            details: result.error?.details,
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
             timestamp: new Date().toISOString(),
           },
         },
@@ -195,9 +195,9 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-        templateId: result.templateId,
-        itemCount: result.itemCount,
-        warnings: result.warnings.length > 0 ? result.warnings : undefined,
+        templateId: result.data.templateId,
+        itemCount: result.data.itemCount,
+        warnings: result.data.warnings.length > 0 ? result.data.warnings : undefined,
       },
       { status: 201 }
     );

@@ -9,6 +9,7 @@
 
 import type { ResourceLink, TemplateQuestion } from '../../pocketbase-types';
 import { EXPORT_VERSION, type ExportFormat, type ExportedItem } from './utils';
+import { type Result, ok, err } from '../../result';
 
 // ============================================================================
 // Types
@@ -24,15 +25,18 @@ export interface ImportError {
 }
 
 /**
- * Import result
+ * Import result payload shape — lives inside result.data when successful.
  */
-export interface ImportResult {
-  success: boolean;
-  templateId: string | null;
+export interface ImportPayload {
+  templateId: string;
   itemCount: number;
-  error: ImportError | null;
   warnings: string[];
 }
+
+/**
+ * Import result
+ */
+export type ImportResult = Result<ImportPayload, ImportError>;
 
 /**
  * Parsed import item
@@ -91,33 +95,23 @@ export const ImportErrorCodes = {
 // ============================================================================
 
 /**
- * Creates a successful ImportResult
+ * Creates a successful ImportResult. Kept as a 3-arg helper for ergonomics
+ * at call sites that build the payload from pieces.
  */
 export function createImportSuccessResult(
   templateId: string,
   itemCount: number,
   warnings: string[] = []
 ): ImportResult {
-  return {
-    success: true,
-    templateId,
-    itemCount,
-    error: null,
-    warnings,
-  };
+  return ok({ templateId, itemCount, warnings });
 }
 
 /**
- * Creates an error ImportResult
+ * Creates an error ImportResult. Thin wrapper around err() to match the
+ * success helper's call-site ergonomics.
  */
 export function createImportErrorResult(error: ImportError): ImportResult {
-  return {
-    success: false,
-    templateId: null,
-    itemCount: 0,
-    error,
-    warnings: [],
-  };
+  return err(error);
 }
 
 // ============================================================================
