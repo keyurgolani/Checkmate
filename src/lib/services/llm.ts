@@ -224,8 +224,8 @@ export class LLMService {
         searchDepth: 'basic',
       });
 
-      if (result.success && result.results.length > 0) {
-        return this.webResearchService.formatResultsForPrompt(result.results);
+      if (result.success && result.data.length > 0) {
+        return this.webResearchService.formatResultsForPrompt(result.data);
       }
     } catch (caught) {
       console.warn('Web research failed, continuing without:', caught);

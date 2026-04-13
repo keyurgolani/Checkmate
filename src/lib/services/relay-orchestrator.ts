@@ -130,8 +130,8 @@ export class RelayOrchestrator {
           maxResults: 5,
           searchDepth: 'basic',
         });
-        if (searchResult.success && searchResult.results.length > 0) {
-          searchContext = this.webResearchService.formatResultsForPrompt(searchResult.results);
+        if (searchResult.success && searchResult.data.length > 0) {
+          searchContext = this.webResearchService.formatResultsForPrompt(searchResult.data);
         }
       } catch {
         // Web research failed, continue without it
@@ -171,8 +171,8 @@ export class RelayOrchestrator {
         response
       );
       let searchContext = '';
-      if (searchResult.success && searchResult.results.length > 0) {
-        searchContext = this.webResearchService.formatResultsForPrompt(searchResult.results);
+      if (searchResult.success && searchResult.data.length > 0) {
+        searchContext = this.webResearchService.formatResultsForPrompt(searchResult.data);
       }
 
       // Check if LLM is self-hosted

@@ -37,8 +37,9 @@ describe('parseSearchResponse', () => {
     });
     const result = service.parseSearchResponse(WebResearchProvider.SEARXNG, response, 5);
     expect(result.success).toBe(true);
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0]!.title).toBe('Result 1');
+    if (!result.success) return;
+    expect(result.data).toHaveLength(2);
+    expect(result.data[0]!.title).toBe('Result 1');
   });
 
   it('returns error for invalid JSON', () => {
@@ -53,6 +54,8 @@ describe('parseSearchResponse', () => {
       }))
     });
     const result = service.parseSearchResponse(WebResearchProvider.SEARXNG, response, 3);
-    expect(result.results).toHaveLength(3);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data).toHaveLength(3);
   });
 });

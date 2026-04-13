@@ -14,6 +14,7 @@
 
 import { WebResearchProvider, type WebResearchSettings } from '../pocketbase-types';
 import type { RequestSpec } from '../relay-utils';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -26,11 +27,7 @@ export interface WebSearchResult {
   score?: number;
 }
 
-export interface WebResearchResult {
-  success: boolean;
-  results: WebSearchResult[];
-  error: WebResearchError | null;
-}
+export type WebResearchResult = Result<WebSearchResult[], WebResearchError>;
 
 export interface WebResearchError {
   code: string;
@@ -60,18 +57,6 @@ import { WEB_RESEARCH_PROVIDER_CONFIG } from '../web-research-config';
 export { WEB_RESEARCH_PROVIDER_CONFIG };
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-function createErrorResult(error: WebResearchError): WebResearchResult {
-  return { success: false, results: [], error };
-}
-
-function createSuccessResult(results: WebSearchResult[]): WebResearchResult {
-  return { success: true, results, error: null };
-}
-
-// ============================================================================
 // Web Research Service Class
 // ============================================================================
 
@@ -89,14 +74,14 @@ export class WebResearchService {
     }
   ): Promise<WebResearchResult> {
     if (!settings.enabled) {
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.NOT_CONFIGURED,
         message: 'Web research is not enabled',
       });
     }
 
     if (!settings.provider) {
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.INVALID_PROVIDER,
         message: 'No web research provider selected',
       });
@@ -105,14 +90,14 @@ export class WebResearchService {
     const config = WEB_RESEARCH_PROVIDER_CONFIG[settings.provider];
 
     if (config.requiresApiKey && !settings.apiKey) {
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.API_KEY_REQUIRED,
         message: `API key required for ${config.name}`,
       });
     }
 
     if (config.requiresBaseUrl && !settings.baseUrl) {
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.BASE_URL_REQUIRED,
         message: `Base URL required for ${config.name}`,
       });
@@ -133,23 +118,23 @@ export class WebResearchService {
         case WebResearchProvider.SEARXNG:
           return await this.searchSearXNG(settings.baseUrl!, query, maxResults);
         default:
-          return createErrorResult({
+          return err({
             code: WebResearchErrorCodes.INVALID_PROVIDER,
             message: `Unknown provider: ${settings.provider}`,
           });
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Search failed';
-      console.error('Web Research Error:', err);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Search failed';
+      console.error('Web Research Error:', caught);
 
       if (message.toLowerCase().includes('rate limit') || message.includes('429')) {
-        return createErrorResult({
+        return err({
           code: WebResearchErrorCodes.RATE_LIMITED,
           message: 'Rate limited by the provider. Please try again later.',
         });
       }
 
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.SEARCH_FAILED,
         message,
       });
@@ -200,7 +185,7 @@ export class WebResearchService {
       score: r.score,
     }));
 
-    return createSuccessResult(results);
+    return ok(results);
   }
 
   /**
@@ -249,7 +234,7 @@ export class WebResearchService {
       score: r.score,
     }));
 
-    return createSuccessResult(results);
+    return ok(results);
   }
 
   /**
@@ -295,7 +280,7 @@ export class WebResearchService {
       content: r.markdown || r.description || '',
     }));
 
-    return createSuccessResult(results);
+    return ok(results);
   }
 
   /**
@@ -340,7 +325,7 @@ export class WebResearchService {
       content: r.description || '',
     }));
 
-    return createSuccessResult(results);
+    return ok(results);
   }
 
   /**
@@ -389,7 +374,7 @@ export class WebResearchService {
       score: r.score,
     }));
 
-    return createSuccessResult(results);
+    return ok(results);
   }
 
   /**
@@ -433,9 +418,9 @@ export class WebResearchService {
       }) => ({
         title: r.title, url: r.url, content: r.content || '', score: r.score,
       }));
-      return createSuccessResult(results);
+      return ok(results);
     } catch {
-      return createErrorResult({
+      return err({
         code: WebResearchErrorCodes.SEARCH_FAILED,
         message: 'Failed to parse search response',
       });
