@@ -200,7 +200,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       perPage: 5,
     });
     if (activityResult.success) {
-      personal.highlights = activityResult.activityLogs.map((log) => {
+      personal.highlights = activityResult.data.activityLogs.map((log) => {
         let type: "completed" | "started" | "created" = "created";
         if (log.action === "complete") type = "completed";
         else if (log.action === "create") type = "created";

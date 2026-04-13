@@ -17,29 +17,26 @@ import type {
   Blueprint,
 } from '../pocketbase-types';
 import { Collections, ResourceType, ActivityAction, Visibility } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * Result for activity log operations
+ * Result for activity log operations.
+ * `data` is null when a blueprint modification was skipped because the
+ * blueprint is not shared — a non-error, non-logged outcome.
  */
-export interface ActivityLogResult {
-  success: boolean;
-  activityLog: ActivityLog | null;
-  error: ActivityLogError | null;
-}
+export type ActivityLogResult = Result<ActivityLog | null, ActivityLogError>;
 
 /**
  * Result for listing activity logs
  */
-export interface ActivityLogsListResult {
-  success: boolean;
-  activityLogs: ActivityLog[];
-  totalItems: number;
-  error: ActivityLogError | null;
-}
+export type ActivityLogsListResult = Result<
+  { activityLogs: ActivityLog[]; totalItems: number },
+  ActivityLogError
+>;
 
 /**
  * Activity log error with code and message
@@ -97,28 +94,6 @@ export const ActivityLogErrorCodes = {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Creates a successful ActivityLogResult
- */
-function createSuccessResult(activityLog: ActivityLog): ActivityLogResult {
-  return {
-    success: true,
-    activityLog,
-    error: null,
-  };
-}
-
-/**
- * Creates an error ActivityLogResult
- */
-function createErrorResult(error: ActivityLogError): ActivityLogResult {
-  return {
-    success: false,
-    activityLog: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into ActivityLogError
@@ -197,9 +172,9 @@ export class ActivityService {
         .collection(Collections.ACTIVITY_LOG)
         .create<ActivityLog>(createData);
 
-      return createSuccessResult(activityLog);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(activityLog);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -219,7 +194,7 @@ export class ActivityService {
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: ActivityLogErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to log activity',
         });
@@ -232,7 +207,7 @@ export class ActivityService {
           .collection(Collections.TEMPLATES)
           .getOne<Blueprint>(options.blueprintId);
       } catch {
-        return createErrorResult({
+        return err({
           code: ActivityLogErrorCodes.BLUEPRINT_NOT_FOUND,
           message: 'Blueprint not found',
         });
@@ -241,11 +216,7 @@ export class ActivityService {
       // Only log activity for shared blueprints
       if (template.visibility !== Visibility.SHARED) {
         // Return success but with null activity log (not an error, just not logged)
-        return {
-          success: true,
-          activityLog: null,
-          error: null,
-        };
+        return ok(null);
       }
 
       return this.logActivity({
@@ -258,8 +229,8 @@ export class ActivityService {
           blueprintTitle: template.title,
         },
       });
-    } catch (err) {
-      return createErrorResult(parseError(err));
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -279,7 +250,7 @@ export class ActivityService {
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: ActivityLogErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to log activity',
         });
@@ -292,7 +263,7 @@ export class ActivityService {
           .collection(Collections.TEMPLATES)
           .getOne<Blueprint>(options.blueprintId);
       } catch {
-        return createErrorResult({
+        return err({
           code: ActivityLogErrorCodes.BLUEPRINT_NOT_FOUND,
           message: 'Blueprint not found',
         });
@@ -301,11 +272,7 @@ export class ActivityService {
       // Only log activity for shared blueprints
       if (template.visibility !== Visibility.SHARED) {
         // Return success but with null activity log (not an error, just not logged)
-        return {
-          success: true,
-          activityLog: null,
-          error: null,
-        };
+        return ok(null);
       }
 
       return this.logActivity({
@@ -320,8 +287,8 @@ export class ActivityService {
           itemId: options.itemId,
         },
       });
-    } catch (err) {
-      return createErrorResult(parseError(err));
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -358,19 +325,9 @@ export class ActivityService {
         .collection(Collections.ACTIVITY_LOG)
         .getList<ActivityLog>(options?.page || 1, options?.perPage || 20, queryOptions);
 
-      return {
-        success: true,
-        activityLogs: result.items,
-        totalItems: result.totalItems,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        activityLogs: [],
-        totalItems: 0,
-        error: parseError(err),
-      };
+      return ok({ activityLogs: result.items, totalItems: result.totalItems });
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -403,19 +360,9 @@ export class ActivityService {
           sort: '-created',
         });
 
-      return {
-        success: true,
-        activityLogs: result.items,
-        totalItems: result.totalItems,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        activityLogs: [],
-        totalItems: 0,
-        error: parseError(err),
-      };
+      return ok({ activityLogs: result.items, totalItems: result.totalItems });
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -433,15 +380,10 @@ export class ActivityService {
     try {
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return {
-          success: false,
-          activityLogs: [],
-          totalItems: 0,
-          error: {
-            code: ActivityLogErrorCodes.NOT_AUTHENTICATED,
-            message: 'You must be authenticated to view activity',
-          },
-        };
+        return err({
+          code: ActivityLogErrorCodes.NOT_AUTHENTICATED,
+          message: 'You must be authenticated to view activity',
+        });
       }
 
       const queryOptions: { sort: string; expand?: string } = {
@@ -456,19 +398,9 @@ export class ActivityService {
         .collection(Collections.ACTIVITY_LOG)
         .getList<ActivityLog>(options?.page || 1, options?.perPage || 20, queryOptions);
 
-      return {
-        success: true,
-        activityLogs: result.items,
-        totalItems: result.totalItems,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        activityLogs: [],
-        totalItems: 0,
-        error: parseError(err),
-      };
+      return ok({ activityLogs: result.items, totalItems: result.totalItems });
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
