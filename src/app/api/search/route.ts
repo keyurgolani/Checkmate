@@ -206,15 +206,15 @@ export async function GET(request: NextRequest): Promise<NextResponse<SearchResp
     const searchService = new SearchService();
     const result = await searchService.searchBlueprints(filters);
 
-    if (!result.success || !result.result) {
-      const statusCode = getStatusCodeForError(result.error?.code);
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: result.error?.code ?? SearchErrorCodes.UNKNOWN_ERROR,
-            message: result.error?.message ?? 'Search failed',
-            details: result.error?.details,
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
             timestamp: new Date().toISOString(),
           },
         },
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<SearchResp
     const adminPb = await createAdminClient();
     const itemService = new ItemService(adminPb);
     const stepCounts = await Promise.all(
-      result.result.items.map(async (blueprint) => {
+      result.data.items.map(async (blueprint) => {
         try {
           return await itemService.getItemCount(blueprint.id);
         } catch {
@@ -239,7 +239,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<SearchResp
     );
 
     // Format templates with step counts
-    const formattedTemplates = result.result.items.map((blueprint, index) => 
+    const formattedTemplates = result.data.items.map((blueprint, index) =>
       formatBlueprint(blueprint as any, stepCounts[index] ?? 0)
     );
 
@@ -247,10 +247,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<SearchResp
       success: true,
       templates: formattedTemplates,
       pagination: {
-        page: result.result.page,
-        perPage: result.result.perPage,
-        totalItems: result.result.totalItems,
-        totalPages: result.result.totalPages,
+        page: result.data.page,
+        perPage: result.data.perPage,
+        totalItems: result.data.totalItems,
+        totalPages: result.data.totalPages,
       },
     });
   } catch (error) {

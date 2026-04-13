@@ -13,6 +13,7 @@ import { getPocketBaseClient } from '../pocketbase';
 import { makeServiceAccessor } from './_service-factory';
 import type { Blueprint } from '../pocketbase-types';
 import { Collections, Visibility } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -43,11 +44,7 @@ export interface Category {
 /**
  * Result for category operations
  */
-export interface CategoryOperationResult {
-  success: boolean;
-  categories: Category[] | null;
-  error: SearchError | null;
-}
+export type CategoryOperationResult = Result<Category[], SearchError>;
 
 /**
  * Paginated search result
@@ -72,11 +69,7 @@ export interface SearchError {
 /**
  * Search operation result
  */
-export interface SearchOperationResult {
-  success: boolean;
-  result: SearchResult<Blueprint> | null;
-  error: SearchError | null;
-}
+export type SearchOperationResult = Result<SearchResult<Blueprint>, SearchError>;
 
 // ============================================================================
 // Error Codes
@@ -257,27 +250,6 @@ function parseError(err: unknown): SearchError {
   };
 }
 
-/**
- * Creates a successful search result
- */
-function createSuccessResult(result: SearchResult<Blueprint>): SearchOperationResult {
-  return {
-    success: true,
-    result,
-    error: null,
-  };
-}
-
-/**
- * Creates an error search result
- */
-function createErrorResult(error: SearchError): SearchOperationResult {
-  return {
-    success: false,
-    result: null,
-    error,
-  };
-}
 
 // ============================================================================
 // Search Service Class
@@ -313,7 +285,7 @@ export class SearchService {
       // Validate filters
       const validationError = validateFilters(filters);
       if (validationError) {
-        return createErrorResult(validationError);
+        return err(validationError);
       }
 
       const page = filters.page ?? 1;
@@ -332,15 +304,15 @@ export class SearchService {
           expand: 'owner',
         });
 
-      return createSuccessResult({
+      return ok({
         items: result.items,
         page: result.page,
         perPage: result.perPage,
         totalItems: result.totalItems,
         totalPages: result.totalPages,
       });
-    } catch (err) {
-      return createErrorResult(parseError(err));
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -473,17 +445,9 @@ export class SearchService {
         .map(([name, templateCount]) => ({ name, templateCount }))
         .sort((a, b) => b.templateCount - a.templateCount);
 
-      return {
-        success: true,
-        categories,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        categories: null,
-        error: parseError(err),
-      };
+      return ok(categories);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -502,7 +466,7 @@ export class SearchService {
     filters: Omit<SearchFilters, 'category' | 'query'> = {}
   ): Promise<SearchOperationResult> {
     if (!category || !category.trim()) {
-      return createErrorResult({
+      return err({
         code: SearchErrorCodes.INVALID_FILTER,
         message: 'Category is required for browsing',
         details: { field: 'category' },

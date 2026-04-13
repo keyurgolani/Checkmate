@@ -45,14 +45,14 @@ export async function GET(): Promise<NextResponse<CategoriesResponse>> {
     const searchService = new SearchService();
     const result = await searchService.getCategories();
 
-    if (!result.success || !result.categories) {
+    if (!result.success) {
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: result.error?.code ?? SearchErrorCodes.UNKNOWN_ERROR,
-            message: result.error?.message ?? 'Failed to get categories',
-            details: result.error?.details,
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
             timestamp: new Date().toISOString(),
           },
         },
@@ -62,7 +62,7 @@ export async function GET(): Promise<NextResponse<CategoriesResponse>> {
 
     return NextResponse.json({
       success: true,
-      categories: result.categories,
+      categories: result.data,
     });
   } catch (error) {
     console.error('Get categories error:', error);
