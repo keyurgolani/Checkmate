@@ -98,9 +98,9 @@ export default async function DashboardPage() {
 
         // Fetch user preferences for LLM settings and cached summary
         const prefsResult = await preferencesService.getPreferences();
-        if (prefsResult.success && prefsResult.preferences) {
-          llmSettings = prefsResult.preferences.llmSettings || null;
-          cachedSummary = prefsResult.preferences.dashboardSummary || null;
+        if (prefsResult.success && prefsResult.data) {
+          llmSettings = prefsResult.data.llmSettings || null;
+          cachedSummary = prefsResult.data.dashboardSummary || null;
         }
     } catch (error) {
         console.error("Dashboard data fetch error:", error);

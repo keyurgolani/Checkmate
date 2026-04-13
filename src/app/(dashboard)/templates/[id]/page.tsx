@@ -116,8 +116,8 @@ export default async function TemplateDetailPage({ params }: PageProps) {
   let llmSettings: LLMSettings | null = null;
   if (isAuthenticated) {
     const prefsResult = await preferencesService.getPreferences();
-    if (prefsResult.success && prefsResult.preferences?.llmSettings) {
-      llmSettings = prefsResult.preferences.llmSettings;
+    if (prefsResult.success && prefsResult.data?.llmSettings) {
+      llmSettings = prefsResult.data.llmSettings;
     }
   }
 

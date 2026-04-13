@@ -11,6 +11,7 @@ import PocketBase, { ClientResponseError } from 'pocketbase';
 import { getPocketBaseClient } from '../pocketbase';
 import { makeServiceAccessor } from './_service-factory';
 import type { User, UserPreferences } from '../pocketbase-types';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Constants
@@ -67,11 +68,7 @@ export interface PreferencesError {
 /**
  * Result of a preferences operation
  */
-export interface PreferencesResult {
-  success: boolean;
-  preferences: UserPreferences | null;
-  error: PreferencesError | null;
-}
+export type PreferencesResult = Result<UserPreferences, PreferencesError>;
 
 /**
  * Input for updating preferences
@@ -121,28 +118,6 @@ export function isValidAccentColor(color: string): boolean {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Creates a success result
- */
-function createSuccessResult(preferences: UserPreferences): PreferencesResult {
-  return {
-    success: true,
-    preferences,
-    error: null,
-  };
-}
-
-/**
- * Creates an error result
- */
-function createErrorResult(error: PreferencesError): PreferencesResult {
-  return {
-    success: false,
-    preferences: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into PreferencesError
@@ -226,7 +201,7 @@ export class PreferencesService {
     try {
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: PreferencesErrorCodes.NOT_AUTHENTICATED,
           message: 'Not authenticated',
         });
@@ -245,9 +220,9 @@ export class PreferencesService {
         },
       };
 
-      return createSuccessResult(mergedPreferences);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(mergedPreferences);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -263,7 +238,7 @@ export class PreferencesService {
     try {
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: PreferencesErrorCodes.NOT_AUTHENTICATED,
           message: 'Not authenticated',
         });
@@ -271,7 +246,7 @@ export class PreferencesService {
 
       // Validate theme if provided
       if (input.theme !== undefined && !isValidTheme(input.theme)) {
-        return createErrorResult({
+        return err({
           code: PreferencesErrorCodes.INVALID_THEME,
           message: `Invalid theme. Must be one of: ${THEME_OPTIONS.join(', ')}`,
         });
@@ -279,7 +254,7 @@ export class PreferencesService {
 
       // Validate accent color if provided
       if (input.accentColor !== undefined && !isValidAccentColor(input.accentColor)) {
-        return createErrorResult({
+        return err({
           code: PreferencesErrorCodes.INVALID_ACCENT_COLOR,
           message: 'Invalid accent color. Must be a valid hex color (e.g., #3b82f6)',
         });
@@ -287,18 +262,18 @@ export class PreferencesService {
 
       // Get current preferences
       const currentResult = await this.getPreferences();
-      if (!currentResult.success || !currentResult.preferences) {
+      if (!currentResult.success) {
         return currentResult;
       }
 
       // Merge with new values
       const updatedPreferences: UserPreferences = {
-        ...currentResult.preferences,
+        ...currentResult.data,
         ...(input.theme !== undefined && { theme: input.theme }),
         ...(input.accentColor !== undefined && { accentColor: input.accentColor }),
         ...(input.notifications !== undefined && {
           notifications: {
-            ...currentResult.preferences.notifications,
+            ...currentResult.data.notifications,
             ...input.notifications,
           },
         }),
@@ -309,9 +284,9 @@ export class PreferencesService {
         preferences: updatedPreferences,
       });
 
-      return createSuccessResult(updatedPreferences);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(updatedPreferences);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -362,7 +337,7 @@ export class PreferencesService {
     try {
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: PreferencesErrorCodes.NOT_AUTHENTICATED,
           message: 'Not authenticated',
         });
@@ -374,9 +349,9 @@ export class PreferencesService {
         preferences: defaultPreferences,
       });
 
-      return createSuccessResult(defaultPreferences);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(defaultPreferences);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
