@@ -345,7 +345,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             acceptedOnly: true,
           });
           if (collabResult.success) {
-            for (const c of collabResult.collaborators) {
+            for (const c of collabResult.data) {
               collaboratorSet.add(c.user);
               wsCollaboratorSet.add(c.user);
             }

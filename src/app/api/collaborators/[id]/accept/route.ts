@@ -99,15 +99,15 @@ export async function POST(
     // Accept the invitation
     const result = await collaborationService.acceptInvitation(collaboratorId);
 
-    if (!result.success || !result.collaborator) {
-      const statusCode = getStatusCodeForError(result.error?.code);
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: result.error?.code ?? CollaborationErrorCodes.UNKNOWN_ERROR,
-            message: result.error?.message ?? 'Failed to accept invitation',
-            details: result.error?.details,
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
             timestamp: new Date().toISOString(),
           },
         },
@@ -117,12 +117,12 @@ export async function POST(
 
     // Format response
     const collaborator: CollaboratorResponse = {
-      id: result.collaborator.id,
-      blueprintId: result.collaborator.blueprint,
-      userId: result.collaborator.user,
-      permissionLevel: result.collaborator.permissionLevel,
-      invitedAt: result.collaborator.invitedAt,
-      acceptedAt: result.collaborator.acceptedAt,
+      id: result.data.id,
+      blueprintId: result.data.blueprint,
+      userId: result.data.user,
+      permissionLevel: result.data.permissionLevel,
+      invitedAt: result.data.invitedAt,
+      acceptedAt: result.data.acceptedAt,
     };
 
     return NextResponse.json({

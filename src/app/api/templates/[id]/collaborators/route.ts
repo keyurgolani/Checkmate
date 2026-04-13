@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/server-auth';
 import { TemplateService, TemplateErrorCodes } from '@/lib/services/template';
 import { CollaborationService, CollaborationErrorCodes } from '@/lib/services/collaboration';
-import { PermissionLevel, Visibility } from '@/lib/pocketbase-types';
+import { PermissionLevel, Visibility, type Collaborator } from '@/lib/pocketbase-types';
 
 // ============================================================================
 // Types
@@ -130,12 +130,12 @@ export async function GET(
     const result = await collaborationService.getCollaborators(templateId, { includeUser: true });
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: { code: result.error?.code ?? CollaborationErrorCodes.UNKNOWN_ERROR, message: result.error?.message ?? 'Failed to get collaborators', timestamp: new Date().toISOString() } },
+        { success: false, error: { code: result.error.code, message: result.error.message, timestamp: new Date().toISOString() } },
         { status: 500 }
       );
     }
 
-    const collaborators: CollaboratorResponse[] = result.collaborators.map((collab) => ({
+    const collaborators: CollaboratorResponse[] = result.data.map((collab: Collaborator) => ({
       id: collab.id,
       templateId: collab.blueprint,
       userId: collab.user,
@@ -227,21 +227,21 @@ export async function POST(
       permissionLevel: body.permissionLevel,
     }, { userLookupDb: adminPb });
 
-    if (!result.success || !result.collaborator) {
-      const statusCode = getStatusCodeForError(result.error?.code);
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
       return NextResponse.json(
-        { success: false, error: { code: result.error?.code ?? CollaborationErrorCodes.UNKNOWN_ERROR, message: result.error?.message ?? 'Failed to invite collaborator', details: result.error?.details, timestamp: new Date().toISOString() } },
+        { success: false, error: { code: result.error.code, message: result.error.message, details: result.error.details, timestamp: new Date().toISOString() } },
         { status: statusCode }
       );
     }
 
     const collaborator: CollaboratorResponse = {
-      id: result.collaborator.id,
-      templateId: result.collaborator.blueprint,
-      userId: result.collaborator.user,
-      permissionLevel: result.collaborator.permissionLevel,
-      invitedAt: result.collaborator.invitedAt,
-      acceptedAt: result.collaborator.acceptedAt,
+      id: result.data.id,
+      templateId: result.data.blueprint,
+      userId: result.data.user,
+      permissionLevel: result.data.permissionLevel,
+      invitedAt: result.data.invitedAt,
+      acceptedAt: result.data.acceptedAt,
     };
 
     return NextResponse.json({ success: true, collaborator }, { status: 201 });

@@ -19,6 +19,7 @@ import type {
 } from '../pocketbase-types';
 import { Collections, PermissionLevel } from '../pocketbase-types';
 import { NotificationService } from './notification';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -34,15 +35,6 @@ export interface InviteCollaboratorInput {
 }
 
 /**
- * Collaboration operation result
- */
-export interface CollaborationResult {
-  success: boolean;
-  collaborator: Collaborator | null;
-  error: CollaborationError | null;
-}
-
-/**
  * Collaboration error with code and message
  */
 export interface CollaborationError {
@@ -52,13 +44,14 @@ export interface CollaborationError {
 }
 
 /**
+ * Collaboration operation result
+ */
+export type CollaborationResult = Result<Collaborator, CollaborationError>;
+
+/**
  * Result for listing collaborators
  */
-export interface CollaboratorsListResult {
-  success: boolean;
-  collaborators: Collaborator[];
-  error: CollaborationError | null;
-}
+export type CollaboratorsListResult = Result<Collaborator[], CollaborationError>;
 
 // ============================================================================
 // Error Codes
@@ -95,28 +88,6 @@ export function validatePermissionLevel(permission: string): CollaborationError 
     };
   }
   return null;
-}
-
-/**
- * Creates a successful CollaborationResult
- */
-function createSuccessResult(collaborator: Collaborator): CollaborationResult {
-  return {
-    success: true,
-    collaborator,
-    error: null,
-  };
-}
-
-/**
- * Creates an error CollaborationResult
- */
-function createErrorResult(error: CollaborationError): CollaborationResult {
-  return {
-    success: false,
-    collaborator: null,
-    error,
-  };
 }
 
 /**
@@ -207,13 +178,13 @@ export class CollaborationService {
       // Validate permission level
       const permissionError = validatePermissionLevel(input.permissionLevel);
       if (permissionError) {
-        return createErrorResult(permissionError);
+        return err(permissionError);
       }
 
       // Get current user ID
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to invite collaborators',
         });
@@ -226,7 +197,7 @@ export class CollaborationService {
           .collection(Collections.TEMPLATES)
           .getOne<Blueprint>(input.blueprintId);
       } catch {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.BLUEPRINT_NOT_FOUND,
           message: 'Blueprint not found',
         });
@@ -235,7 +206,7 @@ export class CollaborationService {
       // Check if current user has permission to invite (must be owner or admin)
       const hasPermission = await this.canManageCollaborators(input.blueprintId, currentUserId);
       if (!hasPermission) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.PERMISSION_DENIED,
           message: 'You do not have permission to invite collaborators to this blueprint',
         });
@@ -253,7 +224,7 @@ export class CollaborationService {
           });
 
         if (users.items.length === 0) {
-          return createErrorResult({
+          return err({
             code: CollaborationErrorCodes.USER_NOT_FOUND,
             message: 'No user found with this email address',
           });
@@ -261,7 +232,7 @@ export class CollaborationService {
 
         targetUser = users.items[0];
       } catch {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.USER_NOT_FOUND,
           message: 'Failed to find user',
         });
@@ -269,7 +240,7 @@ export class CollaborationService {
 
       // Safety check - should not happen due to length check above
       if (!targetUser) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.USER_NOT_FOUND,
           message: 'No user found with this email address',
         });
@@ -277,7 +248,7 @@ export class CollaborationService {
 
       // Cannot invite the owner
       if (targetUser.id === template.owner) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.CANNOT_INVITE_OWNER,
           message: 'Cannot invite the blueprint owner as a collaborator',
         });
@@ -291,7 +262,7 @@ export class CollaborationService {
         });
 
       if (existingCollaborators.totalItems > 0) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.ALREADY_COLLABORATOR,
           message: 'This user is already a collaborator on this blueprint',
         });
@@ -322,9 +293,9 @@ export class CollaborationService {
         permissionLevel: input.permissionLevel,
       });
 
-      return createSuccessResult(collaborator);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(collaborator);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -345,13 +316,13 @@ export class CollaborationService {
       // Validate permission level
       const permissionError = validatePermissionLevel(permissionLevel);
       if (permissionError) {
-        return createErrorResult(permissionError);
+        return err(permissionError);
       }
 
       // Get current user ID
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to update collaborator permissions',
         });
@@ -364,7 +335,7 @@ export class CollaborationService {
           .collection(Collections.COLLABORATORS)
           .getOne<Collaborator>(collaboratorId);
       } catch {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.NOT_FOUND,
           message: 'Collaborator not found',
         });
@@ -373,7 +344,7 @@ export class CollaborationService {
       // Check if current user has permission to update (must be owner or admin)
       const hasPermission = await this.canManageCollaborators(collaborator.blueprint, currentUserId);
       if (!hasPermission) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.PERMISSION_DENIED,
           message: 'You do not have permission to update collaborator permissions',
         });
@@ -411,9 +382,9 @@ export class CollaborationService {
         console.warn('Failed to send permission change notification');
       }
 
-      return createSuccessResult(updatedCollaborator);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(updatedCollaborator);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -498,8 +469,8 @@ export class CollaborationService {
       }
 
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -517,7 +488,7 @@ export class CollaborationService {
       // Get current user ID
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.NOT_AUTHENTICATED,
           message: 'You must be authenticated to accept an invitation',
         });
@@ -530,7 +501,7 @@ export class CollaborationService {
           .collection(Collections.COLLABORATORS)
           .getOne<Collaborator>(collaboratorId);
       } catch {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.INVITATION_NOT_FOUND,
           message: 'Invitation not found',
         });
@@ -538,7 +509,7 @@ export class CollaborationService {
 
       // Verify the invitation is for the current user
       if (collaborator.user !== currentUserId) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.PERMISSION_DENIED,
           message: 'This invitation is not for you',
         });
@@ -546,7 +517,7 @@ export class CollaborationService {
 
       // Check if already accepted
       if (collaborator.acceptedAt) {
-        return createErrorResult({
+        return err({
           code: CollaborationErrorCodes.ALREADY_ACCEPTED,
           message: 'This invitation has already been accepted',
         });
@@ -561,9 +532,9 @@ export class CollaborationService {
         .collection(Collections.COLLABORATORS)
         .update<Collaborator>(collaboratorId, updateData);
 
-      return createSuccessResult(updatedCollaborator);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(updatedCollaborator);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -601,17 +572,9 @@ export class CollaborationService {
         .collection(Collections.COLLABORATORS)
         .getFullList<Collaborator>(queryOptions);
 
-      return {
-        success: true,
-        collaborators: result,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        collaborators: [],
-        error: parseError(err),
-      };
+      return ok(result);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -624,14 +587,10 @@ export class CollaborationService {
     try {
       const currentUserId = this.pb.authStore.record?.id;
       if (!currentUserId) {
-        return {
-          success: false,
-          collaborators: [],
-          error: {
-            code: CollaborationErrorCodes.NOT_AUTHENTICATED,
-            message: 'You must be authenticated to view invitations',
-          },
-        };
+        return err({
+          code: CollaborationErrorCodes.NOT_AUTHENTICATED,
+          message: 'You must be authenticated to view invitations',
+        });
       }
 
       const result = await this.pb
@@ -642,17 +601,9 @@ export class CollaborationService {
           sort: '-invitedAt',
         });
 
-      return {
-        success: true,
-        collaborators: result,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        collaborators: [],
-        error: parseError(err),
-      };
+      return ok(result);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
