@@ -16,6 +16,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LLMProvider, LLMModel, LLMSettings, ResourceLink, TemplateQuestion, ItemCondition } from '../pocketbase-types';
 import type { RequestSpec } from '@/lib/relay-utils';
 import { createWebResearchService, type WebSearchResult, WEB_RESEARCH_PROVIDER_CONFIG } from './web-research';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -70,12 +71,7 @@ export interface TemplateEnhancement {
   reasoning: string;
 }
 
-export interface LLMResult<T> {
-  success: boolean;
-  data: T | null;
-  text?: string;  // For simple text generation
-  error: LLMError | null;
-}
+export type LLMResult<T> = Result<T, LLMError>;
 
 export interface LLMError {
   code: string;
@@ -120,14 +116,6 @@ const PROVIDER_CONFIG: Record<LLMProvider, { name: string; requiresApiKey: boole
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-function createErrorResult<T>(error: LLMError): LLMResult<T> {
-  return { success: false, data: null, error };
-}
-
-function createSuccessResult<T>(data: T): LLMResult<T> {
-  return { success: true, data, error: null };
-}
 
 function getProviderClient(settings: LLMSettings): (modelId: string) => LanguageModel {
   const { provider, apiKey, baseUrl } = settings;
@@ -239,8 +227,8 @@ export class LLMService {
       if (result.success && result.results.length > 0) {
         return this.webResearchService.formatResultsForPrompt(result.results);
       }
-    } catch (err) {
-      console.warn('Web research failed, continuing without:', err);
+    } catch (caught) {
+      console.warn('Web research failed, continuing without:', caught);
     }
 
     return '';
@@ -782,12 +770,12 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
   parseLLMResponse(operation: string, responseText: string): LLMResult<any> {
     try {
       if (operation === 'text') {
-        return createSuccessResult(responseText);
+        return ok(responseText);
       }
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.INVALID_RESPONSE,
           message: 'No JSON found in response',
           details: { rawResponse: responseText.substring(0, 500) },
@@ -798,35 +786,35 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       switch (operation) {
         case 'generate':
           if (!parsed.title || !parsed.items || !Array.isArray(parsed.items)) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid template structure' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid template structure' });
           }
           if (parsed.questions && !Array.isArray(parsed.questions)) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid questions structure' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid questions structure' });
           }
           break;
         case 'improve-template':
           if (!parsed.suggestedItems || !Array.isArray(parsed.suggestedItems)) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid improvement structure' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid improvement structure' });
           }
           break;
         case 'improve-step':
           if (!parsed.content || !parsed.description) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid step improvement structure' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid step improvement structure' });
           }
           break;
         case 'enhance':
           if (!parsed.enhancedItems || !Array.isArray(parsed.enhancedItems)) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid enhancement structure' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid enhancement structure' });
           }
           if (parsed.enhancedItems.some((item: any) => !item.id)) {
-            return createErrorResult({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Some enhanced items are missing IDs' });
+            return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Some enhanced items are missing IDs' });
           }
           break;
       }
 
-      return createSuccessResult(parsed);
+      return ok(parsed);
     } catch {
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.INVALID_RESPONSE,
         message: 'Failed to parse LLM response as JSON',
         details: { rawResponse: responseText.substring(0, 500) },
@@ -853,9 +841,9 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
         })).sort((a: LLMModel, b: LLMModel) => a.id.localeCompare(b.id));
       }
 
-      return createSuccessResult(models);
+      return ok(models);
     } catch {
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.FETCH_MODELS_FAILED,
         message: 'Failed to parse model list response',
       });
@@ -917,7 +905,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, selectedModel } = settings;
       
       if (!provider || !selectedModel) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.INVALID_SETTINGS,
           message: 'LLM provider and model must be configured',
         });
@@ -932,15 +920,10 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       });
       const text = await result.text;
 
-      return {
-        success: true,
-        data: text,
-        text,
-        error: null,
-      };
+      return ok(text);
     } catch (error) {
       console.error('Text generation error:', error);
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.GENERATION_FAILED,
         message: error instanceof Error ? error.message : 'Failed to generate text',
       });
@@ -955,7 +938,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, apiKey, baseUrl } = settings;
 
       if (!provider) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.PROVIDER_NOT_CONFIGURED,
           message: 'LLM provider not configured',
         });
@@ -963,7 +946,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
 
       const config = PROVIDER_CONFIG[provider];
       if (config.requiresApiKey && !apiKey) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.API_KEY_REQUIRED,
           message: `API key required for ${config.name}`,
         });
@@ -1178,7 +1161,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
         }
         case 'openai-compatible': {
           if (!baseUrl) {
-            return createErrorResult({
+            return err({
               code: LLMErrorCodes.INVALID_SETTINGS,
               message: 'Base URL required for OpenAI Compatible provider',
             });
@@ -1207,11 +1190,11 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
         }
       }
 
-      return createSuccessResult(models);
-    } catch (err) {
-      return createErrorResult({
+      return ok(models);
+    } catch (caught) {
+      return err({
         code: LLMErrorCodes.FETCH_MODELS_FAILED,
-        message: err instanceof Error ? err.message : 'Failed to fetch models',
+        message: caught instanceof Error ? caught.message : 'Failed to fetch models',
       });
     }
   }
@@ -1224,14 +1207,14 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, selectedModel } = settings;
 
       if (!provider) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.PROVIDER_NOT_CONFIGURED,
           message: 'LLM provider not configured',
         });
       }
 
       if (!selectedModel) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.MODEL_NOT_SELECTED,
           message: 'No model selected',
         });
@@ -1255,12 +1238,12 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       // Parse and validate the response using the parser
       const parseResult = this.parseLLMResponse('generate', text);
       if (!parseResult.success) return parseResult as LLMResult<GeneratedTemplate>;
-      return createSuccessResult(parseResult.data as GeneratedTemplate);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Generation failed';
-      
+      return ok(parseResult.data as GeneratedTemplate);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Generation failed';
+
       // Log the full error for debugging
-      console.error('LLM Generation Error:', err);
+      console.error('LLM Generation Error:', caught);
       
       // Check for rate limiting - be more specific to avoid false positives
       const lowerMessage = message.toLowerCase();
@@ -1270,13 +1253,13 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
         lowerMessage.includes('too many requests') ||
         lowerMessage.includes('429')
       ) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.RATE_LIMITED,
           message: 'Rate limited by the provider. Please try again later.',
         });
       }
 
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.GENERATION_FAILED,
         message,
       });
@@ -1294,14 +1277,14 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, selectedModel } = settings;
 
       if (!provider) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.PROVIDER_NOT_CONFIGURED,
           message: 'LLM provider not configured',
         });
       }
 
       if (!selectedModel) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.MODEL_NOT_SELECTED,
           message: 'No model selected',
         });
@@ -1325,12 +1308,12 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       // Parse and validate the response using the parser
       const parseResult = this.parseLLMResponse('improve-template', text);
       if (!parseResult.success) return parseResult as LLMResult<TemplateImprovements>;
-      return createSuccessResult(parseResult.data as TemplateImprovements);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Improvement generation failed';
-      console.error('LLM Improvement Error:', err);
+      return ok(parseResult.data as TemplateImprovements);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Improvement generation failed';
+      console.error('LLM Improvement Error:', caught);
 
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.GENERATION_FAILED,
         message,
       });
@@ -1355,14 +1338,14 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, selectedModel } = settings;
 
       if (!provider) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.PROVIDER_NOT_CONFIGURED,
           message: 'LLM provider not configured',
         });
       }
 
       if (!selectedModel) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.MODEL_NOT_SELECTED,
           message: 'No model selected',
         });
@@ -1389,12 +1372,12 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       // Parse and validate the response using the parser
       const parseResult = this.parseLLMResponse('improve-step', text);
       if (!parseResult.success) return parseResult as LLMResult<StepImprovement>;
-      return createSuccessResult(parseResult.data as StepImprovement);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Step improvement failed';
-      console.error('LLM Step Improvement Error:', err);
+      return ok(parseResult.data as StepImprovement);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Step improvement failed';
+      console.error('LLM Step Improvement Error:', caught);
 
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.GENERATION_FAILED,
         message,
       });
@@ -1416,14 +1399,14 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       const { provider, selectedModel } = settings;
 
       if (!provider) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.PROVIDER_NOT_CONFIGURED,
           message: 'LLM provider not configured',
         });
       }
 
       if (!selectedModel) {
-        return createErrorResult({
+        return err({
           code: LLMErrorCodes.MODEL_NOT_SELECTED,
           message: 'No model selected',
         });
@@ -1450,12 +1433,12 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
       // Parse and validate the response using the parser
       const parseResult = this.parseLLMResponse('enhance', text);
       if (!parseResult.success) return parseResult as LLMResult<TemplateEnhancement>;
-      return createSuccessResult(parseResult.data as TemplateEnhancement);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Template enhancement failed';
-      console.error('LLM Enhancement Error:', err);
+      return ok(parseResult.data as TemplateEnhancement);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Template enhancement failed';
+      console.error('LLM Enhancement Error:', caught);
 
-      return createErrorResult({
+      return err({
         code: LLMErrorCodes.GENERATION_FAILED,
         message,
       });

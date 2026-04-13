@@ -148,16 +148,16 @@ Be conversational, warm, and motivating. Focus on what they've accomplished and 
 
     const result = await llmService.generateText(llmSettings as LLMSettings, prompt);
     
-    if (!result.success || !result.text) {
-      return NextResponse.json({ 
-        success: false, 
+    if (!result.success || !result.data) {
+      return NextResponse.json({
+        success: false,
         error: { message: result.error?.message || 'Failed to generate summary' }
       }, { status: 500 });
     }
 
     // Create new summary
     const newSummary: DashboardSummary = {
-      content: result.text,
+      content: result.data,
       generatedAt: new Date().toISOString(),
       statsSnapshot,
     };
