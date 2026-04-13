@@ -72,15 +72,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<SignUpRes
       displayName: body.displayName,
     });
     
-    if (!result.success || !result.user || !result.token) {
-      const statusCode = getStatusCodeForError(result.error?.code);
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: result.error?.code ?? AuthErrorCodes.UNKNOWN_ERROR,
-            message: result.error?.message ?? 'Sign up failed',
-            details: result.error?.details,
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
             timestamp: new Date().toISOString(),
           },
         },
@@ -90,19 +90,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<SignUpRes
     
     // Create auth cookie data
     const authCookieData: AuthCookieData = {
-      token: result.token,
+      token: result.data.token,
       model: {
-        id: result.user.id,
-        collectionId: result.user.collectionId,
+        id: result.data.user.id,
+        collectionId: result.data.user.collectionId,
         collectionName: 'users',
-        email: result.user.email,
-        displayName: result.user.displayName,
-        verified: result.user.verified,
-        emailVisibility: result.user.emailVisibility,
-        avatarUrl: result.user.avatarUrl,
-        preferences: result.user.preferences,
-        created: result.user.created,
-        updated: result.user.updated,
+        email: result.data.user.email,
+        displayName: result.data.user.displayName,
+        verified: result.data.user.verified,
+        emailVisibility: result.data.user.emailVisibility,
+        avatarUrl: result.data.user.avatarUrl,
+        preferences: result.data.user.preferences,
+        created: result.data.user.created,
+        updated: result.data.user.updated,
       },
     };
     
@@ -111,10 +111,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<SignUpRes
       {
         success: true,
         user: {
-          id: result.user.id,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          verified: result.user.verified,
+          id: result.data.user.id,
+          email: result.data.user.email,
+          displayName: result.data.user.displayName,
+          verified: result.data.user.verified,
         },
       },
       authCookieData,

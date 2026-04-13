@@ -12,6 +12,7 @@ import { createPocketBaseClient, getPocketBaseClient } from '../pocketbase';
 import { makeServiceAccessor } from './_service-factory';
 import type { User } from '../pocketbase-types';
 import { WorkspaceService } from './workspace';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Constants
@@ -38,12 +39,7 @@ export const LOCKOUT_DURATION_MINUTES = 15;
 /**
  * Authentication result returned by auth operations
  */
-export interface AuthResult {
-  success: boolean;
-  user: User | null;
-  token: string | null;
-  error: AuthError | null;
-}
+export type AuthResult = Result<{ user: User; token: string }, AuthError>;
 
 /**
  * Authentication error with code and message
@@ -125,28 +121,11 @@ function recordToUser(record: RecordAuthResponse<User>['record']): User {
 /**
  * Creates an AuthResult from a successful authentication
  */
-function createSuccessResult(
+function createAuthOk(
   record: RecordAuthResponse<User>['record'],
   token: string
 ): AuthResult {
-  return {
-    success: true,
-    user: recordToUser(record),
-    token,
-    error: null,
-  };
-}
-
-/**
- * Creates an AuthResult from an error
- */
-function createErrorResult(error: AuthError): AuthResult {
-  return {
-    success: false,
-    user: null,
-    token: null,
-    error,
-  };
+  return ok({ user: recordToUser(record), token });
 }
 
 /**
@@ -275,7 +254,7 @@ export class AuthService {
     try {
       // Validate password confirmation
       if (input.password !== input.passwordConfirm) {
-        return createErrorResult({
+        return err({
           code: AuthErrorCodes.VALIDATION_ERROR,
           message: 'Passwords do not match',
         });
@@ -316,9 +295,9 @@ export class AuthService {
         console.warn('Failed to create default workspace for new user');
       }
 
-      return createSuccessResult(authResult.record, authResult.token);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return createAuthOk(authResult.record, authResult.token);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -336,7 +315,7 @@ export class AuthService {
       // First, check if the account is locked by looking up the user
       const lockoutCheck = await this.checkAccountLockout(input.email);
       if (lockoutCheck.isLocked) {
-        return createErrorResult({
+        return err({
           code: AuthErrorCodes.ACCOUNT_LOCKED,
           message: `Account temporarily locked. Try again in ${lockoutCheck.remainingMinutes} minutes.`,
           details: { lockedUntil: lockoutCheck.lockedUntil },
@@ -352,11 +331,11 @@ export class AuthService {
       // On successful login, reset failed attempts
       await this.resetFailedAttempts(authResult.record.id);
 
-      return createSuccessResult(authResult.record, authResult.token);
-    } catch (err) {
+      return createAuthOk(authResult.record, authResult.token);
+    } catch (caught) {
       // On failed login, increment failed attempts
       await this.handleFailedLogin(input.email);
-      return createErrorResult(parseError(err));
+      return err(parseError(caught));
     }
   }
 
@@ -500,8 +479,8 @@ export class AuthService {
     try {
       await this.pb.collection('users').requestPasswordReset(email);
       return { success: true };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -537,8 +516,8 @@ export class AuthService {
         newPasswordConfirm
       );
       return { success: true };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
