@@ -125,11 +125,11 @@ export const GET = withPublicAccess<{ id: string }, ItemResponse>(
     const collaborationService = new CollaborationService(pb);
 
     const itemResult = await itemService.getById(id, expand);
-    if (!itemResult.success || !itemResult.item) {
+    if (!itemResult.success) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const item = itemResult.item;
+    const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
     if (!templateResult.success || !templateResult.template) {
@@ -205,11 +205,11 @@ export const PUT = withAuth<{ id: string }, ItemResponse>(
     const collaborationService = new CollaborationService(pb);
 
     const itemResult = await itemService.getById(id);
-    if (!itemResult.success || !itemResult.item) {
+    if (!itemResult.success) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const item = itemResult.item;
+    const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
     if (!templateResult.success || !templateResult.template) {
@@ -241,18 +241,18 @@ export const PUT = withAuth<{ id: string }, ItemResponse>(
       metadata: body.metadata,
     });
 
-    if (!result.success || !result.item) {
+    if (!result.success) {
       return apiError(
-        result.error?.code ?? ItemErrorCodes.UNKNOWN_ERROR,
-        result.error?.message ?? 'Failed to update item',
-        getStatusCodeForError(result.error?.code),
-        result.error?.details
+        result.error.code,
+        result.error.message,
+        getStatusCodeForError(result.error.code),
+        result.error.details
       );
     }
 
     return NextResponse.json<ItemResponse>({
       success: true,
-      item: formatItem(result.item),
+      item: formatItem(result.data),
     });
   }
 );
@@ -285,11 +285,11 @@ export const DELETE = withAuth<{ id: string }, { success: boolean }>(
     const collaborationService = new CollaborationService(pb);
 
     const itemResult = await itemService.getById(id);
-    if (!itemResult.success || !itemResult.item) {
+    if (!itemResult.success) {
       return apiError(ItemErrorCodes.NOT_FOUND, 'Item not found', 404);
     }
 
-    const item = itemResult.item;
+    const item = itemResult.data;
 
     const templateResult = await templateService.getById(item.blueprint);
     if (!templateResult.success || !templateResult.template) {

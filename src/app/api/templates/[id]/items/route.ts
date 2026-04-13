@@ -196,12 +196,12 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
 
     console.log('[POST /api/templates/[id]/items] itemService.create result:', JSON.stringify(result));
 
-    if (!result.success || !result.item) {
-      const statusCode = getStatusCodeForError(result.error?.code);
-      return NextResponse.json({ success: false, error: { code: result.error?.code ?? ItemErrorCodes.UNKNOWN_ERROR, message: result.error?.message ?? 'Failed to create item', details: result.error?.details, timestamp: new Date().toISOString() } }, { status: statusCode });
+    if (!result.success) {
+      const statusCode = getStatusCodeForError(result.error.code);
+      return NextResponse.json({ success: false, error: { code: result.error.code, message: result.error.message, details: result.error.details, timestamp: new Date().toISOString() } }, { status: statusCode });
     }
 
-    return NextResponse.json({ success: true, item: formatItem(result.item) }, { status: 201 });
+    return NextResponse.json({ success: true, item: formatItem(result.data) }, { status: 201 });
   } catch (error) {
     console.error('Create item error:', error);
     return NextResponse.json({ success: false, error: { code: ItemErrorCodes.UNKNOWN_ERROR, message: 'An unexpected error occurred', timestamp: new Date().toISOString() } }, { status: 500 });

@@ -191,8 +191,8 @@ export async function POST(
           metadata: sourceItem.metadata ?? undefined,
         });
 
-        if (itemResult.success && itemResult.item) {
-          idMapping.set(sourceItem.id, itemResult.item.id);
+        if (itemResult.success) {
+          idMapping.set(sourceItem.id, itemResult.data.id);
         }
       }
     }

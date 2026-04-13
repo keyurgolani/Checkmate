@@ -21,6 +21,7 @@ import {
   CircularDependencyDetector,
   type CircularDependencyResult,
 } from './circular-dependency';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -79,11 +80,7 @@ export interface MoveItemInput {
 /**
  * Item operation result
  */
-export interface ItemResult {
-  success: boolean;
-  item: Item | null;
-  error: ItemError | null;
-}
+export type ItemResult = Result<Item, ItemError>;
 
 /**
  * Item error with code and message
@@ -166,28 +163,6 @@ export function validateItemType(itemType: string): ItemError | null {
     };
   }
   return null;
-}
-
-/**
- * Creates a successful ItemResult
- */
-function createSuccessResult(item: Item): ItemResult {
-  return {
-    success: true,
-    item,
-    error: null,
-  };
-}
-
-/**
- * Creates an error ItemResult
- */
-function createErrorResult(error: ItemError): ItemResult {
-  return {
-    success: false,
-    item: null,
-    error,
-  };
 }
 
 /**
@@ -298,18 +273,18 @@ export class ItemService {
       // Validate content
       const contentError = validateContent(input.content);
       if (contentError) {
-        return createErrorResult(contentError);
+        return err(contentError);
       }
 
       // Validate item type
       const typeError = validateItemType(input.itemType);
       if (typeError) {
-        return createErrorResult(typeError);
+        return err(typeError);
       }
 
       // Validate reference for reference items
       if (input.itemType === ItemType.REFERENCE && !input.referenceId) {
-        return createErrorResult({
+        return err({
           code: ItemErrorCodes.REFERENCE_REQUIRED,
           message: 'Reference ID is required for reference items',
         });
@@ -318,7 +293,7 @@ export class ItemService {
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return createErrorResult({
+        return err({
           code: ItemErrorCodes.PERMISSION_DENIED,
           message: 'You must be authenticated to create an item',
         });
@@ -328,7 +303,7 @@ export class ItemService {
       try {
         await this.pb.collection(Collections.TEMPLATES).getOne(input.templateId);
       } catch {
-        return createErrorResult({
+        return err({
           code: ItemErrorCodes.TEMPLATE_NOT_FOUND,
           message: 'Template not found or you do not have access',
         });
@@ -346,14 +321,14 @@ export class ItemService {
           // Check max depth
           const parentDepth = getPathDepth(parent.path);
           if (parentDepth >= MAX_NESTING_DEPTH) {
-            return createErrorResult({
+            return err({
               code: ItemErrorCodes.MAX_DEPTH_EXCEEDED,
               message: `Maximum nesting depth of ${MAX_NESTING_DEPTH} exceeded`,
               details: { currentDepth: parentDepth, maxDepth: MAX_NESTING_DEPTH },
             });
           }
         } catch {
-          return createErrorResult({
+          return err({
             code: ItemErrorCodes.PARENT_NOT_FOUND,
             message: 'Parent item not found',
           });
@@ -366,7 +341,7 @@ export class ItemService {
         try {
           await this.pb.collection(Collections.TEMPLATES).getOne(input.referenceId);
         } catch {
-          return createErrorResult({
+          return err({
             code: ItemErrorCodes.REFERENCE_NOT_FOUND,
             message: 'Referenced template not found',
           });
@@ -375,7 +350,7 @@ export class ItemService {
         // Check for circular dependency (Requirements: 3.3, 3.4, 7.4, 7.5)
         const cycleResult = await this.detectCircularDependency(input.templateId, input.referenceId);
         if (cycleResult.hasCycle) {
-          return createErrorResult({
+          return err({
             code: ItemErrorCodes.CIRCULAR_REFERENCE,
             message: cycleResult.message || 'Circular dependency detected',
             details: { dependencyChain: cycleResult.dependencyChain },
@@ -423,10 +398,10 @@ export class ItemService {
 
       console.log('[ItemService.create] Item created successfully:', item.id);
 
-      return createSuccessResult(item);
-    } catch (err) {
-      console.error('[ItemService.create] Error:', err);
-      return createErrorResult(parseError(err));
+      return ok(item);
+    } catch (caught) {
+      console.error('[ItemService.create] Error:', caught);
+      return err(parseError(caught));
     }
   }
 
@@ -443,7 +418,7 @@ export class ItemService {
       if (input.content !== undefined) {
         const contentError = validateContent(input.content);
         if (contentError) {
-          return createErrorResult(contentError);
+          return err(contentError);
         }
       }
 
@@ -451,12 +426,12 @@ export class ItemService {
       if (input.itemType !== undefined) {
         const typeError = validateItemType(input.itemType);
         if (typeError) {
-          return createErrorResult(typeError);
+          return err(typeError);
         }
 
         // Validate reference for reference items
         if (input.itemType === ItemType.REFERENCE && !input.referenceId) {
-          return createErrorResult({
+          return err({
             code: ItemErrorCodes.REFERENCE_REQUIRED,
             message: 'Reference ID is required for reference items',
           });
@@ -470,7 +445,7 @@ export class ItemService {
           .collection(Collections.ITEMS)
           .getOne<Item>(id);
       } catch {
-        return createErrorResult({
+        return err({
           code: ItemErrorCodes.NOT_FOUND,
           message: 'Item not found',
         });
@@ -492,7 +467,7 @@ export class ItemService {
         if (input.referenceId !== null) {
           const cycleResult = await this.detectCircularDependency(currentItem.blueprint, input.referenceId);
           if (cycleResult.hasCycle) {
-            return createErrorResult({
+            return err({
               code: ItemErrorCodes.CIRCULAR_REFERENCE,
               message: cycleResult.message || 'Circular dependency detected',
               details: { dependencyChain: cycleResult.dependencyChain },
@@ -525,7 +500,7 @@ export class ItemService {
             // Check max depth
             const parentDepth = getPathDepth(newParent.path);
             if (parentDepth >= MAX_NESTING_DEPTH) {
-              return createErrorResult({
+              return err({
                 code: ItemErrorCodes.MAX_DEPTH_EXCEEDED,
                 message: `Maximum nesting depth of ${MAX_NESTING_DEPTH} exceeded`,
                 details: { currentDepth: parentDepth, maxDepth: MAX_NESTING_DEPTH },
@@ -534,7 +509,7 @@ export class ItemService {
 
             // Prevent circular reference (can't make an item a child of its descendant)
             if (isDescendantPath(newParent.path, currentItem.path)) {
-              return createErrorResult({
+              return err({
                 code: ItemErrorCodes.CIRCULAR_REFERENCE,
                 message: 'Cannot move an item to be a child of its own descendant',
               });
@@ -543,7 +518,7 @@ export class ItemService {
             updateData.parent = input.parentId;
             updateData.path = generatePath(newParent.path, input.position ?? currentItem.position);
           } catch {
-            return createErrorResult({
+            return err({
               code: ItemErrorCodes.PARENT_NOT_FOUND,
               message: 'Parent item not found',
             });
@@ -559,9 +534,9 @@ export class ItemService {
         .collection(Collections.ITEMS)
         .update<Item>(id, updateData);
 
-      return createSuccessResult(item);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(item);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -576,8 +551,8 @@ export class ItemService {
     try {
       await this.pb.collection(Collections.ITEMS).delete(id);
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -599,9 +574,9 @@ export class ItemService {
         .collection(Collections.ITEMS)
         .getOne<Item>(id, options);
 
-      return createSuccessResult(item);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(item);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -745,9 +720,9 @@ export class ItemService {
         parentId: itemInput.parentId,
       });
 
-      if (result.success && result.item) {
-        updatedItems.push(result.item);
-      } else if (result.error) {
+      if (result.success) {
+        updatedItems.push(result.data);
+      } else {
         errors.push(result.error);
       }
     }
@@ -776,15 +751,15 @@ export class ItemService {
     try {
       // Get the item being moved
       const itemResult = await this.getById(input.itemId);
-      if (!itemResult.success || !itemResult.item) {
+      if (!itemResult.success) {
         return {
           success: false,
           items: [],
-          errors: [itemResult.error || { code: ItemErrorCodes.NOT_FOUND, message: 'Item not found' }],
+          errors: [itemResult.error],
         };
       }
 
-      const movingItem = itemResult.item;
+      const movingItem = itemResult.data;
       const oldParentId = movingItem.parent;
       const oldPosition = movingItem.position;
       const newParentId = input.newParentId ?? null;
@@ -856,8 +831,8 @@ export class ItemService {
             const updateResult = await this.update(sibling.id, {
               position: sibling.position - 1,
             });
-            if (updateResult.success && updateResult.item) {
-              updatedItems.push(updateResult.item);
+            if (updateResult.success) {
+              updatedItems.push(updateResult.data);
             }
           }
         }
@@ -872,8 +847,8 @@ export class ItemService {
           const updateResult = await this.update(sibling.id, {
             position: sibling.position + 1,
           });
-          if (updateResult.success && updateResult.item) {
-            updatedItems.push(updateResult.item);
+          if (updateResult.success) {
+            updatedItems.push(updateResult.data);
           }
         }
       }
@@ -884,9 +859,9 @@ export class ItemService {
         position: newPosition,
       });
 
-      if (moveResult.success && moveResult.item) {
-        updatedItems.push(moveResult.item);
-      } else if (moveResult.error) {
+      if (moveResult.success) {
+        updatedItems.push(moveResult.data);
+      } else {
         errors.push(moveResult.error);
       }
 
