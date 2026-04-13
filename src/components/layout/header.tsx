@@ -35,7 +35,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MobileSidebar } from "./mobile-sidebar";
-import { NotificationCenterClient } from "@/components/notifications";
+import { NotificationCenterClient } from "@/components/notifications/notification-center-client";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
 

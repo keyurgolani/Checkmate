@@ -7,7 +7,7 @@
  * Requirements: 12.1 - UI feedback within 200ms
  */
 
-import { DashboardSkeleton } from "@/components/dashboard";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
 export default function DashboardLoading() {
   return <DashboardSkeleton />;

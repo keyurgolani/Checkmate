@@ -1,4 +1,4 @@
-import { AppLayout } from "@/components/layout";
+import { AppLayout } from "@/components/layout/app-layout";
 import { getServerAuth } from "@/lib/server-auth";
 import { WorkspaceService } from "@/lib/services/workspace";
 import { getAuthCookie } from "@/lib/auth-cookies";

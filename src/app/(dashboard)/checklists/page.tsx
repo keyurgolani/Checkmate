@@ -1,7 +1,7 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { ChecklistService } from "@/lib/services/checklist";
-import { TemplateService } from "@/lib/services"; // Updated import
-import type { ChecklistCardData } from "@/components/checklists";
+import { TemplateService } from "@/lib/services/template";
+import type { ChecklistCardData } from "@/components/checklists/checklist-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";

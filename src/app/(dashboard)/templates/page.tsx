@@ -11,7 +11,8 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { TemplateService } from "@/lib/services/template";
 import { WorkspaceService } from "@/lib/services/workspace";
-import { TemplatesPageHeader, type TemplateCardData } from "@/components/templates";
+import { TemplatesPageHeader } from "@/components/templates/templates-page-header";
+import type { TemplateCardData } from "@/components/templates/template-card";
 import { TemplatesListClient } from "./templates-list-client";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";

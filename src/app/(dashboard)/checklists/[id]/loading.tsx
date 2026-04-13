@@ -7,7 +7,7 @@
  * Requirements: 12.1 - UI feedback within 200ms
  */
 
-import { ChecklistTrackerSkeleton } from "@/components/checklists";
+import { ChecklistTrackerSkeleton } from "@/components/checklists/checklist-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ChecklistDetailLoading() {

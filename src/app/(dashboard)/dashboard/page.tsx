@@ -1,6 +1,6 @@
 import { getServerAuth } from "@/lib/server-auth";
 import { WorkspaceService } from "@/lib/services/workspace";
-import { TemplateService } from "@/lib/services"; // Updated import
+import { TemplateService } from "@/lib/services/template";
 import { ChecklistService } from "@/lib/services/checklist";
 import { PreferencesService } from "@/lib/services/preferences";
 import type { Checklist, DashboardSummary, LLMSettings } from "@/lib/pocketbase-types";

@@ -7,7 +7,7 @@
  * Requirements: 12.1 - UI feedback within 200ms
  */
 
-import { TemplateDetailSkeleton } from "@/components/templates";
+import { TemplateDetailSkeleton } from "@/components/templates/template-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BlueprintPublicDetailLoading() {

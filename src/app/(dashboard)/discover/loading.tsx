@@ -7,7 +7,7 @@
  * Requirements: 12.1 - UI feedback within 200ms
  */
 
-import { TemplateListSkeleton } from "@/components/templates";
+import { TemplateListSkeleton } from "@/components/templates/template-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DiscoverLoading() {

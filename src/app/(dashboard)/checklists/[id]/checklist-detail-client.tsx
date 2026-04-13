@@ -40,7 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChecklistTracker,
   type ChecklistTask,
-} from "@/components/checklists";
+} from "@/components/checklists/checklist-tracker";
 import { BulkActionBar, type BulkAction } from "@/components/shared/bulk-action-bar";
 import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import { ResourceLink } from "@/lib/pocketbase-types";

@@ -10,8 +10,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { TemplateList } from "@/components/templates";
-import type { TemplateCardData } from "@/components/templates";
+import { TemplateList } from "@/components/templates/template-list";
+import type { TemplateCardData } from "@/components/templates/template-card";
 import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { BulkAction } from "@/components/shared/bulk-action-bar";
 import { BulkConfirmDialog } from "@/components/shared/bulk-confirm-dialog";

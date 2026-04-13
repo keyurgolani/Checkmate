@@ -12,7 +12,8 @@
 import { useState, useCallback, useEffect, useMemo, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { SearchInput, FilterDialog } from "@/components/search";
+import { SearchInput } from "@/components/search/search-input";
+import { FilterDialog } from "@/components/search/filter-dialog";
 import { TemplateCard } from "@/components/templates/template-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,7 +29,8 @@ import { useSelection } from "@/lib/hooks/use-selection";
 import { BulkActionBar } from "@/components/shared/bulk-action-bar";
 import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { BulkAction } from "@/components/shared/bulk-action-bar";
-import type { SearchSuggestion, FilterState, Category, SortOption } from "@/components/search";
+import type { SearchSuggestion } from "@/components/search/search-input";
+import type { FilterState, Category, SortOption } from "@/components/search/filter-sidebar";
 import type { TemplateCardData } from "@/components/templates/template-card";
 import { bulkUseTemplates, bulkExportDiscoverTemplates } from "./actions";
 

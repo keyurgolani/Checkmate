@@ -7,7 +7,7 @@
  * Requirements: 12.1 - UI feedback within 200ms
  */
 
-import { TemplateEditorSkeleton } from "@/components/templates";
+import { TemplateEditorSkeleton } from "@/components/templates/template-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TemplateDetailLoading() {
