@@ -284,7 +284,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Checklist
       conditionAnswers: body.conditionAnswers,
     });
 
-    if (!result.success || !result.checklist) {
+    if (!result.success || !result.data.checklist) {
       const statusCode = getStatusCodeForError(result.error?.code);
       return NextResponse.json(
         {
@@ -303,8 +303,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Checklist
     return NextResponse.json(
       {
         success: true,
-        checklist: formatChecklist(result.checklist as any),
-        tasks: result.tasks.map((item) => formatChecklistItem(item as any)),
+        checklist: formatChecklist(result.data.checklist as any),
+        tasks: result.data.tasks.map((item) => formatChecklistItem(item as any)),
       },
       { status: 201 }
     );

@@ -142,7 +142,7 @@ export async function PUT(
     // Get the checklist to check ownership
     const getResult = await checklistService.getById(id);
 
-    if (!getResult.success || !getResult.checklist) {
+    if (!getResult.success || !getResult.data.checklist) {
       return NextResponse.json(
         {
           success: false,
@@ -157,7 +157,7 @@ export async function PUT(
     }
 
     // Check if user owns this checklist
-    if (getResult.checklist.user !== user.id) {
+    if (getResult.data.checklist.user !== user.id) {
       return NextResponse.json(
         {
           success: false,
@@ -174,7 +174,7 @@ export async function PUT(
     // Toggle the task completion
     const result = await checklistService.toggleTaskCompletion(id, itemId);
 
-    if (!result.success || !result.task) {
+    if (!result.success || !result.data.task) {
       const statusCode = getStatusCodeForError(result.error?.code);
       return NextResponse.json(
         {
@@ -192,8 +192,8 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      task: formatChecklistItem(result.task as any),
-      progress: result.progress ?? undefined,
+      task: formatChecklistItem(result.data.task as any),
+      progress: result.data.progress ?? undefined,
     });
   } catch (error) {
     console.error('Toggle item completion error:', error);

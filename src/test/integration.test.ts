@@ -933,13 +933,14 @@ describe('Integration Tests - Complex Scenarios', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.checklist).not.toBeNull();
-      expect(result.tasks.length).toBeGreaterThan(0);
+      if (!result.success) throw new Error('expected success');
+      expect(result.data.checklist).not.toBeNull();
+      expect(result.data.tasks.length).toBeGreaterThan(0);
 
       // Find the task that corresponds to the reference item
       // It should have the private template's TITLE as content, not the original reference content
-      const referenceTask = result.tasks.find(task => 
-        task.content === 'Secret Private Template' || 
+      const referenceTask = result.data.tasks.find(task =>
+        task.content === 'Secret Private Template' ||
         task.content === 'Reference to private template'
       );
 
@@ -949,14 +950,14 @@ describe('Integration Tests - Complex Scenarios', () => {
 
       // Verify that the private template's items were NOT expanded
       // (no tasks with "Secret Task 1" or "Secret Task 2")
-      const secretTasks = result.tasks.filter(task => 
+      const secretTasks = result.data.tasks.filter(task => 
         task.content.includes('Secret Task')
       );
       expect(secretTasks).toHaveLength(0);
 
       // Verify the public tasks are present
-      const publicTask1 = result.tasks.find(task => task.content === 'Public Task 1');
-      const publicTask2 = result.tasks.find(task => task.content === 'Public Task 2');
+      const publicTask1 = result.data.tasks.find(task => task.content === 'Public Task 1');
+      const publicTask2 = result.data.tasks.find(task => task.content === 'Public Task 2');
       expect(publicTask1).toBeDefined();
       expect(publicTask2).toBeDefined();
     });
@@ -1028,12 +1029,13 @@ describe('Integration Tests - Complex Scenarios', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.checklist).not.toBeNull();
-      expect(result.tasks.length).toBe(2);
+      if (!result.success) throw new Error('expected success');
+      expect(result.data.checklist).not.toBeNull();
+      expect(result.data.tasks.length).toBe(2);
 
       // Find tasks by their content - should be the titles of the private templates
-      const task1 = result.tasks.find(task => task.content === 'Secret Private Template');
-      const task2 = result.tasks.find(task => task.content === 'Another Secret Template');
+      const task1 = result.data.tasks.find(task => task.content === 'Secret Private Template');
+      const task2 = result.data.tasks.find(task => task.content === 'Another Secret Template');
 
       expect(task1).toBeDefined();
       expect(task2).toBeDefined();
@@ -1042,8 +1044,8 @@ describe('Integration Tests - Complex Scenarios', () => {
       expect(task1!.id).not.toBe(task2!.id);
 
       // Verify the original reference content is NOT used
-      const refContent1 = result.tasks.find(task => task.content === 'Reference to first private template');
-      const refContent2 = result.tasks.find(task => task.content === 'Reference to second private template');
+      const refContent1 = result.data.tasks.find(task => task.content === 'Reference to first private template');
+      const refContent2 = result.data.tasks.find(task => task.content === 'Reference to second private template');
       expect(refContent1).toBeUndefined();
       expect(refContent2).toBeUndefined();
     });

@@ -104,7 +104,7 @@ export async function POST(
     // Get the checklist to check ownership
     const getResult = await checklistService.getById(id);
 
-    if (!getResult.success || !getResult.checklist) {
+    if (!getResult.success || !getResult.data.checklist) {
       return NextResponse.json(
         {
           success: false,
@@ -119,7 +119,7 @@ export async function POST(
     }
 
     // Check if user owns this checklist
-    if (getResult.checklist.user !== user.id) {
+    if (getResult.data.checklist.user !== user.id) {
       return NextResponse.json(
         {
           success: false,

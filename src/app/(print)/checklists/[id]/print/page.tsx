@@ -20,11 +20,11 @@ export default async function ChecklistPrintPage({ params }: PageProps) {
   const templateService = new TemplateService(pb);
 
   const checklistResult = await checklistService.getById(id, "blueprint");
-  if (!checklistResult.success || !checklistResult.checklist) {
+  if (!checklistResult.success || !checklistResult.data.checklist) {
     notFound();
   }
 
-  const checklist = checklistResult.checklist;
+  const checklist = checklistResult.data.checklist;
   if (checklist.user !== user.id) {
     notFound();
   }

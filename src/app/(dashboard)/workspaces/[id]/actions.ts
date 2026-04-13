@@ -128,14 +128,14 @@ export async function createChecklistInWorkspace(
     workspaceId,
   });
 
-  if (!result.success || !result.checklist) {
+  if (!result.success || !result.data.checklist) {
     return { success: false, error: result.error?.message || "Failed to create checklist" };
   }
 
   revalidatePath(`/workspaces/${workspaceId}`);
   revalidatePath("/checklists");
 
-  return { success: true, checklistId: result.checklist.id };
+  return { success: true, checklistId: result.data.checklist.id };
 }
 
 /**

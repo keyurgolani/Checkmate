@@ -25,6 +25,7 @@ import { Collections, ItemType } from '../pocketbase-types';
 import { ItemService, generatePath, getPathDepth } from './item';
 import { TemplateService } from './template';
 import { filterItemsByConditions } from './condition';
+import { type Result, ok, err } from '../result';
 
 // ============================================================================
 // Types
@@ -44,11 +45,7 @@ export interface CreateChecklistInput {
 /**
  * Checklist operation result
  */
-export interface ChecklistResult {
-  success: boolean;
-  checklist: Instance | null;
-  error: ChecklistError | null;
-}
+export type ChecklistResult = Result<Instance, ChecklistError>;
 
 /**
  * Checklist error with code and message
@@ -63,12 +60,10 @@ export interface ChecklistError {
 /**
  * Result for checklist creation with tasks
  */
-export interface ChecklistCreationResult {
-  success: boolean;
-  checklist: Instance | null;
-  tasks: InstanceItem[];
-  error: ChecklistError | null;
-}
+export type ChecklistCreationResult = Result<
+  { checklist: Instance; tasks: InstanceItem[] },
+  ChecklistError
+>;
 
 /**
  * Result for batch task operations
@@ -127,11 +122,7 @@ export interface ModifyTaskInput {
 /**
  * Result for single task operations
  */
-export interface TaskResult {
-  success: boolean;
-  task: InstanceItem | null;
-  error: ChecklistError | null;
-}
+export type TaskResult = Result<InstanceItem, ChecklistError>;
 
 /**
  * Result for progress calculation
@@ -147,12 +138,10 @@ export interface ProgressResult {
  * Result for toggle task completion
  * Requirements: 6.1
  */
-export interface ToggleCompletionResult {
-  success: boolean;
-  task: InstanceItem | null;
-  progress: ProgressResult | null;
-  error: ChecklistError | null;
-}
+export type ToggleCompletionResult = Result<
+  { task: InstanceItem; progress: ProgressResult },
+  ChecklistError
+>;
 
 // ============================================================================
 // Error Codes
@@ -194,27 +183,6 @@ export function validateName(name: string): ChecklistError | null {
   return null;
 }
 
-/**
- * Creates a successful ChecklistResult
- */
-function createSuccessResult(checklist: Instance): ChecklistResult {
-  return {
-    success: true,
-    checklist,
-    error: null,
-  };
-}
-
-/**
- * Creates an error ChecklistResult
- */
-function createErrorResult(error: ChecklistError): ChecklistResult {
-  return {
-    success: false,
-    checklist: null,
-    error,
-  };
-}
 
 /**
  * Parses PocketBase errors into ChecklistError
@@ -302,40 +270,25 @@ export class ChecklistService {
       // Validate name
       const nameError = validateName(input.name);
       if (nameError) {
-        return {
-          success: false,
-          checklist: null,
-          tasks: [],
-          error: nameError,
-        };
+        return err(nameError);
       }
 
       // Get current user ID
       const userId = this.pb.authStore.record?.id;
       if (!userId) {
-        return {
-          success: false,
-          checklist: null,
-          tasks: [],
-          error: {
-            code: ChecklistErrorCodes.PERMISSION_DENIED,
-            message: 'You must be authenticated to create a checklist',
-          },
-        };
+        return err({
+          code: ChecklistErrorCodes.PERMISSION_DENIED,
+          message: 'You must be authenticated to create a checklist',
+        });
       }
 
       // Verify template exists and user has access
       const templateResult = await this.templateService.getById(input.templateId);
       if (!templateResult.success || !templateResult.data) {
-        return {
-          success: false,
-          checklist: null,
-          tasks: [],
-          error: {
-            code: ChecklistErrorCodes.TEMPLATE_NOT_FOUND,
-            message: 'Template not found or you do not have access',
-          },
-        };
+        return err({
+          code: ChecklistErrorCodes.TEMPLATE_NOT_FOUND,
+          message: 'Template not found or you do not have access',
+        });
       }
 
       // Create the checklist record
@@ -377,19 +330,9 @@ export class ChecklistService {
       // Increment the template's checklist count
       await this.templateService.incrementChecklistCount(input.templateId);
 
-      return {
-        success: true,
-        checklist: checklist,
-        tasks: copyResult.tasks,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        checklist: null,
-        tasks: [],
-        error: parseError(err),
-      };
+      return ok({ checklist, tasks: copyResult.tasks });
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -516,8 +459,8 @@ export class ChecklistService {
             }
           }
         }
-      } catch (err) {
-        errors.push(parseError(err));
+      } catch (caught) {
+        errors.push(parseError(caught));
       }
     }
 
@@ -560,8 +503,8 @@ export class ChecklistService {
         .create<InstanceItem>(taskData);
 
       return task;
-    } catch (err) {
-      console.error('Error creating task:', err);
+    } catch (caught) {
+      console.error('Error creating task:', caught);
       return null;
     }
   }
@@ -602,8 +545,8 @@ export class ChecklistService {
         .create<InstanceItem>(taskData);
 
       return task;
-    } catch (err) {
-      console.error('Error creating task:', err);
+    } catch (caught) {
+      console.error('Error creating task:', caught);
       return null;
     }
   }
@@ -737,8 +680,8 @@ export class ChecklistService {
             errors.push(...childResult.errors);
           }
         }
-      } catch (err) {
-        errors.push(parseError(err));
+      } catch (caught) {
+        errors.push(parseError(caught));
       }
     }
 
@@ -873,8 +816,8 @@ export class ChecklistService {
             errors.push(...grandchildResult.errors);
           }
         }
-      } catch (err) {
-        errors.push(parseError(err));
+      } catch (caught) {
+        errors.push(parseError(caught));
       }
     }
 
@@ -900,9 +843,9 @@ export class ChecklistService {
         .collection(Collections.CHECKLISTS)
         .getOne<Instance>(id, options);
 
-      return createSuccessResult(checklist);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(checklist);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -933,8 +876,8 @@ export class ChecklistService {
         .getFullList<Instance>(queryOptions);
 
       return result;
-    } catch (err) {
-      console.error('Error fetching checklists by user:', err);
+    } catch (caught) {
+      console.error('Error fetching checklists by user:', caught);
       return [];
     }
   }
@@ -1009,8 +952,8 @@ export class ChecklistService {
 
         return result;
       }
-    } catch (err) {
-      console.error('Error fetching checklists by workspace:', err);
+    } catch (caught) {
+      console.error('Error fetching checklists by workspace:', caught);
       return [];
     }
   }
@@ -1024,9 +967,9 @@ export class ChecklistService {
         .collection(Collections.CHECKLISTS)
         .update<Instance>(id, data);
         
-      return createSuccessResult(checklist);
-    } catch (err) {
-      return createErrorResult(parseError(err));
+      return ok(checklist);
+    } catch (caught) {
+      return err(parseError(caught));
     }
   }
 
@@ -1049,8 +992,8 @@ export class ChecklistService {
       // Attempt to delete the checklist directly
       await this.pb.collection(Collections.CHECKLISTS).delete(id);
       return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: parseError(err) };
+    } catch (caught) {
+      return { success: false, error: parseError(caught) };
     }
   }
 
@@ -1069,8 +1012,8 @@ export class ChecklistService {
           sort: options?.sort ?? 'position',
         });
       return records;
-    } catch (err) {
-      console.error('Error fetching checklist tasks:', err);
+    } catch (caught) {
+      console.error('Error fetching checklist tasks:', caught);
       return [];
     }
   }
@@ -1091,8 +1034,8 @@ export class ChecklistService {
         completedItems,
         percentage,
       };
-    } catch (err) {
-      console.error('Error calculating progress:', err);
+    } catch (caught) {
+      console.error('Error calculating progress:', caught);
       return {
         totalItems: 0,
         completedItems: 0,
@@ -1113,15 +1056,10 @@ export class ChecklistService {
         .getOne<InstanceItem>(taskId);
 
       if (!task || task.instance !== checklistId) {
-        return {
-          success: false,
-          task: null,
-          progress: null,
-          error: {
-            code: ChecklistErrorCodes.ITEM_NOT_FOUND,
-            message: 'Task not found',
-          },
-        };
+        return err({
+          code: ChecklistErrorCodes.ITEM_NOT_FOUND,
+          message: 'Task not found',
+        });
       }
 
       // Toggle completion
@@ -1144,23 +1082,13 @@ export class ChecklistService {
           completedAt: progress.percentage >= 100 ? new Date().toISOString() : null,
         });
 
-      return {
-        success: true,
-        task: updatedTask,
-        progress,
-        error: null,
-      };
-    } catch (err) {
-      console.error('Error toggling task completion:', err);
-      return {
-        success: false,
-        task: null,
-        progress: null,
-        error: {
-          code: ChecklistErrorCodes.UNKNOWN_ERROR,
-          message: 'Failed to toggle task completion',
-        },
-      };
+      return ok({ task: updatedTask, progress });
+    } catch (caught) {
+      console.error('Error toggling task completion:', caught);
+      return err({
+        code: ChecklistErrorCodes.UNKNOWN_ERROR,
+        message: 'Failed to toggle task completion',
+      });
     }
   }
 
@@ -1172,7 +1100,7 @@ export class ChecklistService {
     try {
       // Get the checklist
       const checklistResult = await this.getById(checklistId);
-      if (!checklistResult.success || !checklistResult.checklist) {
+      if (!checklistResult.success) {
         return {
           success: false,
           added: 0,
@@ -1186,7 +1114,7 @@ export class ChecklistService {
         };
       }
 
-      const checklist = checklistResult.checklist;
+      const checklist = checklistResult.data;
       const templateId = checklist.blueprint;
 
       // Get the template
@@ -1219,8 +1147,8 @@ export class ChecklistService {
         conflicts: [],
         error: null,
       };
-    } catch (err) {
-      console.error('Error syncing with template:', err);
+    } catch (caught) {
+      console.error('Error syncing with template:', caught);
       return {
         success: false,
         added: 0,

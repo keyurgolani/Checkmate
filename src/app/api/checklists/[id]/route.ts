@@ -168,11 +168,11 @@ export const GET = withAuth<{ id: string }, ChecklistResponse>(
 
     const result = await checklistService.getById(id, expand ?? undefined);
 
-    if (!result.success || !result.checklist) {
+    if (!result.success || !result.data.checklist) {
       return apiError(ChecklistErrorCodes.NOT_FOUND, 'Checklist not found', 404);
     }
 
-    const checklist = result.checklist;
+    const checklist = result.data.checklist;
 
     // Owner check - return 404 to not reveal existence
     if (checklist.user !== user.id) {
@@ -218,11 +218,11 @@ export const PUT = withAuth<{ id: string }, ChecklistResponse>(
     const checklistService = new ChecklistService(pb);
 
     const getResult = await checklistService.getById(id);
-    if (!getResult.success || !getResult.checklist) {
+    if (!getResult.success || !getResult.data.checklist) {
       return apiError(ChecklistErrorCodes.NOT_FOUND, 'Checklist not found', 404);
     }
 
-    if (getResult.checklist.user !== user.id) {
+    if (getResult.data.checklist.user !== user.id) {
       return apiError(
         ChecklistErrorCodes.PERMISSION_DENIED,
         'You do not have permission to update this checklist',
@@ -244,7 +244,7 @@ export const PUT = withAuth<{ id: string }, ChecklistResponse>(
       resources: body.resources,
     });
 
-    if (!result.success || !result.checklist) {
+    if (!result.success || !result.data.checklist) {
       return apiError(
         result.error?.code ?? ChecklistErrorCodes.UNKNOWN_ERROR,
         result.error?.message ?? 'Failed to update checklist',
@@ -255,7 +255,7 @@ export const PUT = withAuth<{ id: string }, ChecklistResponse>(
 
     return NextResponse.json<ChecklistResponse>({
       success: true,
-      checklist: formatChecklist(result.checklist as any),
+      checklist: formatChecklist(result.data.checklist as any),
     });
   }
 );
@@ -282,11 +282,11 @@ export const DELETE = withAuth<{ id: string }, { success: boolean }>(
     const checklistService = new ChecklistService(pb);
 
     const getResult = await checklistService.getById(id);
-    if (!getResult.success || !getResult.checklist) {
+    if (!getResult.success || !getResult.data.checklist) {
       return apiError(ChecklistErrorCodes.NOT_FOUND, 'Checklist not found', 404);
     }
 
-    if (getResult.checklist.user !== user.id) {
+    if (getResult.data.checklist.user !== user.id) {
       return apiError(
         ChecklistErrorCodes.PERMISSION_DENIED,
         'You do not have permission to delete this checklist',

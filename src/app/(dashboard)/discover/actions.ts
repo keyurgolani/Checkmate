@@ -20,8 +20,8 @@ export async function bulkUseTemplates(templateIds: string[]) {
         templateId,
         name: `Checklist from ${template.title}`,
       });
-      if (result.success && result.checklist) {
-        created.push(result.checklist.id);
+      if (result.success && result.data.checklist) {
+        created.push(result.data.checklist.id);
       } else {
         errors.push(result.error?.message ?? `Failed to create checklist from ${templateId}`);
       }

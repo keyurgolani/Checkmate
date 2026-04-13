@@ -34,11 +34,11 @@ export default async function ChecklistDetailPage({
   // Get the checklist
   const checklistResult = await checklistService.getById(id, "blueprint");
 
-  if (!checklistResult.success || !checklistResult.checklist) {
+  if (!checklistResult.success || !checklistResult.data.checklist) {
     notFound();
   }
 
-  const checklist = checklistResult.checklist;
+  const checklist = checklistResult.data.checklist;
 
   // Verify user owns this checklist
   if (checklist.user !== user.id) {
