@@ -3,9 +3,8 @@ import { ChecklistService } from "@/lib/services/checklist";
 import { TemplateService } from "@/lib/services/template";
 import { WorkspaceService } from "@/lib/services/workspace";
 import { notFound } from "next/navigation";
-import { Collections } from "@/lib/pocketbase-types";
-import type { Checklist } from "@/lib/pocketbase-types";
 import { PrintToolbar } from "@/components/print/print-toolbar";
+import { getWorkspaceChecklists } from "@/app/(dashboard)/reports/reports-data";
 import PocketBase from "pocketbase";
 
 interface PageProps {
@@ -41,8 +40,8 @@ export default async function ReportsPrintPage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        {activeTab === "personal" && <PersonalPrint pb={pb} userId={user.id} checklistService={checklistService} />}
-        {activeTab === "templates" && <TemplatesPrint pb={pb} userId={user.id} templateService={templateService} />}
+        {activeTab === "personal" && <PersonalPrint checklistService={checklistService} />}
+        {activeTab === "templates" && <TemplatesPrint templateService={templateService} />}
         {activeTab === "workspaces" && <WorkspacesPrint pb={pb} userId={user.id} workspaceService={workspaceService} />}
       </div>
     </div>
@@ -50,12 +49,8 @@ export default async function ReportsPrintPage({ searchParams }: PageProps) {
 }
 
 async function PersonalPrint({
-  pb,
-  userId,
   checklistService,
 }: {
-  pb: PocketBase;
-  userId: string;
   checklistService: ChecklistService;
 }) {
   const checklists = await checklistService.getByUser({ sort: "-updated" });
@@ -109,12 +104,8 @@ async function PersonalPrint({
 }
 
 async function TemplatesPrint({
-  pb,
-  userId,
   templateService,
 }: {
-  pb: PocketBase;
-  userId: string;
   templateService: TemplateService;
 }) {
   const result = await templateService.getByOwner({ limit: 100 });
@@ -168,15 +159,10 @@ async function WorkspacesPrint({
 
   const wsData = await Promise.all(
     allWorkspaces.map(async (ws) => {
-      const checklists = await pb
-        .collection(Collections.CHECKLISTS)
-        .getFullList<Checklist>({
-          filter: `user = "${userId}" && workspace = "${ws.id}"`,
-          fields: "id,progress,name",
-        });
+      const checklists = await getWorkspaceChecklists(pb, userId, ws.id);
 
       const avgProgress = checklists.length > 0
-        ? Math.round(checklists.reduce((s: number, c: Checklist) => s + (c.progress ?? 0), 0) / checklists.length)
+        ? Math.round(checklists.reduce((s, c) => s + (c.progress ?? 0), 0) / checklists.length)
         : 0;
 
       return { ...ws, checklistCount: checklists.length, avgProgress };
