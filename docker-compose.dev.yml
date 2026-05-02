@@ -18,6 +18,8 @@ services:
       - NEXT_PUBLIC_POCKETBASE_URL=http://localhost:8090
       # Server-side URL (container-to-container)
       - POCKETBASE_URL=http://pocketbase:8090
+      # Disable signup when set to "true"
+      - NEXT_PUBLIC_SIGNUP_DISABLED=${NEXT_PUBLIC_SIGNUP_DISABLED:-false}
     depends_on:
       pocketbase:
         condition: service_healthy

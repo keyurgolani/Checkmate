@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Logo } from "@/components/ui/logo";
 
 export default function Home() {
+  const signupDisabled = process.env.NEXT_PUBLIC_SIGNUP_DISABLED === "true";
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -21,9 +23,11 @@ export default function Home() {
             <Button variant="ghost" asChild>
               <Link href="/signin">Sign in</Link>
             </Button>
-            <Button asChild size="sm" className="h-10 px-4 text-base">
-              <Link href="/signup">Get Started</Link>
-            </Button>
+            {!signupDisabled && (
+              <Button asChild size="sm" className="h-10 px-4 text-base">
+                <Link href="/signup">Get Started</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Nav */}
@@ -47,9 +51,11 @@ export default function Home() {
                   <Button variant="ghost" asChild className="justify-start">
                     <Link href="/signin">Sign in</Link>
                   </Button>
-                  <Button asChild className="justify-start">
-                    <Link href="/signup">Get Started</Link>
-                  </Button>
+                  {!signupDisabled && (
+                    <Button asChild className="justify-start">
+                      <Link href="/signup">Get Started</Link>
+                    </Button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
@@ -72,12 +78,14 @@ export default function Home() {
             </p>
           </div>
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button size="lg" asChild className="h-12 px-8 text-base">
-              <Link href="/signup">
-                Get Started Free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            {!signupDisabled && (
+              <Button size="lg" asChild className="h-12 px-8 text-base">
+                <Link href="/signup">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base border-primary/20 hover:bg-primary/5 hover:border-primary/50 transition-colors">
               <Link href="/discover">Browse Public Checklists</Link>
             </Button>

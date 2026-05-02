@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ListChecks } from "lucide-react";
 
 export default function PrivacyPage() {
+  const signupDisabled = process.env.NEXT_PUBLIC_SIGNUP_DISABLED === "true";
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -20,12 +21,14 @@ export default function PrivacyPage() {
             >
               Sign in
             </Link>
-            <Link
-              href="/signup"
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Get Started
-            </Link>
+            {!signupDisabled && (
+              <Link
+                href="/signup"
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Get Started
+              </Link>
+            )}
           </nav>
         </div>
       </header>

@@ -1088,11 +1088,13 @@ export function TemplateDetailClient({
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild className="rounded-xl">
-                    <Link href={`/signup?returnTo=/discover/${template.id}`}>
-                      Sign Up
-                    </Link>
-                  </Button>
+                  {process.env.NEXT_PUBLIC_SIGNUP_DISABLED !== "true" && (
+                    <Button asChild className="rounded-xl">
+                      <Link href={`/signup?returnTo=/discover/${template.id}`}>
+                        Sign Up
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

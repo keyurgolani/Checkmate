@@ -38,6 +38,13 @@ import { MobileSidebar } from "./mobile-sidebar";
 import { NotificationCenterClient } from "@/components/notifications/notification-center-client";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
+import { useUnifiedThemeStore } from "@/lib/themes";
+
+const DEMO_USER_EMAIL = process.env.NEXT_PUBLIC_DEMO_USER_EMAIL || "demo@checkmate.local";
+const DEMO_LOCAL_STORAGE_KEYS = [
+  "checkmate-unified-theme",
+  "checkmate-theme-preferences",
+];
 
 interface PbAuthData {
   token: string;
@@ -56,6 +63,7 @@ interface HeaderProps {
 export function Header({ user, pbAuth }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const resetTheme = useUnifiedThemeStore((state) => state.reset);
   const [mounted, setMounted] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
 
@@ -65,11 +73,20 @@ export function Header({ user, pbAuth }: HeaderProps) {
 
   const handleSignOut = async () => {
     setSigningOut(true);
+    const isDemoUser = user?.email?.toLowerCase() === DEMO_USER_EMAIL.toLowerCase();
     try {
       await fetch("/api/auth/signout", { method: "POST" });
+      if (isDemoUser) {
+        resetTheme();
+        DEMO_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+      }
       router.push("/signin");
       router.refresh();
     } catch {
+      if (isDemoUser) {
+        resetTheme();
+        DEMO_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+      }
       window.location.href = "/signin";
     }
   };
@@ -248,9 +265,11 @@ export function Header({ user, pbAuth }: HeaderProps) {
               <Button variant="ghost" asChild className="rounded-xl">
                 <Link href="/signin">Sign in</Link>
               </Button>
-              <Button asChild className="rounded-xl">
-                <Link href="/signup">Sign up</Link>
-              </Button>
+              {process.env.NEXT_PUBLIC_SIGNUP_DISABLED !== "true" && (
+                <Button asChild className="rounded-xl">
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              )}
             </div>
           )}
         </div>

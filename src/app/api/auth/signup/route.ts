@@ -44,6 +44,20 @@ interface SignUpResponse {
 // ============================================================================
 
 export async function POST(request: NextRequest): Promise<NextResponse<SignUpResponse>> {
+  if (process.env.NEXT_PUBLIC_SIGNUP_DISABLED === 'true') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'SIGNUP_DISABLED',
+          message: 'New account registration is currently disabled.',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     // Parse request body
     const body = await request.json() as SignUpRequestBody;

@@ -59,7 +59,9 @@ const anonymousNavItems: NavItem[] = [
 
 const authNavItems: NavItem[] = [
   { title: "Sign In", href: "/signin", icon: LogIn, requiresAuth: false },
-  { title: "Sign Up", href: "/signup", icon: UserPlus, requiresAuth: false },
+  ...(process.env.NEXT_PUBLIC_SIGNUP_DISABLED !== "true"
+    ? [{ title: "Sign Up", href: "/signup", icon: UserPlus, requiresAuth: false }]
+    : []),
 ];
 
 const bottomNavItems: NavItem[] = [

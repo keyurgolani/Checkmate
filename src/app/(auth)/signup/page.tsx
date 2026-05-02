@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -71,6 +71,12 @@ function SignUpForm() {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo");
   const validReturnUrl = getValidReturnUrl(returnTo);
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_SIGNUP_DISABLED === "true") {
+      router.replace("/");
+    }
+  }, [router]);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});

@@ -257,17 +257,19 @@ function SignInForm() {
         </Button>
       </div>
 
-      <div className="mt-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link 
-            href={returnTo ? `/signup?returnTo=${encodeURIComponent(returnTo)}` : "/signup"} 
-            className="text-primary font-medium hover:underline"
-          >
-            Sign up
-          </Link>
-        </p>
-      </div>
+      {process.env.NEXT_PUBLIC_SIGNUP_DISABLED !== "true" && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href={returnTo ? `/signup?returnTo=${encodeURIComponent(returnTo)}` : "/signup"}
+              className="text-primary font-medium hover:underline"
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
+      )}
     </>
   );
 }

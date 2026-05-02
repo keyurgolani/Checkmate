@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/pocketbase';
+import { getDefaultPreferences } from '@/lib/services/preferences';
 
 const DEMO_EMAIL = process.env.DEMO_USER_EMAIL || 'demo@checkmate.local';
 
 const DEMO_OWNED_COLLECTIONS = [
-  'instances',
-  'instanceItems',
-  'blueprints',
-  'items',
-  'workspaces',
-  'collaborators',
-  'notifications',
   'activityLog',
+  'notifications',
+  'collaborators',
+  'instanceItems',
+  'instances',
+  'items',
+  'blueprints',
+  'workspaces',
 ] as const;
 
 const COLLECTION_OWNER_FIELDS: Record<string, string> = {
@@ -28,9 +29,7 @@ const COLLECTION_OWNER_FIELDS: Record<string, string> = {
 export async function resetDemoUserData(userId: string): Promise<void> {
   const adminPb = await createAdminClient();
 
-  const deleteOrder = [...DEMO_OWNED_COLLECTIONS].reverse();
-
-  for (const collection of deleteOrder) {
+  for (const collection of DEMO_OWNED_COLLECTIONS) {
     try {
       const ownerField = COLLECTION_OWNER_FIELDS[collection] || 'createdBy';
       const records = await adminPb.collection(collection).getFullList({
@@ -48,6 +47,11 @@ export async function resetDemoUserData(userId: string): Promise<void> {
       // collection may not exist yet
     }
   }
+
+  await adminPb.collection('users').update(userId, {
+    displayName: 'Demo User',
+    preferences: getDefaultPreferences(),
+  });
 
   console.log(`[Demo Reset] Wiped data for demo user ${userId}`);
 }
