@@ -13,10 +13,13 @@ import { buildField, buildAutodateFields } from '../schema/field-builder';
 // Track initialization state
 let isInitialized = false;
 let initializationPromise: Promise<boolean> | null = null;
+let demoUserSeeded = false;
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const PB_ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL || 'admin@checkmate.local';
 const PB_ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD || 'checkmate_admin_2026';
+const DEMO_USER_EMAIL = process.env.DEMO_USER_EMAIL || 'demo@checkmate.local';
+const DEMO_USER_PASSWORD = process.env.DEMO_USER_PASSWORD || 'demo_checkmate_2026';
 
 // Order collections to handle dependencies
 const COLLECTION_ORDER = [
@@ -369,6 +372,7 @@ export async function ensureSchemaInitialized(): Promise<boolean> {
       if (schemaExists) {
         console.log('[Schema Init] ✅ Schema already exists');
         isInitialized = true;
+        await ensureDemoUserSeeded();
         return true;
       }
 
@@ -383,6 +387,7 @@ export async function ensureSchemaInitialized(): Promise<boolean> {
       const success = await importSchema(token);
       if (success) {
         isInitialized = true;
+        await ensureDemoUserSeeded();
       }
 
       return success;
@@ -398,9 +403,66 @@ export async function ensureSchemaInitialized(): Promise<boolean> {
 }
 
 /**
+ * Ensures the demo user exists. Idempotent - checks first, creates only if missing.
+ * Runs after schema is confirmed ready.
+ */
+async function ensureDemoUserSeeded(): Promise<void> {
+  if (demoUserSeeded) return;
+  demoUserSeeded = true;
+
+  try {
+    const token = await authenticateAdmin();
+    if (!token) {
+      console.warn('[Demo Seed] ⚠️  Cannot authenticate as admin, skipping demo user seed');
+      return;
+    }
+
+    const listResponse = await fetch(
+      `${POCKETBASE_URL}/api/collections/users/records?filter=${encodeURIComponent(`email='${DEMO_USER_EMAIL}'`)}&fields=id`,
+      { headers: { 'Authorization': token } }
+    );
+
+    if (listResponse.ok) {
+      const data = await listResponse.json();
+      if (data.items && data.items.length > 0) {
+        console.log('[Demo Seed] ✅ Demo user already exists');
+        return;
+      }
+    }
+
+    console.log('[Demo Seed] 🎭 Creating demo user...');
+
+    const createResponse = await fetch(`${POCKETBASE_URL}/api/collections/users/records`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      },
+      body: JSON.stringify({
+        email: DEMO_USER_EMAIL,
+        password: DEMO_USER_PASSWORD,
+        passwordConfirm: DEMO_USER_PASSWORD,
+        displayName: 'Demo User',
+        emailVisibility: true,
+      }),
+    });
+
+    if (createResponse.ok) {
+      console.log('[Demo Seed] ✅ Demo user created');
+    } else {
+      const error = await createResponse.text();
+      console.warn(`[Demo Seed] ⚠️  Could not create demo user: ${error}`);
+    }
+  } catch (error) {
+    console.warn('[Demo Seed] ⚠️  Error seeding demo user:', error);
+  }
+}
+
+/**
  * Resets the initialization state (for testing)
  */
 export function resetSchemaInitialization(): void {
   isInitialized = false;
   initializationPromise = null;
+  demoUserSeeded = false;
 }

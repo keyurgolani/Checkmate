@@ -1,18 +1,10 @@
 "use client";
 
-/**
- * App Layout Component
- *
- * Main application layout with sidebar, header, and content area.
- * Implements proper landmark regions and keyboard navigation support.
- *
- * Requirements: 13.2 - Keyboard navigation with logical tab order
- */
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Header } from "./header";
 import { SkipLink } from "@/components/ui/skip-link";
+import { DemoBanner } from "./demo-banner";
 import type { Workspace } from "@/lib/pocketbase-types";
 
 interface PbAuthData {
@@ -29,32 +21,30 @@ interface AppLayoutProps {
   } | null;
   workspaces?: Workspace[];
   pbAuth?: PbAuthData | null;
+  isDemo?: boolean;
 }
 
-export function AppLayout({ children, user, pbAuth }: AppLayoutProps) {
+export function AppLayout({ children, user, pbAuth, isDemo }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Skip links for keyboard navigation - Requirements: 13.2 */}
       <SkipLink targetId="main-content">Skip to main content</SkipLink>
       <SkipLink targetId="main-navigation" className="focus:top-12">
         Skip to navigation
       </SkipLink>
 
-      {/* Main content area */}
       <div
         className={cn(
-          "flex min-h-screen flex-col transition-all duration-300"
+          "flex min-h-screen flex-col transition-all duration-300",
+          isDemo && "pb-10"
         )}
       >
-        {/* Header (Visible on Desktop and Mobile) */}
         <div>
             <Header user={user} pbAuth={pbAuth} />
         </div>
         
-        {/* Main content with landmark role and id for skip link target */}
         <main
           id="main-content"
-          className="flex-1 px-4 md:px-8 py-6 md:py-8 focus:outline-none pb-12 w-full"
+          className="flex-1 px-4 md:px-8 py-6 md:py-8 focus:outline-none w-full"
           tabIndex={-1}
           role="main"
           aria-label="Main content"
@@ -62,6 +52,8 @@ export function AppLayout({ children, user, pbAuth }: AppLayoutProps) {
           {children}
         </main>
       </div>
+
+      <DemoBanner visible={!!isDemo} />
     </div>
   );
 }

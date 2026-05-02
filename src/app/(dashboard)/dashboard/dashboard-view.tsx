@@ -40,8 +40,7 @@ interface DashboardViewProps {
   cachedSummary: DashboardSummary | null;
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
+function getGreeting(hour: number) {
   return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 }
 
@@ -50,7 +49,7 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap, llm
   const router = useRouter();
 
   React.useEffect(() => {
-    setGreeting(getGreeting());
+    setGreeting(getGreeting(new Date().getHours()));
   }, []);
 
   const checklistMenuItems: ContextMenuItemConfig<Checklist>[] = [
@@ -240,7 +239,7 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap, llm
 
                                     <div className="flex items-center justify-between mt-4">
                                         <div className="text-xs font-mono bg-muted px-2 py-1 rounded-lg">
-                                            {new Date(checklist.updated).toLocaleDateString()}
+                                            {checklist.updated ? `${new Date(checklist.updated).getUTCFullYear()}/${String(new Date(checklist.updated).getUTCMonth() + 1).padStart(2, "0")}/${String(new Date(checklist.updated).getUTCDate()).padStart(2, "0")}` : ""}
                                         </div>
                                         <div className={`text-lg font-bold ${checklist.progress === 100 ? 'text-green-500' : 'text-primary'}`}>
                                             {Math.round(checklist.progress || 0)}%

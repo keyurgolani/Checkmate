@@ -81,6 +81,14 @@ export default function Home() {
             <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base border-primary/20 hover:bg-primary/5 hover:border-primary/50 transition-colors">
               <Link href="/discover">Browse Public Checklists</Link>
             </Button>
+            {process.env.NEXT_PUBLIC_DEMO_USER_EMAIL && (
+              <Button size="lg" variant="secondary" asChild className="h-12 px-8 text-base">
+                <Link href="/demo">
+                  Try Demo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </section>
 

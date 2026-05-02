@@ -29,6 +29,12 @@ A modern, enterprise-grade checklist application for creating, sharing, and trac
 | **Testing**    | Vitest, fast-check                            |
 | **Deployment** | Docker Compose, Cloudflare Tunnel             |
 
+## Live Demo
+
+Try CheckMate without signing up: **[checkmate.keyurgolani.name](https://checkmate.keyurgolani.name)**
+
+Log in with the demo account (`demo@checkmate.local` / `demo_checkmate_2026`). All data is reset when the demo user logs out.
+
 ## Quick Start
 
 ### Prerequisites

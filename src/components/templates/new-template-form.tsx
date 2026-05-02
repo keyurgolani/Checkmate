@@ -8,7 +8,7 @@
  * Requirements: 3.1 - Template creation with owner and default visibility
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,10 +46,12 @@ export function NewTemplateForm({
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     setError(null);
 
     if (!title.trim()) {
@@ -62,6 +64,7 @@ export function NewTemplateForm({
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -92,6 +95,7 @@ export function NewTemplateForm({
       console.error("Failed to create template:", err);
       setError("An unexpected error occurred");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };

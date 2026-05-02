@@ -34,11 +34,11 @@ export default async function ChecklistDetailPage({
   // Get the checklist
   const checklistResult = await checklistService.getById(id, "blueprint");
 
-  if (!checklistResult.success || !checklistResult.data.checklist) {
+  if (!checklistResult.success || !checklistResult.data) {
     notFound();
   }
 
-  const checklist = checklistResult.data.checklist;
+  const checklist = checklistResult.data;
 
   // Verify user owns this checklist
   if (checklist.user !== user.id) {
@@ -47,14 +47,12 @@ export default async function ChecklistDetailPage({
 
   // Get blueprint title
   let blueprintTitle = "Unknown Template";
-  // @ts-ignore - Runtime uses blueprint, types say template
-  const expandedBlueprint = checklist.expand?.template || (checklist.expand as any)?.blueprint;
+  const expandedBlueprint = checklist.expand?.blueprint;
   
   if (expandedBlueprint) {
     blueprintTitle = expandedBlueprint.title;
   } else {
-    // @ts-ignore - Runtime uses blueprint
-    const blueprintId = checklist.template || (checklist as any).blueprint;
+    const blueprintId = checklist.blueprint;
     const templateResult = await templateService.getById(blueprintId);
     if (templateResult.success && templateResult.data) {
       blueprintTitle = templateResult.data.title;

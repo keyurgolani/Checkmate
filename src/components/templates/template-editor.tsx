@@ -701,13 +701,10 @@ export function TemplateEditor({
             recentlyAddedStepsRef.current.delete(data.item.id);
           }, 5000);
           
-          setSteps((prev) => [
-            ...prev,
-            {
-              ...data.item,
-              itemType: data.item.itemType as "task" | "reference" | "phase",
-            },
-          ]);
+          setSteps((prev) => {
+            if (prev.some((s) => s.id === data.item.id)) return prev;
+            return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+          });
           setNewStepContent("");
           announce(`Step "${content}" added`);
         }
@@ -744,13 +741,10 @@ export function TemplateEditor({
             recentlyAddedStepsRef.current.delete(data.item.id);
           }, 5000);
           
-          setSteps((prev) => [
-            ...prev,
-            {
-              ...data.item,
-              itemType: data.item.itemType as "task" | "reference" | "phase",
-            },
-          ]);
+          setSteps((prev) => {
+            if (prev.some((s) => s.id === data.item.id)) return prev;
+            return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+          });
           setNewPhaseContent("");
           announce(`Phase "${content}" added`);
         }
@@ -873,13 +867,10 @@ export function TemplateEditor({
               recentlyAddedStepsRef.current.delete(data.item.id);
             }, 5000);
             
-            setSteps((prev) => [
-              ...prev,
-              {
-                ...data.item,
-                itemType: data.item.itemType as "task" | "reference" | "phase",
-              },
-            ]);
+            setSteps((prev) => {
+              if (prev.some((s) => s.id === data.item.id)) return prev;
+              return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+            });
             setEditingStepId(data.item.id);
           }
         }
@@ -940,13 +931,10 @@ export function TemplateEditor({
                 recentlyAddedStepsRef.current.delete(data.item.id);
               }, 5000);
 
-              setSteps((prev) => [
-                ...prev,
-                {
-                  ...data.item,
-                  itemType: data.item.itemType as "task" | "reference" | "phase",
-                },
-              ]);
+              setSteps((prev) => {
+                if (prev.some((s) => s.id === data.item.id)) return prev;
+                return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+              });
               addedCount++;
             }
           } else {
@@ -995,13 +983,10 @@ export function TemplateEditor({
               recentlyAddedStepsRef.current.delete(data.item.id);
             }, 5000);
 
-            setSteps((prev) => [
-              ...prev,
-              {
-                ...data.item,
-                itemType: data.item.itemType as "task" | "reference" | "phase",
-              },
-            ]);
+            setSteps((prev) => {
+              if (prev.some((s) => s.id === data.item.id)) return prev;
+              return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+            });
             announce(`Step "${stepToDuplicate.content}" duplicated`);
           }
         } else {
@@ -1155,13 +1140,10 @@ export function TemplateEditor({
               recentlyAddedStepsRef.current.delete(responseData.item.id);
             }, 5000);
             
-            setSteps((prev) => [
-              ...prev,
-              {
-                ...responseData.item,
-                itemType: responseData.item.itemType as "task" | "reference" | "phase",
-              },
-            ]);
+            setSteps((prev) => {
+              if (prev.some((s) => s.id === responseData.item.id)) return prev;
+              return [...prev, { ...responseData.item, itemType: responseData.item.itemType as "task" | "reference" | "phase" }];
+            });
             setShowStepEditor(false);
           }
         }
@@ -1298,14 +1280,10 @@ export function TemplateEditor({
               recentlyAddedStepsRef.current.delete(data.item.id);
             }, 5000);
 
-            // Add to local state
-            setSteps((prev) => [
-              ...prev,
-              {
-                ...data.item,
-                itemType: data.item.itemType as "task" | "reference" | "phase",
-              },
-            ]);
+            setSteps((prev) => {
+              if (prev.some((s) => s.id === data.item.id)) return prev;
+              return [...prev, { ...data.item, itemType: data.item.itemType as "task" | "reference" | "phase" }];
+            });
 
             // Recursively add children if any
             if (item.children && item.children.length > 0) {

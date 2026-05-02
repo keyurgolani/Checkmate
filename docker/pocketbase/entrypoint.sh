@@ -3,7 +3,7 @@ set -e
 
 # PocketBase Entrypoint Script
 # Automatically creates superuser on first run
-# Schema is imported by the Next.js app on first connection
+# Demo user is seeded by the Next.js app after schema initialization
 
 PB_DATA_DIR="/pb/pb_data"
 SETUP_MARKER="$PB_DATA_DIR/.setup_complete"

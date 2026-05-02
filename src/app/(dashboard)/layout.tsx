@@ -3,6 +3,8 @@ import { getServerAuth } from "@/lib/server-auth";
 import { WorkspaceService } from "@/lib/services/workspace";
 import { getAuthCookie } from "@/lib/auth-cookies";
 
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_USER_EMAIL || "demo@checkmate.local";
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -18,11 +20,9 @@ export default async function DashboardLayout({
       }
     : null;
 
-  // Get auth data for client-side PocketBase hydration
   const authCookie = await getAuthCookie();
   const pbAuth = authCookie ? { token: authCookie.token, model: authCookie.model } : null;
 
-  // Fetch workspaces for authenticated users
   let workspaces: any[] = [];
   if (isAuthenticated) {
     try {
@@ -34,5 +34,7 @@ export default async function DashboardLayout({
     }
   }
 
-  return <AppLayout user={layoutUser} workspaces={workspaces} pbAuth={pbAuth}>{children}</AppLayout>;
+  const isDemo = isAuthenticated && user?.email === DEMO_EMAIL;
+
+  return <AppLayout user={layoutUser} workspaces={workspaces} pbAuth={pbAuth} isDemo={isDemo}>{children}</AppLayout>;
 }
