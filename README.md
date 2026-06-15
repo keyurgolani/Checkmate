@@ -7,6 +7,15 @@ A modern, enterprise-grade checklist application for creating, sharing, and trac
 [![PocketBase](https://img.shields.io/badge/PocketBase-0.25-blue)](https://pocketbase.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
+![CheckMate dashboard](docs/screenshots/02-dashboard.png)
+
+<p align="center">
+  <img src="docs/screenshots/03-template-editor.png" alt="Template editor with steps" width="49%" />
+  <img src="docs/screenshots/06-theme-studio.png" alt="Theme Studio customizer" width="49%" />
+</p>
+
+<p align="center"><strong>📸 <a href="SHOWCASE.md">See the full visual showcase »</a></strong> — templates, checklists, progress tracking, and theming.</p>
+
 ## Features
 
 - 📝 **Checklist Blueprints** - Create reusable checklist templates for any scenario
