@@ -56,11 +56,11 @@ The `blueprints`, `items`, `instances` and `instanceItems` collections, the `blu
 Theme Studio fonts ship with the app. Each web font in `src/lib/themes/font-themes.ts` has its latin-subset woff2 files, one `@font-face` stylesheet and its license under `public/fonts/<id>/`, and `scripts/fonts/manifest.json` records each file's source URL and SHA-256. Nothing fetches a font at build or run time.
 
 ```bash
-node scripts/fonts/fetch-fonts.mjs           # fetch the families in FAMILIES again and rewrite public/fonts and the manifest
+node scripts/fonts/fetch-fonts.mjs           # fetch the families in FAMILIES again; public/fonts and the manifest change only once every download succeeds
 node scripts/fonts/fetch-fonts.mjs --verify  # download every recorded file again and check it against the manifest
 ```
 
-The unit suite checks the committed files against the manifest offline.
+The unit suite checks the committed files against the manifest offline. `next.config.ts` serves `/fonts` with a one-day cache and a week of `stale-while-revalidate`, since the file names stay the same when a font is refetched.
 
 ## Continuous Integration
 

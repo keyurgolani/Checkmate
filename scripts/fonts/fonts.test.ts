@@ -8,7 +8,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import nextConfig from '../../next.config';
 import { fontThemes } from '../../src/lib/themes/font-themes';
 import { checkFontHosts, findFontHosts, offOriginLinks, offOriginUrls } from './check-font-hosts.mjs';
 import {
@@ -16,9 +17,12 @@ import {
   FAMILIES,
   FONTS_DIR,
   GOOGLE_FONTS_COMMIT,
+  MANIFEST_PATH,
   NEXT_FONT_USER_AGENT,
   REPO_ROOT,
+  STAGING_DIR,
   cssUrl,
+  fetchAll,
   fileNames,
   licenseUrl,
   mergeFaces,
@@ -49,6 +53,25 @@ const firstFamily = (stack: string) => stack.split(',')[0]!.trim().replace(/^(['
 const webFonts = Object.values(fontThemes).filter((font) => font.id !== 'system');
 /** An import of the loader that fetches from Google Fonts at build time. */
 const GOOGLE_LOADER = /(?:from|import|require\()\s*["']next\/font\/google["']/;
+
+const tempDirs: string[] = [];
+function tempDir(prefix: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+});
+
+/** Every file under a directory, relative to it. */
+function listFiles(root: string): string[] {
+  return fs
+    .readdirSync(root, { recursive: true, encoding: 'utf8' })
+    .filter((entry) => fs.statSync(path.join(root, entry)).isFile())
+    .map((entry) => entry.split(path.sep).join('/'))
+    .sort();
+}
 
 function filesUnder(dir: string): string[] {
   const absolute = path.join(REPO_ROOT, dir);
@@ -179,6 +202,12 @@ describe('vendored theme fonts', () => {
     }
   });
 
+  it('caches /fonts for a day with a week of stale reuse, since its file names are not hashed', async () => {
+    const rules = (await nextConfig.headers?.()) ?? [];
+    const fonts = rules.filter((rule) => rule.source === '/fonts/:path*');
+    expect(fonts.map((rule) => rule.headers)).toEqual([[{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }]]);
+  });
+
   it('names no third-party font host in the app source or public files', () => {
     const files = [...filesUnder('src'), ...filesUnder('public'), 'next.config.ts'].filter((file) => !/\.(?:woff2|png|ico)$/.test(file));
     const found = files.flatMap((file) => {
@@ -217,6 +246,51 @@ describe('fetch-fonts', () => {
     expect(fileNames('sample', range).get('https://fonts.gstatic.com/s/sample/v1/a.woff2')).toBe('sample-latin-wght-normal.woff2');
   });
 
+  /** css2, gstatic and google/fonts as fixtures. `version` changes every file's bytes, and a url matching `fails` errors. */
+  function fakeGoogle({ version = 1, fails }: { version?: number; fails?: RegExp } = {}) {
+    const calls: string[] = [];
+    const get = async (url: string) => {
+      calls.push(url);
+      if (fails?.test(url)) throw new Error(`fetch-fonts: could not download ${url}: HTTP 503`);
+      const family = /[?&]family=([^:&]+)/.exec(url)?.[1]?.replaceAll('+', ' ');
+      if (family) return Buffer.from(css.replaceAll('Sample', family).replaceAll('/sample/', `/${family.toLowerCase()}/`));
+      if (url.startsWith('https://fonts.gstatic.com/')) return Buffer.from(`wOF2 v${version} ${url}`);
+      if (url.endsWith('/OFL.txt')) return Buffer.from(`Copyright 2020 The Sample Project Authors, v${version}\n\nSIL OPEN FONT LICENSE Version 1.1\n`);
+      if (url.endsWith('/METADATA.pb')) return Buffer.from('source {\n  repository_url: "https://github.com/sample/sample"\n}\n');
+      throw new Error(`unexpected url ${url}`);
+    };
+    return { get, calls };
+  }
+  const specs = [
+    { id: 'sample', query: 'Sample:wght@400;700', license: 'ofl/sample/OFL.txt' },
+    { id: 'other', query: 'Other:wght@400;700', license: 'ofl/other/OFL.txt' },
+  ];
+  const hashes = (root: string) => Object.fromEntries(listFiles(root).map((file) => [file, sha256(fs.readFileSync(path.join(root, file)))]));
+
+  it('stages every family, then writes the families and the manifest together', async () => {
+    const root = tempDir('cm-fetch-fonts-');
+    const manifest = await fetchAll({ root, families: specs, get: fakeGoogle().get, log: () => {} });
+    expect(manifest.families.map((family) => family.id)).toEqual(['sample', 'other']);
+    expect(readManifest(root)).toEqual(manifest);
+    for (const family of manifest.families) {
+      for (const entry of family.files) expect(sha256(fs.readFileSync(path.join(root, entry.file))), entry.file).toBe(entry.sha256);
+      expect(fs.readFileSync(path.join(root, family.stylesheet), 'utf8')).toBe(renderStylesheet(family));
+    }
+    expect(listFiles(root)).toEqual([...manifest.families.flatMap((family) => [family.stylesheet, family.license.file, ...family.files.map((entry) => entry.file)]), MANIFEST_PATH].sort());
+  });
+
+  it('leaves public/fonts and the manifest as they were when a fetch fails partway', async () => {
+    const root = tempDir('cm-fetch-fonts-');
+    await fetchAll({ root, families: specs, get: fakeGoogle().get, log: () => {} });
+    const before = hashes(root);
+    // New bytes for every file, and the second family's last font fails after the first family downloaded.
+    const { get, calls } = fakeGoogle({ version: 2, fails: /\/other\/v1\/b\.woff2$/ });
+    await expect(fetchAll({ root, families: specs, get, log: () => {} })).rejects.toThrow(/could not download .*\/other\//);
+    expect(calls.filter((url) => url.includes('/sample/')).length).toBeGreaterThan(0);
+    expect(hashes(root)).toEqual(before);
+    expect(fs.existsSync(path.join(root, STAGING_DIR))).toBe(false);
+  });
+
   it('reads the upstream repository and commit from google/fonts metadata', () => {
     const metadata = 'name: "Sample"\nsource {\n  repository_url: "https://www.github.com/sample/sample"\n  commit: "66647c0bbbe41a850d79d9c76fb13add3378940f"\n  files {\n    source_file: "a.ttf"\n  }\n}\n';
     expect(parseUpstream(metadata)).toEqual({ repository: 'https://github.com/sample/sample', commit: '66647c0bbbe41a850d79d9c76fb13add3378940f' });
@@ -244,7 +318,7 @@ describe('check-font-hosts', () => {
   });
 
   function fakeBuild(files: Record<string, string>) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cm-font-hosts-'));
+    const root = tempDir('cm-font-hosts-');
     for (const [file, text] of Object.entries(files)) {
       fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       fs.writeFileSync(path.join(root, file), text);

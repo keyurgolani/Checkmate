@@ -15,6 +15,18 @@ const nextConfig: NextConfig = {
     // once on a new advisory. Dependency advisories are tracked with npm audit.
     agentUpgrade: false,
   },
+  // public/ files are served with max-age=0, so the theme fonts under /fonts
+  // would be revalidated on every load. Their names don't change when a font
+  // is refetched, so they get a day's cache and a week of stale reuse, not
+  // immutable.
+  async headers() {
+    return [
+      {
+        source: "/fonts/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
