@@ -81,8 +81,26 @@ describe('errorResponse', () => {
     const second = errorEnvelope('FORBIDDEN');
 
     expect(supplied.error.correlationId).toBe('req-1');
+    expect(errorEnvelope('FORBIDDEN', { correlationId: '0f8c2a1e:edge.7_b-9' }).error.correlationId).toBe('0f8c2a1e:edge.7_b-9');
     expect(first.error.correlationId).toMatch(UUID);
     expect(second.error.correlationId).not.toBe(first.error.correlationId);
+  });
+
+  it('replaces a malformed correlationId with a generated one', () => {
+    for (const correlationId of ['', ' req-1', 'req 1', '<script>', 'req-1\nSet-Cookie: x', '-leading', 'x'.repeat(129)]) {
+      expect(errorEnvelope('FORBIDDEN', { correlationId }).error.correlationId, JSON.stringify(correlationId)).toMatch(UUID);
+    }
+  });
+
+  it('sends a concealing code without the headers a caller slips past the types', () => {
+    const unchecked = errorResponse as (code: ErrorCode, options?: Record<string, unknown>) => Response;
+    const concealed = unchecked('NOT_FOUND', { headers: { 'X-Template-Owner': 'user-2' } });
+    const revoked = unchecked('CAPABILITY_INVALID', { headers: { 'Retry-After': '30' } });
+
+    expect(concealed.status).toBe(404);
+    expect(concealed.headers.get('X-Template-Owner')).toBeNull();
+    expect(revoked.headers.get('Retry-After')).toBeNull();
+    expect([...concealed.headers.keys()]).toEqual([...errorResponse('NOT_FOUND').headers.keys()]);
   });
 });
 
@@ -172,6 +190,8 @@ describe('types', () => {
       outcomeBody('NOT_FOUND');
       // @ts-expect-error The status comes from the registry.
       errorResponse('FORBIDDEN', { status: 404 });
+      // @ts-expect-error A concealing code takes no headers.
+      errorResponse('NOT_FOUND', { headers: { 'X-Template-Owner': 'user-2' } });
     }
 
     expectTypeOf(rejectedAtCompileTime).toBeFunction();

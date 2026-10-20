@@ -37,14 +37,18 @@ export interface ErrorEnvelope<C extends ErrorCode = ErrorCode> {
 export type FieldErrors = Record<string, string>;
 
 /**
- * Codes whose body never varies. A target the actor may not see answers
- * exactly like a missing one, so these ignore any message or details.
+ * Codes whose response never varies apart from `timestamp` and
+ * `correlationId`, so a route can answer a target the actor may not see the
+ * way it answers a missing one. These take no message, details or headers.
  */
 type ConcealingCode = 'NOT_FOUND' | 'CAPABILITY_INVALID';
 const CONCEALING: ReadonlySet<string> = new Set<ConcealingCode>(['NOT_FOUND', 'CAPABILITY_INVALID']);
 
+/** 1 to 128 letters, digits, `.`, `_`, `:` or `-`, starting with a letter or digit. */
+const CORRELATION_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+
 interface BaseOptions {
-  /** The request's correlation ID. Generated when absent. */
+  /** The request's correlation ID. A missing or malformed one is replaced with a generated UUID. */
   correlationId?: string;
 }
 
@@ -65,9 +69,16 @@ export interface ResponseOptions {
 }
 
 /** `VALIDATION_FAILED` must name its fields; every other code's options are optional. */
-type OptionsArgs<C extends ErrorCode, Extra = unknown> = C extends 'VALIDATION_FAILED'
-  ? [options: EnvelopeOptions<C> & Extra]
-  : [options?: EnvelopeOptions<C> & Extra];
+type OptionsArgs<C extends ErrorCode> = C extends 'VALIDATION_FAILED'
+  ? [options: EnvelopeOptions<C>]
+  : [options?: EnvelopeOptions<C>];
+
+/** As `OptionsArgs`, plus response headers for every code that doesn't conceal. */
+type ResponseArgs<C extends ErrorCode> = C extends ConcealingCode
+  ? [options?: EnvelopeOptions<C>]
+  : C extends 'VALIDATION_FAILED'
+    ? [options: EnvelopeOptions<C> & ResponseOptions]
+    : [options?: EnvelopeOptions<C> & ResponseOptions];
 
 interface LooseOptions extends MessageOptions, ResponseOptions {
   details?: Record<string, unknown>;
@@ -83,6 +94,10 @@ function specFor(code: string, kind: 'error' | 'outcome'): CodeSpec {
   return ERROR_CODES[code];
 }
 
+function correlationIdFrom(supplied: string | undefined): string {
+  return supplied !== undefined && CORRELATION_ID.test(supplied) ? supplied : crypto.randomUUID();
+}
+
 function buildEnvelope<C extends ErrorCode>(code: C, options: LooseOptions | undefined): ErrorEnvelope<C> {
   const spec = specFor(code, 'error');
   const concealed = CONCEALING.has(code);
@@ -95,7 +110,7 @@ function buildEnvelope<C extends ErrorCode>(code: C, options: LooseOptions | und
       message,
       ...(details !== undefined && { details }),
       timestamp: new Date().toISOString(),
-      correlationId: options?.correlationId || crypto.randomUUID(),
+      correlationId: correlationIdFrom(options?.correlationId),
     },
   };
 }
@@ -105,15 +120,18 @@ export function errorEnvelope<C extends ErrorCode>(code: C, ...[options]: Option
   return buildEnvelope(code, options as LooseOptions | undefined);
 }
 
-/** The envelope for `code`, sent with the code's registry status. */
+/**
+ * The envelope for `code`, sent with the code's registry status. Concealing
+ * codes drop any message, details or headers a caller slips past the types.
+ */
 export function errorResponse<C extends ErrorCode>(
   code: C,
-  ...[options]: OptionsArgs<C, ResponseOptions>
+  ...[options]: ResponseArgs<C>
 ): NextResponse<ErrorEnvelope<C>> {
   const loose = options as LooseOptions | undefined;
   return NextResponse.json(buildEnvelope(code, loose), {
     status: ERROR_CODES[code].status,
-    headers: loose?.headers,
+    headers: CONCEALING.has(code) ? undefined : loose?.headers,
   });
 }
 
