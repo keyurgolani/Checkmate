@@ -16,7 +16,8 @@ import {
 } from './progress-cases';
 
 function progressOf(steps: readonly ProgressStep[]): Progress {
-  const parents = new Set(steps.map((step) => step.parent));
+  // Excluded and retired steps aren't in the run, so they never make their parent a container.
+  const parents = new Set(steps.filter((step) => step.inclusion === 'included').map((step) => step.parent));
   const executable = steps.filter(
     (step) =>
       step.inclusion === 'included' &&
@@ -33,13 +34,16 @@ function progressOf(steps: readonly ProgressStep[]): Progress {
 
 function outcomeOf(testCase: RunCompletionCase): { progress: Progress; run: RunOutcome } {
   const { change } = testCase;
+  const before = testCase.steps.find((step) => step.id === change?.stepId);
   const steps = testCase.steps.map((step) =>
     change !== undefined && step.id === change.stepId
       ? { ...step, state: change.state ?? step.state, inclusion: change.inclusion ?? step.inclusion }
       : step,
   );
   const progress = progressOf(steps);
-  if (change?.state === 'completed' && progress.complete) return { progress, run: 'completes' };
+  // Only a step that actually moves to completed can complete the run; a re-sent completed is unchanged.
+  const movedToCompleted = change?.state === 'completed' && before?.state !== 'completed';
+  if (movedToCompleted && progress.complete) return { progress, run: 'completes' };
   return { progress, run: progress.done === progress.executable ? 'offers-complete' : 'stays-open' };
 }
 
@@ -48,12 +52,23 @@ const ALL_CASES: readonly { id: string; steps: readonly ProgressStep[] }[] = [..
 describe('progress cases', () => {
   it('covers every case #29 names', () => {
     const ids = PROGRESS_CASES.map((testCase) => testCase.id);
-    for (const id of ['199-of-200', 'zero-executable', 'childless-reference', 'excluded', 'excepted', 'awaiting-approval', 'invalidated']) {
+    for (const id of [
+      '199-of-200',
+      'zero-executable',
+      'childless-reference',
+      'reference-with-excluded-children',
+      'reference-with-retired-children',
+      'excluded',
+      'excepted',
+      'awaiting-approval',
+      'invalidated',
+    ]) {
       expect(ids).toContain(id);
     }
     const runIds = RUN_COMPLETION_CASES.map((testCase) => testCase.id);
-    expect(runIds).toContain('last-completed-completes-run');
-    expect(runIds).toContain('last-excepted-offers-complete');
+    for (const id of ['last-completed-completes-run', 'last-excepted-offers-complete', 'resent-completed-is-unchanged']) {
+      expect(runIds).toContain(id);
+    }
   });
 
   it('uses unique case ids, unique step ids, and parents that exist', () => {
@@ -113,7 +128,10 @@ describe('run completion cases', () => {
 
   it('never completes a run unless the change moves a step to completed', () => {
     for (const testCase of RUN_COMPLETION_CASES) {
-      if (testCase.expected.run === 'completes') expect(testCase.change?.state, testCase.id).toBe('completed');
+      if (testCase.expected.run !== 'completes') continue;
+      expect(testCase.change?.state, testCase.id).toBe('completed');
+      expect(testCase.steps.find((step) => step.id === testCase.change?.stepId)?.state, testCase.id).not.toBe('completed');
     }
+    expect(RUN_COMPLETION_CASES.find((testCase) => testCase.id === 'resent-completed-is-unchanged')?.expected.run).toBe('offers-complete');
   });
 });

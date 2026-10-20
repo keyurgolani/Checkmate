@@ -1,10 +1,12 @@
 /**
  * CHECKMATE-01.1 (#29): the cases 05.2's `computeRunProgress` must pass.
- * 05.2 slice 1 is the only implementation of these rules:
+ * That function is the only implementation of these rules:
  *
  * 1. An executable step is an `included` run step whose kind is `checkable`,
- *    or `checkable-when-childless` and without child steps (05.1's completion
- *    classes). Sections and include containers never count.
+ *    or `checkable-when-childless` with no included child steps (05.1's
+ *    completion classes). Excluded and retired steps aren't in the run, so a
+ *    legacy reference left with only those children is checkable itself.
+ *    Sections and include containers never count.
  * 2. Done is `completed` or `excepted`.
  * 3. Progress is done over executable, rounded down. It is 0 when nothing is
  *    executable.
@@ -14,7 +16,8 @@
  * A run completes by itself only in the transaction where a step moves to
  * `completed` and done reaches executable. When excepting, excluding or an
  * upgrade brings done to executable, or the run has no executable steps, the
- * run offers `CompleteRun` instead.
+ * run offers `CompleteRun` instead. A change that leaves a step's state as it
+ * was is `unchanged`, with no write or event, and never completes the run.
  */
 import type { StepInclusion, StepState } from './lifecycles';
 
@@ -148,6 +151,25 @@ export const PROGRESS_CASES: readonly ProgressCase[] = [
     expected: { executable: 2, done: 1, percentage: 50, complete: false },
   },
   {
+    id: 'reference-with-excluded-children',
+    description: 'A legacy reference whose only child is excluded has nothing left in the run, so it counts as one executable step.',
+    steps: [
+      step('reference', 'checkable-when-childless'),
+      step('a', 'checkable', 'pending', { parent: 'reference', inclusion: 'excluded' }),
+      step('b', 'checkable', 'completed'),
+    ],
+    expected: { executable: 2, done: 1, percentage: 50, complete: false },
+  },
+  {
+    id: 'reference-with-retired-children',
+    description: 'A legacy reference whose only child is retired counts as one executable step, and the retired step never counts.',
+    steps: [
+      step('reference', 'checkable-when-childless', 'completed'),
+      step('a', 'checkable', 'completed', { parent: 'reference', inclusion: 'retired' }),
+    ],
+    expected: { executable: 1, done: 1, percentage: 100, complete: true },
+  },
+  {
     id: 'instruction',
     description: 'An instruction has nothing to check off and never counts.',
     steps: [step('note', 'none'), step('a', 'checkable', 'completed')],
@@ -225,6 +247,14 @@ export const RUN_COMPLETION_CASES: readonly RunCompletionCase[] = [
     description: 'A run with no executable steps offers CompleteRun.',
     steps: [step('section', 'container')],
     expected: { progress: { executable: 0, done: 0, percentage: 0, complete: false }, run: 'offers-complete' },
+  },
+  {
+    id: 'resent-completed-is-unchanged',
+    description:
+      'After ReopenRun every step can still be done. Sending completed again for one of them is unchanged, so the run stays open and offers CompleteRun.',
+    steps: [step('a', 'checkable', 'completed'), step('b', 'checkable', 'completed')],
+    change: { stepId: 'b', state: 'completed' },
+    expected: { progress: { executable: 2, done: 2, percentage: 100, complete: true }, run: 'offers-complete' },
   },
   {
     id: 'completed-with-work-left',
