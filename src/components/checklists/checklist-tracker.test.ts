@@ -90,12 +90,12 @@ describe('ChecklistTracker step toggle', () => {
     fireEvent.click(checkbox('Unlock the doors'));
     await settle();
 
-    expect(onToggleTask).toHaveBeenCalledWith('step-1');
+    expect(onToggleTask).toHaveBeenCalledWith('step-1', undefined);
     expect(liveRegion().textContent).toBe('');
     expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
   });
 
-  it('retries the same step and clears the error once the server confirms', async () => {
+  it('retries toward the state the failed toggle aimed for and clears the error once confirmed', async () => {
     const onToggleTask = vi
       .fn<OnToggleTask>()
       .mockRejectedValueOnce(new Error('Toggle failed with status 503'))
@@ -107,7 +107,9 @@ describe('ChecklistTracker step toggle', () => {
 
     await waitFor(() => expect(liveRegion().textContent).toBe('Unlock the doors marked as complete'));
     expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
-    expect(onToggleTask.mock.calls).toEqual([['step-1'], ['step-1']]);
+    expect(onToggleTask).toHaveBeenCalledTimes(2);
+    expect(onToggleTask.mock.calls[0]).toEqual(['step-1', undefined]);
+    expect(onToggleTask.mock.calls[1]).toEqual(['step-1', true]);
   });
 
   it('gives focus back to the step when a retry is confirmed', async () => {
@@ -126,19 +128,35 @@ describe('ChecklistTracker step toggle', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Unlock the doors' }));
   });
 
-  it('drops the error once the step reaches that state another way', async () => {
+  it('drops the error for good once the step reaches that state another way', async () => {
     const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
     const { rerender } = renderTracker(onToggleTask);
 
     fireEvent.click(checkbox('Unlock the doors'));
     await retryButton();
 
-    // A realtime update or the bulk bar completes the step.
+    // Bulk Mark Complete or a realtime update completes the step...
     const completed = [{ ...STEPS[0]!, isCompleted: true }, STEPS[1]!];
     rerender(createElement(ChecklistTracker, { tasks: completed, onToggleTask }));
+    expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
 
+    // ...then bulk Mark Incomplete unchecks it. Nothing new failed.
+    rerender(createElement(ChecklistTracker, { tasks: STEPS.map((step) => ({ ...step })), onToggleTask }));
     expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
     expect(screen.queryByText("Couldn't mark this step complete.")).toBeNull();
+  });
+
+  it('forgets the error once the step leaves the run', async () => {
+    const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
+    const { rerender } = renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    await retryButton();
+
+    rerender(createElement(ChecklistTracker, { tasks: [STEPS[1]!], onToggleTask }));
+    rerender(createElement(ChecklistTracker, { tasks: STEPS.map((step) => ({ ...step })), onToggleTask }));
+
+    expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
   });
 
   it('keeps Retry from sending while steps are being selected', async () => {
@@ -165,7 +183,7 @@ describe('ChecklistTracker step toggle', () => {
 
     expect(await retryButton()).toBeTruthy();
     await settle();
-    expect(onToggleTask).toHaveBeenCalledWith('step-2');
+    expect(onToggleTask).toHaveBeenCalledWith('step-2', undefined);
     expect(liveRegion().textContent).toBe('');
   });
 });

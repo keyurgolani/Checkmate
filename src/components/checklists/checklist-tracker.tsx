@@ -56,8 +56,11 @@ export interface ChecklistTrackerProps {
    * Sends one step's toggle. Resolve with the state the server confirmed, or
    * null when nothing was sent; reject when the toggle failed. The tracker
    * announces only confirmed changes and shows Retry under a failed step.
+   * The next toggle of a failed step passes `retryTarget`, the state the
+   * failed toggle aimed for, so the page can check whether the step was
+   * saved before it sends another flip.
    */
-  onToggleTask: (taskId: string) => Promise<ToggleConfirmation | null>;
+  onToggleTask: (taskId: string, retryTarget?: boolean) => Promise<ToggleConfirmation | null>;
   disabled?: boolean;
   /**
    * Context menu items for task items. The tracker puts Mark Complete or
@@ -122,6 +125,27 @@ function Checkbox({ checked, onChange, disabled, loading, id, describedBy }: Che
 // ============================================================================
 
 type ToggleAttempt = "complete" | "incomplete";
+
+/**
+ * Drops the failures that no longer apply: the step left the run, or it
+ * reached the state it was aiming for some other way, such as a realtime
+ * update or the bulk bar. Returns the same map when nothing changed.
+ */
+function pruneFailedToggles(
+  failures: Map<string, ToggleAttempt>,
+  tasks: ChecklistTask[]
+): Map<string, ToggleAttempt> {
+  let pruned = failures;
+  for (const [taskId, attempted] of failures) {
+    const task = tasks.find((t) => t.id === taskId);
+    const reachedTarget = task !== undefined && task.isCompleted === (attempted === "complete");
+    if (task === undefined || reachedTarget) {
+      if (pruned === failures) pruned = new Map(failures);
+      pruned.delete(taskId);
+    }
+  }
+  return pruned;
+}
 
 interface ToggleErrorProps {
   id: string;
@@ -216,11 +240,7 @@ function TreeItem({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedTasks.has(node.id);
   const isLoading = loadingTasks.has(node.id);
-  // A failure stops applying once the step reaches the state it was aiming
-  // for some other way, such as a realtime update or the bulk bar.
-  const recordedFailure = failedToggles.get(node.id);
-  const failedToggle =
-    recordedFailure && node.isCompleted === (recordedFailure === "incomplete") ? recordedFailure : undefined;
+  const failedToggle = failedToggles.get(node.id);
   const toggleErrorId = `toggle-error-${node.id}`;
   // Where focus returns when a confirmed retry removes the error.
   const stepFocusRef = useRef<HTMLElement | null>(null);
@@ -827,6 +847,15 @@ export function ChecklistTracker({
 
   const [failedToggles, setFailedToggles] = useState<Map<string, ToggleAttempt>>(() => new Map());
 
+  // Prune failures whenever the steps change, during render rather than in an
+  // effect, so a failure that stopped applying can't come back later.
+  const [prunedForTasks, setPrunedForTasks] = useState(tasks);
+  if (prunedForTasks !== tasks) {
+    setPrunedForTasks(tasks);
+    const pruned = pruneFailedToggles(failedToggles, tasks);
+    if (pruned !== failedToggles) setFailedToggles(pruned);
+  }
+
   const { message: statusMessage, politeness, announce } = useStatusAnnouncer();
 
   // Build tree structure from flat tasks
@@ -840,9 +869,12 @@ export function ChecklistTracker({
       const task = tasks.find(t => t.id === taskId);
       if (!task || disabled) return;
       const attempted: ToggleAttempt = task.isCompleted ? "incomplete" : "complete";
+      // A failed toggle may still have saved the step, so its retry tells the
+      // page which state it is aiming for.
+      const retryTarget = failedToggles.has(taskId) ? !task.isCompleted : undefined;
       setLoadingTasks((prev) => new Set(prev).add(taskId));
       try {
-        const confirmed = await onToggleTask(taskId);
+        const confirmed = await onToggleTask(taskId, retryTarget);
         if (confirmed) {
           setFailedToggles((prev) => {
             if (!prev.has(taskId)) return prev;
@@ -862,7 +894,7 @@ export function ChecklistTracker({
         });
       }
     },
-    [onToggleTask, tasks, disabled, announce]
+    [onToggleTask, tasks, disabled, failedToggles, announce]
   );
 
   // The menu's Mark Complete goes through handleToggle, like the checkbox.

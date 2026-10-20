@@ -187,12 +187,44 @@ export function ChecklistDetailClient({
   // null when another toggle is in flight; rejects when the toggle fails, so
   // the tracker shows Retry and announces nothing.
   const handleToggleTask = useCallback(
-    async (taskId: string): Promise<ToggleConfirmation | null> => {
+    async (taskId: string, retryTarget?: boolean): Promise<ToggleConfirmation | null> => {
       if (isToggling) return null;
 
       setIsToggling(true);
+      // Logged when the toggle fails: the status and step id, never step content.
+      let status: number | null = null;
 
       try {
+        // A toggle can save the step and then fail on the run's progress, so
+        // a retry reads the saved step first instead of flipping it back.
+        if (retryTarget !== undefined) {
+          const read = await fetch(`/api/checklists/${checklist.id}?includeItems=true`);
+          status = read.status;
+          if (!read.ok) {
+            throw new Error(`Run read failed with status ${read.status}`);
+          }
+
+          const { checklistItems } = await read.json();
+          const saved = checklistItems?.find(
+            (item: { id: string; isCompleted: boolean; completedAt: string | null }) => item.id === taskId
+          );
+          if (!saved) {
+            throw new Error("Run read did not include the step");
+          }
+
+          if (saved.isCompleted === retryTarget) {
+            setTasks((prevTasks) =>
+              prevTasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, isCompleted: saved.isCompleted, completedAt: saved.completedAt }
+                  : task
+              )
+            );
+            return { isCompleted: saved.isCompleted };
+          }
+        }
+
+        status = null;
         const response = await fetch(
           `/api/checklists/${checklist.id}/items/${taskId}/toggle`,
           {
@@ -202,6 +234,7 @@ export function ChecklistDetailClient({
             },
           }
         );
+        status = response.status;
 
         if (!response.ok) {
           throw new Error(`Toggle failed with status ${response.status}`);
@@ -247,6 +280,9 @@ export function ChecklistDetailClient({
         }
 
         throw new Error("Toggle response did not include the step");
+      } catch (error) {
+        console.error("Step toggle failed", { stepId: taskId, status });
+        throw error;
       } finally {
         setIsToggling(false);
       }
