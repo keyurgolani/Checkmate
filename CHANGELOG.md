@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- "Sync with Template" from the run list menu, the run list bulk bar, and the dashboard menu. It reported success without changing the run (#49).
+- `POST /api/checklists/[id]/sync` now answers `410 Gone` with code `RUN_SYNC_REMOVED` to every signed-in caller. Anonymous callers still get `401`.
+- The `isSynced` field from run API responses (`GET` and `POST /api/checklists`, `GET` and `PUT /api/checklists/[id]`), and the "Modified" run badge that read it. New runs no longer write it. The database column stays until a later migration drops it; the forthcoming migration map (#31) lists it under `MAP:case:never-written`.
+
 ## [1.0.0] - 2025-01-15
 
 ### Added
