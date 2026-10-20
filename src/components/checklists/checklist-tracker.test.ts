@@ -146,6 +146,46 @@ describe('ChecklistTracker step toggle', () => {
     expect(screen.queryByText("Couldn't mark this step complete.")).toBeNull();
   });
 
+  it('retries the failed attempt even when the step now shows that state', async () => {
+    const onToggleTask = vi
+      .fn<OnToggleTask>()
+      .mockRejectedValueOnce(new Error('Toggle failed with status 500'))
+      .mockResolvedValueOnce({ isCompleted: true });
+    const { rerender } = renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    await retryButton();
+
+    // Unchecking another step re-renders the run without touching this one.
+    const otherChanged = [STEPS[0]!, { ...STEPS[1]!, isCompleted: true }];
+    rerender(createElement(ChecklistTracker, { tasks: otherChanged, onToggleTask }));
+    fireEvent.click(await retryButton());
+
+    await waitFor(() => expect(onToggleTask).toHaveBeenCalledTimes(2));
+    expect(onToggleTask.mock.calls[1]).toEqual(['step-1', true]);
+  });
+
+  it('records no failure when the step was saved before the toggle failed', async () => {
+    let rejectToggle: (error: Error) => void = () => {};
+    const onToggleTask = vi.fn<OnToggleTask>().mockImplementationOnce(
+      () => new Promise((_, reject) => { rejectToggle = reject; })
+    );
+    const { rerender } = renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    // The realtime update for the saved step arrives first...
+    const completed = [{ ...STEPS[0]!, isCompleted: true }, STEPS[1]!];
+    rerender(createElement(ChecklistTracker, { tasks: completed, onToggleTask }));
+    // ...then the route fails on the run's progress.
+    await act(async () => rejectToggle(new Error('Toggle failed with status 500')));
+    await settle();
+
+    expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
+    expect(screen.queryByText("Couldn't mark this step complete.")).toBeNull();
+    expect(liveRegion().textContent).toBe('');
+    expect(checkbox('Unlock the doors').getAttribute('aria-checked')).toBe('true');
+  });
+
   it('forgets the error once the step leaves the run', async () => {
     const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
     const { rerender } = renderTracker(onToggleTask);

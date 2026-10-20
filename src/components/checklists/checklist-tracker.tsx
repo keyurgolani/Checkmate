@@ -846,6 +846,12 @@ export function ChecklistTracker({
 
 
   const [failedToggles, setFailedToggles] = useState<Map<string, ToggleAttempt>>(() => new Map());
+  // The steps as of the latest render, so a toggle that fails after a
+  // realtime update already saved its step doesn't record a stale failure.
+  const latestTasks = useRef(tasks);
+  useLayoutEffect(() => {
+    latestTasks.current = tasks;
+  }, [tasks]);
 
   // Prune failures whenever the steps change, during render rather than in an
   // effect, so a failure that stopped applying can't come back later.
@@ -868,10 +874,12 @@ export function ChecklistTracker({
     async (taskId: string) => {
       const task = tasks.find(t => t.id === taskId);
       if (!task || disabled) return;
-      const attempted: ToggleAttempt = task.isCompleted ? "incomplete" : "complete";
-      // A failed toggle may still have saved the step, so its retry tells the
-      // page which state it is aiming for.
-      const retryTarget = failedToggles.has(taskId) ? !task.isCompleted : undefined;
+      // A failed toggle may still have saved the step, so the next toggle
+      // retries the state that failed attempt aimed for, whatever the step
+      // shows now, and tells the page so it can check before flipping.
+      const recorded = failedToggles.get(taskId);
+      const attempted: ToggleAttempt = recorded ?? (task.isCompleted ? "incomplete" : "complete");
+      const retryTarget = recorded === undefined ? undefined : recorded === "complete";
       setLoadingTasks((prev) => new Set(prev).add(taskId));
       try {
         const confirmed = await onToggleTask(taskId, retryTarget);
@@ -885,7 +893,11 @@ export function ChecklistTracker({
           announce(`${task.content} marked as ${confirmed.isCompleted ? "complete" : "incomplete"}`);
         }
       } catch {
-        setFailedToggles((prev) => new Map(prev).set(taskId, attempted));
+        const latest = latestTasks.current.find((t) => t.id === taskId);
+        const alreadySaved = latest !== undefined && latest.isCompleted === (attempted === "complete");
+        if (!alreadySaved) {
+          setFailedToggles((prev) => new Map(prev).set(taskId, attempted));
+        }
       } finally {
         setLoadingTasks((prev) => {
           const next = new Set(prev);
