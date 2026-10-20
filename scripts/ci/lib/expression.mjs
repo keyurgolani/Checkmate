@@ -76,7 +76,9 @@ export function parse(source) {
     let node = { type: 'context', name: token.value };
     while (isOperator('.', '[')) {
       if (next().value === '.') {
-        node = { type: 'property', object: node, key: { type: 'literal', value: expect('ident').value } };
+        // `.*` is an object filter, e.g. `github.event.commits.*.message`.
+        const key = isOperator('*') ? (next(), { type: 'wildcard' }) : { type: 'literal', value: expect('ident').value };
+        node = { type: 'property', object: node, key };
       } else {
         const key = or();
         expect('op', ']');
@@ -110,6 +112,7 @@ export function evaluate(node, context) {
     case 'context':
       return lookup(context, node.name);
     case 'property':
+      if (node.key.type === 'wildcard') throw new SyntaxError('object filters (.*) are not supported here');
       return lookup(evaluate(node.object, context), evaluate(node.key, context));
     case 'not':
       return !truthy(evaluate(node.operand, context));
@@ -216,7 +219,7 @@ function tokenize(source) {
       index += space[0].length;
       continue;
     }
-    const operator = /^(==|!=|<=|>=|&&|\|\||[!<>()[\].,])/.exec(rest);
+    const operator = /^(==|!=|<=|>=|&&|\|\||[!<>()[\].,*])/.exec(rest);
     if (operator) {
       tokens.push({ type: 'op', value: operator[0] });
       index += operator[0].length;

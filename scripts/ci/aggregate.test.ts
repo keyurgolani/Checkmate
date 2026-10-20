@@ -17,7 +17,8 @@ function needs(overrides: Record<string, Need> = {}): Record<string, Need> {
   return { ...all, ...overrides };
 }
 
-const verdict = (overrides?: Record<string, Need>) => judge({ needs: needs(overrides), config });
+const verdict = (overrides?: Record<string, Need>, event = 'pull_request') => judge({ needs: needs(overrides), config, event });
+const allSkipped = Object.fromEntries(SCOPED.map((job) => [job, { result: 'skipped', outputs: {} }]));
 const row = (result: ReturnType<typeof judge>, job: string) => result.rows.find((candidate: { job: string }) => candidate.job === job);
 
 describe('aggregate', () => {
@@ -58,6 +59,20 @@ describe('aggregate', () => {
     expect(row(result, 'unit')).toMatchObject({ pass: false, failureClass: 'timeout' });
   });
 
+  it('fails every scoped job when scope succeeds without outputs', () => {
+    // As after renaming the step id that scope's outputs read.
+    const result = verdict({ scope: { result: 'success', outputs: {} }, ...allSkipped });
+    expect(result.failed.map((failed) => failed.job)).toEqual(SCOPED);
+    expect(row(result, 'backend')?.note).toBe('skipped, and scope gave no answer for it');
+  });
+
+  it('needs every job on a push, whatever scope says', () => {
+    const noJobs = Object.fromEntries(SCOPED.map((job) => [job, 'false']));
+    const result = verdict({ scope: { result: 'success', outputs: { ...noJobs, base: 'b45e', reasons: '{}' } }, ...allSkipped }, 'push');
+    expect(result.failed.map((failed) => failed.job)).toEqual(SCOPED);
+    expect(row(result, 'images')?.note).toBe('skipped on a push run, which must run every job');
+  });
+
   it('expects every job when scope did not finish', () => {
     const result = verdict({
       scope: { result: 'failure', outputs: { failure_class: 'infra' } },
@@ -69,7 +84,7 @@ describe('aggregate', () => {
   it('fails when a job is missing from needs', () => {
     const all = needs();
     delete all.backend;
-    expect(row(judge({ needs: all, config }), 'backend')).toMatchObject({ pass: false, failureClass: 'gate' });
+    expect(row(judge({ needs: all, config, event: 'pull_request' }), 'backend')).toMatchObject({ pass: false, failureClass: 'gate' });
   });
 
   it('gives a fresh-clone repro command for pull requests and pushes', () => {

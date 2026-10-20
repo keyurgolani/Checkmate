@@ -33,6 +33,70 @@ describe('check-workflow', () => {
     expect(problems()).toContain("ci.yml: job unit reads secrets; only ci.yml's publish job and the job it calls may");
   });
 
+  it('flags an environment and toJSON(secrets) in a pull request job', () => {
+    ci().jobs.unit.environment = 'release';
+    ci().jobs.unit.steps.push({ run: 'echo "$ALL"', env: { ALL: '${{ toJSON(secrets) }}' } });
+    expect(problems()).toEqual(
+      expect.arrayContaining([
+        "ci.yml: job unit reads secrets; only ci.yml's publish job and the job it calls may",
+        "ci.yml: job unit declares an environment; only the job ci.yml's publish job calls may",
+      ]),
+    );
+  });
+
+  it.each([
+    ["${{ github['token'] }}", 'reads github.token'],
+    ['${{ github.TOKEN }}', 'reads github.token'],
+    ['${{ toJSON(github) }}', 'reads github.token'],
+    ['${{ github[matrix.key] }}', 'reads github.token'],
+    ["${{ join(github.*, ',') }}", 'reads github.token'],
+    ["${{ join(secrets.*, ',') }}", 'reads secrets'],
+    ["${{ secrets['DOCKERHUB_TOKEN'] }}", 'reads secrets'],
+    ['prefix-${{ format(\'{0}\', secrets.DOCKERHUB_TOKEN) }}', 'reads secrets'],
+  ])('flags %s in a pull request job', (expression, what) => {
+    ci().jobs.lint.steps.push({ run: 'true', env: { VALUE: expression } });
+    expect(problems()).toContain(`ci.yml: job lint ${what}; only ci.yml's publish job and the job it calls may`);
+  });
+
+  it('reads a bare if: condition as an expression', () => {
+    ci().jobs.build.steps.push({ if: "secrets.DOCKERHUB_TOKEN != ''", run: 'true' });
+    expect(problems()).toContain("ci.yml: job build reads secrets; only ci.yml's publish job and the job it calls may");
+  });
+
+  it("fails an expression it can't parse instead of trusting it", () => {
+    ci().jobs.build.steps.push({ run: 'echo "${{ secrets.X =~ 1 }}"' });
+    expect(problems()).toContain('ci.yml: job build has an expression this check can\'t parse: `secrets.X =~ 1`');
+  });
+
+  it('flags secrets in workflow-level concurrency', () => {
+    ci().concurrency.group = '${{ toJSON(secrets) }}';
+    expect(problems()).toContain('ci.yml: workflow-level settings must not read secrets or the token');
+  });
+
+  it('flags continue-on-error on a job or step that aggregate needs', () => {
+    ci().jobs.backend['continue-on-error'] = true;
+    ci().jobs.unit.steps[2]['continue-on-error'] = '${{ github.event_name == \'pull_request\' }}';
+    expect(problems()).toEqual(
+      expect.arrayContaining([
+        'ci.yml: job backend sets continue-on-error, which hides its failures from aggregate',
+        'ci.yml: a step in job unit sets continue-on-error, which hides its failures from aggregate',
+      ]),
+    );
+  });
+
+  it('flags another job that would answer to the aggregate check name', () => {
+    called().jobs.publish.name = 'aggregate';
+    ci().jobs.lint.name = 'Aggregate';
+    ci().jobs.aggregate.name = 'All checks';
+    expect(problems()).toEqual(
+      expect.arrayContaining([
+        'publish-images.yml: job publish is named aggregate, which would also satisfy the required check',
+        'ci.yml: job lint is named aggregate, which would also satisfy the required check',
+        'ci.yml: aggregate must keep the check name aggregate',
+      ]),
+    );
+  });
+
   it('flags a write permission outside publish', () => {
     ci().jobs.build.permissions = { contents: 'write' };
     expect(problems()).toContain("ci.yml: job build has write permissions; only ci.yml's publish job and the job it calls may");
@@ -48,7 +112,7 @@ describe('check-workflow', () => {
 
   it('flags secrets in workflow-level env', () => {
     ci().env.HUB_USER = '${{ secrets.DOCKERHUB_USERNAME }}';
-    expect(problems()).toContain('ci.yml: workflow-level env must not read secrets');
+    expect(problems()).toContain('ci.yml: workflow-level settings must not read secrets or the token');
   });
 
   it('flags a publish condition that drops the PUBLISH_FROM_NEXT gate', () => {

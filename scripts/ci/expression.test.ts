@@ -31,6 +31,11 @@ describe('expression', () => {
     expect(evaluateJobIf("vars.UNSET == 'true'", context())).toBe(false);
   });
 
+  it('parses an object filter but does not evaluate one', () => {
+    expect(() => parse('github.event.commits.*.message')).not.toThrow();
+    expect(() => evaluateJobIf("github.event.commits.*.message == 'x'", context())).toThrow('object filters');
+  });
+
   it('rejects syntax it does not support', () => {
     expect(() => parse("github.ref =~ 'refs/tags/'")).toThrow(SyntaxError);
     expect(() => parse("format('{0}', github.ref) == 'x'")).not.toThrow();

@@ -21,8 +21,10 @@ on:
 permissions:
   contents: read
 
+# A new commit cancels a pull request's older run. Pushes never share a group,
+# so a branch push can't displace a pending tag run of the same commit.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.sha }}
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-push-{0}-{1}', github.ref, github.sha) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -196,6 +198,7 @@ jobs:
           node-version-file: .nvmrc
       - env:
           NEEDS: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
           REPOSITORY: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
           SHA: ${{ github.sha }}
@@ -209,8 +212,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    # Tag publishes share one group, so they run one at a time and none stops
+    # midway. publish-images.yml checks for a higher tag before moving latest.
     concurrency:
-      group: publish-${{ github.ref }}
+      group: ${{ github.ref_type == 'tag' && 'publish-tags' || format('publish-{0}', github.ref) }}
       cancel-in-progress: false
     uses: ./.github/workflows/publish-images.yml
     secrets:

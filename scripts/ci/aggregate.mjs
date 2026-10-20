@@ -4,8 +4,8 @@
  * job and writes a table with each job's result, failure class and a
  * fresh-clone repro command, or the path rule that skipped it.
  *
- * Env (from ci.yml): NEEDS = toJSON(needs), REPOSITORY, SERVER_URL, SHA, and
- * PR_NUMBER and PR_HEAD_SHA on pull requests.
+ * Env (from ci.yml): NEEDS = toJSON(needs), EVENT_NAME, REPOSITORY,
+ * SERVER_URL, SHA, and PR_NUMBER and PR_HEAD_SHA on pull requests.
  */
 
 import { appendSummary, cell, isMain, loadScopeConfig } from './lib/actions.mjs';
@@ -15,19 +15,22 @@ import { appendSummary, cell, isMain, loadScopeConfig } from './lib/actions.mjs'
  */
 
 /**
- * One row per job in .github/ci-scope.json.
- * @param {{ needs: Record<string, any>, config: any }} input
+ * One row per job in .github/ci-scope.json. Only a pull request may skip a
+ * job, and only when scope says `false` for it; a missing output, a failed
+ * scope or any other event means the job had to run.
+ * @param {{ needs: Record<string, any>, config: any, event: string | undefined }} input
  * @returns {{ rows: Row[], failed: Row[] }}
  */
-export function judge({ needs, config }) {
+export function judge({ needs, config, event }) {
   const scope = needs.scope;
   const scopeRan = scope?.result === 'success';
   const reasons = scopeRan ? JSON.parse(scope.outputs?.reasons || '{}') : {};
+  const mayScope = event === 'pull_request' && scopeRan;
 
   const rows = Object.entries(config.jobs).map(([job, meta]) => {
     const need = needs[job];
     if (!need) return { job, result: 'missing', pass: false, failureClass: 'gate', note: 'not in the aggregate job\'s needs' };
-    const expected = meta.always === true || !scopeRan || scope.outputs?.[job] === 'true';
+    const expected = meta.always === true || !mayScope || scope.outputs?.[job] !== 'false';
     const recorded = need.outputs?.failure_class;
 
     switch (need.result) {
@@ -35,7 +38,7 @@ export function judge({ needs, config }) {
         return { job, result: 'success', pass: true };
       case 'skipped':
         if (!expected) return { job, result: 'skipped', pass: true, note: `skipped: ${reasons[job] ?? 'not needed for this change'}` };
-        return { job, result: 'skipped', pass: false, failureClass: 'infra', note: scopeRan ? 'skipped although the scope needed it' : 'skipped because scope did not finish' };
+        return { job, result: 'skipped', pass: false, failureClass: 'infra', note: wrongSkip(job, { scopeRan, event, outputs: scope?.outputs }) };
       case 'cancelled':
         return { job, result: 'cancelled', pass: false, failureClass: recorded === 'timeout' ? 'timeout' : 'cancelled' };
       case 'failure':
@@ -46,6 +49,13 @@ export function judge({ needs, config }) {
     }
   });
   return { rows, failed: rows.filter((row) => !row.pass) };
+}
+
+function wrongSkip(job, { scopeRan, event, outputs }) {
+  if (!scopeRan) return 'skipped because scope did not finish';
+  if (event !== 'pull_request') return `skipped on a ${event ?? 'non-pull-request'} run, which must run every job`;
+  if (outputs?.[job] === undefined) return 'skipped, and scope gave no answer for it';
+  return 'skipped although the scope needed it';
 }
 
 /**
@@ -83,7 +93,7 @@ export function summarize({ rows, failed }, { config, env, base }) {
 function main() {
   const config = loadScopeConfig();
   const needs = JSON.parse(process.env.NEEDS || '{}');
-  const verdict = judge({ needs, config });
+  const verdict = judge({ needs, config, event: process.env.EVENT_NAME });
   const base = needs.scope?.outputs?.base;
   appendSummary(summarize(verdict, { config, env: process.env, base }));
 

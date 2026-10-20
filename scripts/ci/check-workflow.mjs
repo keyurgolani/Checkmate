@@ -2,8 +2,11 @@
 /**
  * Enforces the CI security and gate rules on .github/workflows:
  *
- * - Only ci.yml's `publish` job and the job it calls read secrets or get
- *   write permissions; every workflow's top-level token is read-only.
+ * - Only ci.yml's `publish` job and the job it calls read secrets or the
+ *   token or get write permissions, and only the called job declares an
+ *   environment. Every `${{ }}` and `if:` is parsed, so `toJSON(secrets)`
+ *   and `github['token']` count, and an unparsable one fails. Every
+ *   workflow's top-level token is read-only.
  * - The called job declares `environment: release`.
  * - `publish` needs `aggregate`, passes secrets by name, and its `if:` runs
  *   exactly for a v* tag push, or a push to next with PUBLISH_FROM_NEXT
@@ -11,6 +14,7 @@
  *   it over events, refs, variable values and results, not by its text.
  * - ci.yml runs on pull_request and push (main, next, v* tags) with no path
  *   filters, `aggregate` runs with `if: always()` and needs every other job,
+ *   none of which sets continue-on-error, no other job is named `aggregate`,
  *   and .github/ci-scope.json describes exactly those jobs.
  * - Every remote `uses:` pins a full commit SHA (docker:// pins a digest).
  */
@@ -19,7 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import { isMain, loadScopeConfig, REPO_ROOT } from './lib/actions.mjs';
-import { evaluateJobIf, unwrap } from './lib/expression.mjs';
+import { evaluateJobIf, parse, unwrap } from './lib/expression.mjs';
 
 export const CI_WORKFLOW = 'ci.yml';
 export const PUBLISH_JOB = 'publish';
@@ -137,8 +141,62 @@ function grantsWrite(permissions) {
   return Object.values(permissions).includes('write');
 }
 
-function readsSecrets(value) {
-  return /\bsecrets\s*(\.|\[)|\bgithub\.token\b/.test(JSON.stringify(value ?? null));
+/** Every expression in a workflow value: `${{ }}` segments, and whole `if:` values. */
+function* expressionsIn(value, key) {
+  if (typeof value === 'string') {
+    if (key === 'if') {
+      yield unwrap(value);
+      return;
+    }
+    for (const match of value.matchAll(/\$\{\{([\s\S]*?)\}\}/g)) yield match[1].trim();
+  } else if (Array.isArray(value)) {
+    for (const item of value) yield* expressionsIn(item);
+  } else if (value !== null && typeof value === 'object') {
+    for (const [childKey, child] of Object.entries(value)) yield* expressionsIn(child, childKey);
+  }
+}
+
+const isContext = (node, name) => node.type === 'context' && node.name.toLowerCase() === name;
+
+function sensitiveReads(node, found) {
+  if (isContext(node, 'secrets')) {
+    found.add('secrets');
+  } else if (isContext(node, 'github')) {
+    // The whole context, as in toJSON(github), carries the token.
+    found.add('token');
+  } else if (node.type === 'property' && isContext(node.object, 'github')) {
+    if (node.key.type !== 'literal' || String(node.key.value).toLowerCase() === 'token') found.add('token');
+    if (node.key.type !== 'literal') sensitiveReads(node.key, found);
+  } else {
+    for (const child of Object.values(node)) {
+      for (const item of Array.isArray(child) ? child : [child]) {
+        if (item !== null && typeof item === 'object' && 'type' in item) sensitiveReads(item, found);
+      }
+    }
+  }
+}
+
+/**
+ * What a workflow value reads that only publishing jobs may: `secrets`
+ * (dot, bracket or whole) and the token (`github.token`, `github['token']`
+ * or the whole github context). Expressions that don't parse are listed,
+ * since nothing about them can be shown safe.
+ * @returns {{ secrets: boolean, token: boolean, unparsable: string[] }}
+ */
+export function scanExpressions(value) {
+  const found = new Set();
+  const unparsable = [];
+  for (const source of expressionsIn(value)) {
+    let ast;
+    try {
+      ast = parse(source);
+    } catch {
+      unparsable.push(source);
+      continue;
+    }
+    sensitiveReads(ast, found);
+  }
+  return { secrets: found.has('secrets'), token: found.has('token'), unparsable };
 }
 
 function usesOf(workflow) {
@@ -177,22 +235,35 @@ export function checkWorkflows({ workflows, actions = {}, scopeConfig }) {
     problems.push(`${CI_WORKFLOW} must run on push to main and next and on v* tags`);
   }
 
-  // Tokens and secrets.
-  const mayPublish = new Set([`${CI_WORKFLOW}#${PUBLISH_JOB}`, ...Object.keys(called?.jobs ?? {}).map((id) => `${calledFile}#${id}`)]);
+  // Tokens, secrets and environments.
+  const calledJobs = new Set(Object.keys(called?.jobs ?? {}).map((id) => `${calledFile}#${id}`));
+  const mayPublish = new Set([`${CI_WORKFLOW}#${PUBLISH_JOB}`, ...calledJobs]);
   for (const [file, workflow] of Object.entries(workflows)) {
     for (const event of DANGEROUS_TRIGGERS) {
       if (event in triggers(workflow)) problems.push(`${file}: the ${event} trigger is not allowed`);
     }
     if (workflow?.permissions === undefined) problems.push(`${file}: set top-level permissions, read-only`);
     else if (grantsWrite(workflow.permissions)) problems.push(`${file}: top-level permissions must be read-only`);
-    if (readsSecrets(workflow?.env) || readsSecrets(workflow?.defaults)) problems.push(`${file}: workflow-level env must not read secrets`);
+    const settings = scanExpressions({ env: workflow?.env, defaults: workflow?.defaults, concurrency: workflow?.concurrency, 'run-name': workflow?.['run-name'] });
+    if (settings.secrets || settings.token) problems.push(`${file}: workflow-level settings must not read secrets or the token`);
+    for (const source of settings.unparsable) problems.push(`${file}: can't parse the expression \`${source}\`, so it can't be shown to leave secrets alone`);
 
     for (const [id, job] of Object.entries(workflow?.jobs ?? {})) {
-      const secrets = readsSecrets(job) || job?.secrets !== undefined;
+      const scan = scanExpressions(job);
+      for (const source of scan.unparsable) problems.push(`${file}: job ${id} has an expression this check can't parse: \`${source}\``);
+      const secrets = scan.secrets || job?.secrets !== undefined;
       const writes = grantsWrite(job?.permissions);
-      if ((secrets || writes) && !mayPublish.has(`${file}#${id}`)) {
-        const what = [secrets && 'reads secrets', writes && 'has write permissions'].filter(Boolean).join(' and ');
+      if ((secrets || scan.token || writes) && !mayPublish.has(`${file}#${id}`)) {
+        const what = [secrets && 'reads secrets', scan.token && 'reads github.token', writes && 'has write permissions'].filter(Boolean).join(' and ');
         problems.push(`${file}: job ${id} ${what}; only ci.yml's publish job and the job it calls may`);
+      }
+      // An environment hands its secrets to the job, whatever the job's expressions say.
+      if (job?.environment !== undefined && !calledJobs.has(`${file}#${id}`)) {
+        problems.push(`${file}: job ${id} declares an environment; only the job ci.yml's publish job calls may`);
+      }
+      const named = [id, job?.name].filter((name) => typeof name === 'string').map((name) => name.trim().toLowerCase());
+      if (named.includes(AGGREGATE_JOB) && !(file === CI_WORKFLOW && id === AGGREGATE_JOB)) {
+        problems.push(`${file}: job ${id} is named ${AGGREGATE_JOB}, which would also satisfy the required check`);
       }
     }
   }
@@ -228,8 +299,18 @@ export function checkWorkflows({ workflows, actions = {}, scopeConfig }) {
     problems.push(`${CI_WORKFLOW} has no ${AGGREGATE_JOB} job`);
   } else {
     if (unwrap(String(aggregate.if ?? '')).replace(/\s+/g, '') !== 'always()') problems.push(`${CI_WORKFLOW}: ${AGGREGATE_JOB} must run with if: always()`);
+    if (aggregate.name !== undefined && aggregate.name !== AGGREGATE_JOB) problems.push(`${CI_WORKFLOW}: ${AGGREGATE_JOB} must keep the check name ${AGGREGATE_JOB}`);
     const needs = new Set(list(aggregate.needs));
     for (const id of gated) if (!needs.has(id)) problems.push(`${CI_WORKFLOW}: ${AGGREGATE_JOB} must need ${id}`);
+    // A failure aggregate can't see would pass the required check.
+    for (const id of needs) {
+      const job = jobs[id];
+      const hides = (value) => value !== undefined && value !== false;
+      if (hides(job?.['continue-on-error'])) problems.push(`${CI_WORKFLOW}: job ${id} sets continue-on-error, which hides its failures from ${AGGREGATE_JOB}`);
+      if (list(job?.steps).some((step) => hides(step?.['continue-on-error']))) {
+        problems.push(`${CI_WORKFLOW}: a step in job ${id} sets continue-on-error, which hides its failures from ${AGGREGATE_JOB}`);
+      }
+    }
   }
   for (const id of gated) if (!scopeConfig.jobs?.[id]) problems.push(`.github/ci-scope.json has no entry for the ${id} job`);
   for (const id of Object.keys(scopeConfig.jobs ?? {})) if (!jobs[id]) problems.push(`.github/ci-scope.json lists ${id}, which ${CI_WORKFLOW} lacks`);

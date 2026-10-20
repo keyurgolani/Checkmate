@@ -6,6 +6,10 @@
 #   push of an older vX.Y.Z tag                       vX.Y.Z
 #   push to main, any pull request                    nothing
 #
+# Tag publishes run one at a time (see ci.yml), and each moves latest only
+# after its build, on a fresh tag list, so an older release can't move it
+# back past a newer one.
+#
 # The Docker Hub secrets live in the `release` environment, which the
 # publish job declares; a caller job can't. The job repeats the caller's
 # condition so a new caller can't widen it.
@@ -61,18 +65,6 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Decide whether this tag moves latest
-        id: release
-        env:
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [ "$REF_TYPE" = tag ]; then
-            echo "latest=$(node scripts/ci/is-latest.mjs "$REF_NAME")" >> "$GITHUB_OUTPUT"
-          else
-            echo "latest=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
@@ -104,7 +96,6 @@ jobs:
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/next' }}
             type=sha,prefix=sha-,format=short,enable=${{ github.ref == 'refs/heads/next' }}
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref_type == 'tag' }}
-            type=raw,value=latest,enable=${{ steps.release.outputs.latest == 'true' }}
           labels: |
             org.opencontainers.image.title=CheckMate ${{ matrix.image.name }}
             org.opencontainers.image.description=CheckMate ${{ matrix.image.name }} container image
@@ -120,3 +111,22 @@ jobs:
           no-cache: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      # A tag pushed while this one built may be higher, so fetch the tags again.
+      - name: Move latest to this release
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          GHCR_IMAGE: ${{ env.GHCR_NAMESPACE }}/${{ matrix.image.image-name }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image.image-name }}
+        run: |
+          git fetch --force --tags origin
+          latest="$(node scripts/ci/is-latest.mjs "$REF_NAME")"
+          if [ "$latest" != true ]; then
+            echo "$REF_NAME is not the highest release tag, so latest stays where it is."
+            exit 0
+          fi
+          for image in "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"; do
+            image="$(printf '%s' "$image" | tr '[:upper:]' '[:lower:]')"
+            docker buildx imagetools create --tag "$image:latest" "$image:$REF_NAME"
+          done
