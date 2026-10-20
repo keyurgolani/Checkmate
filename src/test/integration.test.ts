@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { createTestClient, seedUser, type SeededUser } from './pocketbase-helpers';
+import { createAdminTestClient, createTestClient, seedUser, type SeededUser } from './pocketbase-helpers';
 import type { Template, Item, Checklist, Workspace } from '@/lib/pocketbase-types';
 import { ItemType, Visibility } from '@/lib/pocketbase-types';
 
@@ -759,159 +759,124 @@ describe('Integration Tests - Complex Scenarios', () => {
       ).rejects.toThrow();
     });
 
-    // The next three tests fail on a product defect, tracked in #28
-    // (CHECKMATE-00.4 slice D): privileged web-tier reads sign in as the
-    // superuser with a password from env or a built-in fallback and swallow
-    // the auth failure. The fixture keeps its per-run superuser out of the
-    // test env, so those reads run unauthenticated. #28 replaces that path;
-    // these change to `it` with it.
+    // fails until #28 slice D
     it.fails('should verify private template title is accessible via admin for reference display', async () => {
-      // This tests the getTitleById method indirectly
-      // The TemplateService.getTitleById uses admin client to fetch title
       const { TemplateService } = await import('@/lib/services/template');
-      const templateService = new TemplateService(pbOther);
-      
-      // getTitleById should return the title even though user doesn't have access
-      const title = await templateService.getTitleById(privateTemplate.id);
+      const title = await new TemplateService(pbOther).getTitleById(privateTemplate.id);
       expect(title).toBe('Secret Private Template');
     });
 
-    it.fails('should create checklist from public template and show only private template title for inaccessible reference', async () => {
-      // Import the ChecklistService
+    /** Creates a checklist from `templateId` as the other user, in a new workspace of theirs. */
+    async function createChecklistAsOtherUser(templateId: string, name: string) {
       const { ChecklistService } = await import('@/lib/services/checklist');
-      
-      // Create a workspace for the other user first
       const otherWorkspace = await pbOther.collection('workspaces').create({
         owner: otherUser.id,
-        name: `Other User Workspace ${Date.now()}`,
+        name: `${name} Workspace ${Date.now()}`,
+      });
+      const result = await new ChecklistService(pbOther).create({ templateId, name, workspaceId: otherWorkspace.id });
+      if (!result.success) throw new Error(`creating "${name}" failed: ${result.error.code} ${result.error.message}`);
+      return result.data;
+    }
+
+    /** The content of every item stored for a checklist, read as the fixture's superuser. */
+    async function storedContents(checklistId: string): Promise<string[]> {
+      const admin = createAdminTestClient();
+      const items = await admin.collection('instanceItems').getFullList({ filter: admin.filter('instance = {:id}', { id: checklistId }) });
+      return items.map((item) => String(item.content));
+    }
+
+    describe('checklist the other user creates from the public template', () => {
+      let checklistId: string;
+      let contents: string[];
+
+      beforeAll(async () => {
+        const created = await createChecklistAsOtherUser(publicTemplate.id, 'My Checklist from Public Template');
+        checklistId = created.checklist.id;
+        contents = created.tasks.map((task) => task.content);
       });
 
-      // Create checklist service with other user's client
-      const checklistService = new ChecklistService(pbOther);
-      
-      // Create checklist from the public template
-      const result = await checklistService.create({
-        templateId: publicTemplate.id,
-        name: 'My Checklist from Public Template',
-        workspaceId: otherWorkspace.id,
+      it('should copy both public tasks and one task for the reference', () => {
+        expect(contents).toHaveLength(3);
+        expect(contents).toEqual(expect.arrayContaining(['Public Task 1', 'Public Task 2']));
       });
 
-      expect(result.success).toBe(true);
-      if (!result.success) throw new Error('expected success');
-      expect(result.data.checklist).not.toBeNull();
-      expect(result.data.tasks.length).toBeGreaterThan(0);
+      it('should not expand the private template', async () => {
+        expect(contents.filter((content) => content.includes('Secret Task'))).toEqual([]);
+        const stored = await storedContents(checklistId);
+        expect(stored).toHaveLength(3);
+        expect(stored.filter((content) => content.includes('Secret Task'))).toEqual([]);
+      });
 
-      // Find the task that corresponds to the reference item
-      // It should have the private template's TITLE as content, not the original reference content
-      const referenceTask = result.data.tasks.find(task =>
-        task.content === 'Secret Private Template' ||
-        task.content === 'Reference to private template'
-      );
-
-      expect(referenceTask).toBeDefined();
-      // The content should be the private template's title, not the original reference content
-      expect(referenceTask!.content).toBe('Secret Private Template');
-
-      // Verify that the private template's items were NOT expanded
-      // (no tasks with "Secret Task 1" or "Secret Task 2")
-      const secretTasks = result.data.tasks.filter(task => 
-        task.content.includes('Secret Task')
-      );
-      expect(secretTasks).toHaveLength(0);
-
-      // Verify the public tasks are present
-      const publicTask1 = result.data.tasks.find(task => task.content === 'Public Task 1');
-      const publicTask2 = result.data.tasks.find(task => task.content === 'Public Task 2');
-      expect(publicTask1).toBeDefined();
-      expect(publicTask2).toBeDefined();
+      // fails until #28 slice D
+      it.fails('should show only the private template title for the inaccessible reference', () => {
+        expect(contents).toContain('Secret Private Template');
+        expect(contents).not.toContain('Reference to private template');
+      });
     });
 
-    it.fails('should show different titles for two different private templates referenced in one public template', async () => {
-      // Create a second private template with a different title
-      const privateTemplate2 = await pbOwner.collection('blueprints').create({
-        workspace: workspace.id,
-        owner: ownerUser.id,
-        title: 'Another Secret Template',
-        description: 'This is another private template',
-        visibility: Visibility.PRIVATE,
+    describe('checklist the other user creates from a public template with two private references', () => {
+      let checklistId: string;
+      let tasks: { id: string; content: string }[];
+
+      beforeAll(async () => {
+        const privateTemplate2 = await pbOwner.collection('blueprints').create({
+          workspace: workspace.id,
+          owner: ownerUser.id,
+          title: 'Another Secret Template',
+          description: 'This is another private template',
+          visibility: Visibility.PRIVATE,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: privateTemplate2.id,
+          path: '1',
+          itemType: ItemType.TASK,
+          content: 'Another Secret Task',
+          position: 1,
+        });
+
+        const publicTemplateWithTwoRefs = await pbOwner.collection('blueprints').create({
+          workspace: workspace.id,
+          owner: ownerUser.id,
+          title: 'Public Template with Two Private References',
+          visibility: Visibility.PUBLIC,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: publicTemplateWithTwoRefs.id,
+          path: '1',
+          itemType: ItemType.REFERENCE,
+          content: 'Reference to first private template',
+          reference: privateTemplate.id,
+          position: 1,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: publicTemplateWithTwoRefs.id,
+          path: '2',
+          itemType: ItemType.REFERENCE,
+          content: 'Reference to second private template',
+          reference: privateTemplate2.id,
+          position: 2,
+        });
+
+        const created = await createChecklistAsOtherUser(publicTemplateWithTwoRefs.id, 'My Checklist with Two Private Refs');
+        checklistId = created.checklist.id;
+        tasks = created.tasks;
       });
 
-      // Add items to second private template
-      await pbOwner.collection('items').create({
-        blueprint: privateTemplate2.id,
-        path: '1',
-        itemType: ItemType.TASK,
-        content: 'Another Secret Task',
-        position: 1,
+      it('should create one task per reference and expand neither private template', async () => {
+        expect(tasks).toHaveLength(2);
+        expect(tasks[0]?.id).not.toBe(tasks[1]?.id);
+        const stored = await storedContents(checklistId);
+        expect(stored).toHaveLength(2);
+        expect(stored.filter((content) => content.includes('Secret Task'))).toEqual([]);
       });
 
-      // Create a public template that references BOTH private templates
-      const publicTemplateWithTwoRefs = await pbOwner.collection('blueprints').create({
-        workspace: workspace.id,
-        owner: ownerUser.id,
-        title: 'Public Template with Two Private References',
-        visibility: Visibility.PUBLIC,
+      // fails until #28 slice D
+      it.fails('should show each private template title instead of the reference content', () => {
+        const contents = tasks.map((task) => task.content);
+        expect(contents).toEqual(expect.arrayContaining(['Secret Private Template', 'Another Secret Template']));
+        expect(contents).not.toContain('Reference to first private template');
+        expect(contents).not.toContain('Reference to second private template');
       });
-
-      // Add reference to first private template
-      await pbOwner.collection('items').create({
-        blueprint: publicTemplateWithTwoRefs.id,
-        path: '1',
-        itemType: ItemType.REFERENCE,
-        content: 'Reference to first private template',
-        reference: privateTemplate.id,
-        position: 1,
-      });
-
-      // Add reference to second private template
-      await pbOwner.collection('items').create({
-        blueprint: publicTemplateWithTwoRefs.id,
-        path: '2',
-        itemType: ItemType.REFERENCE,
-        content: 'Reference to second private template',
-        reference: privateTemplate2.id,
-        position: 2,
-      });
-
-      // Import the ChecklistService
-      const { ChecklistService } = await import('@/lib/services/checklist');
-
-      // Create a workspace for the other user
-      const otherWorkspace2 = await pbOther.collection('workspaces').create({
-        owner: otherUser.id,
-        name: `Other User Workspace 2 ${Date.now()}`,
-      });
-
-      // Create checklist service with other user's client
-      const checklistService = new ChecklistService(pbOther);
-
-      // Create checklist from the public template with two references
-      const result = await checklistService.create({
-        templateId: publicTemplateWithTwoRefs.id,
-        name: 'My Checklist with Two Private Refs',
-        workspaceId: otherWorkspace2.id,
-      });
-
-      expect(result.success).toBe(true);
-      if (!result.success) throw new Error('expected success');
-      expect(result.data.checklist).not.toBeNull();
-      expect(result.data.tasks.length).toBe(2);
-
-      // Find tasks by their content - should be the titles of the private templates
-      const task1 = result.data.tasks.find(task => task.content === 'Secret Private Template');
-      const task2 = result.data.tasks.find(task => task.content === 'Another Secret Template');
-
-      expect(task1).toBeDefined();
-      expect(task2).toBeDefined();
-
-      // Verify they are different tasks
-      expect(task1!.id).not.toBe(task2!.id);
-
-      // Verify the original reference content is NOT used
-      const refContent1 = result.data.tasks.find(task => task.content === 'Reference to first private template');
-      const refContent2 = result.data.tasks.find(task => task.content === 'Reference to second private template');
-      expect(refContent1).toBeUndefined();
-      expect(refContent2).toBeUndefined();
     });
   });
 });

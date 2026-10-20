@@ -8,14 +8,16 @@
  * Run: npm run test:backend
  */
 
+import { createHash } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import type { CollectionModel } from 'pocketbase';
-import schemaFile from '../../docker/pocketbase/pb_schema.json';
+import accessRulePins from './access-rule-pins.json';
 import { BASELINE_COLLECTIONS } from './fixture/pocketbase';
 import { createAdminTestClient, createTestClient, seedUser, testDataFactory } from './index';
 
-type RuleName = 'listRule' | 'viewRule' | 'createRule' | 'updateRule' | 'deleteRule';
-const RULES: RuleName[] = ['listRule', 'viewRule', 'createRule', 'updateRule', 'deleteRule'];
+const RULES = ['listRule', 'viewRule', 'createRule', 'updateRule', 'deleteRule'];
+const AUTH_RULES = ['authRule', 'manageRule'];
+const RULE_PINS: Record<string, Record<string, string> | undefined> = accessRulePins.collections;
 
 function getCollection(name: string): Promise<CollectionModel> {
   return createAdminTestClient().collections.getOne(name);
@@ -32,15 +34,10 @@ function selectValues(collection: CollectionModel, name: string): string[] {
   return field?.values as string[];
 }
 
-/** The rules pb_schema.json declares for a collection. */
-function declaredRules(name: string): Record<RuleName, string | null> {
-  const declared = schemaFile.find((collection) => collection.name === name);
-  expect(declared, `pb_schema.json defines ${name}`).toBeDefined();
-  return Object.fromEntries(RULES.map((rule) => [rule, declared?.[rule] ?? null])) as Record<RuleName, string | null>;
-}
-
-function servedRules(collection: CollectionModel): Record<RuleName, string | null> {
-  return Object.fromEntries(RULES.map((rule) => [rule, collection[rule] ?? null])) as Record<RuleName, string | null>;
+/** The digest access-rule-pins.json pins for a rule (see its $comment). */
+function ruleDigest(rule: unknown): string {
+  const normalized = typeof rule === 'string' ? rule.replace(/\s+/g, ' ').trim() : null;
+  return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
 }
 
 describe('Backend Setup Verification', () => {
@@ -166,30 +163,23 @@ describe('Backend Setup Verification', () => {
     });
   });
 
-  // These compare the rules PocketBase serves with the ones pb_schema.json
-  // declares. #25 replaces them with behavioral tests per actor.
+  // The served rules must match src/test/access-rule-pins.json, so no rule
+  // changes by accident. #25 updates the pins and adds tests per actor.
   describe('Collection Access Rules Verification', () => {
-    it('should serve the workspaces access rules declared in pb_schema.json', async () => {
-      expect(servedRules(await getCollection('workspaces'))).toEqual(declaredRules('workspaces'));
-    });
+    it.each(BASELINE_COLLECTIONS)('should serve the pinned access rules for %s', async (name) => {
+      const collection = await getCollection(name);
+      const served = collection as unknown as Record<string, unknown>;
+      const rules = collection.type === 'auth' ? [...RULES, ...AUTH_RULES] : RULES;
+      const pins = RULE_PINS[name] ?? {};
 
-    it('should serve the blueprints access rules declared in pb_schema.json', async () => {
-      expect(servedRules(await getCollection('blueprints'))).toEqual(declaredRules('blueprints'));
-    });
-
-    it('should serve the instances access rules declared in pb_schema.json', async () => {
-      expect(servedRules(await getCollection('instances'))).toEqual(declaredRules('instances'));
-    });
-
-    it('should serve the notifications access rules declared in pb_schema.json', async () => {
-      expect(servedRules(await getCollection('notifications'))).toEqual(declaredRules('notifications'));
+      expect(Object.keys(pins), `access-rule-pins.json pins every ${name} rule`).toEqual(rules);
+      for (const rule of rules) {
+        expect.soft(ruleDigest(served[rule]), `${name} ${rule} no longer matches its pin`).toBe(pins[rule]);
+      }
     });
 
     it('should have activityLog with immutable update rule', async () => {
-      const collection = await getCollection('activityLog');
-
-      expect(collection.updateRule).toBeNull();
-      expect(servedRules(collection)).toEqual(declaredRules('activityLog'));
+      expect((await getCollection('activityLog')).updateRule).toBeNull();
     });
   });
 
