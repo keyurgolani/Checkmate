@@ -40,13 +40,17 @@ describe('PUT /api/checklists/[id]/items/[itemId]/toggle', () => {
     expect(fake.records('instances')[0]).toMatchObject({ progress: 50, completedAt: null });
   });
 
-  it('refuses another user and writes nothing', async () => {
+  it('answers another user like a missing run and writes nothing', async () => {
     const fake = ownerRunFixture(OTHER_USER);
     getServerAuth.mockResolvedValue(sessionFor(OTHER_USER, fake));
 
     const response = await toggle('step-1');
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: { code: 'CHECKLIST_001', message: 'Checklist not found', timestamp: expect.any(String) },
+    });
     expect(fake.writes()).toEqual([]);
   });
 });

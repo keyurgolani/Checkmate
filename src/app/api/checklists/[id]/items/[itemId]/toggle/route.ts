@@ -142,7 +142,8 @@ export async function PUT(
     // Get the checklist to check ownership
     const getResult = await checklistService.getById(id);
 
-    if (!getResult.success) {
+    // Another user's checklist answers exactly like a missing one
+    if (!getResult.success || getResult.data.user !== user.id) {
       return NextResponse.json(
         {
           success: false,
@@ -153,21 +154,6 @@ export async function PUT(
           },
         },
         { status: 404 }
-      );
-    }
-
-    // Check if user owns this checklist
-    if (getResult.data.user !== user.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ChecklistErrorCodes.PERMISSION_DENIED,
-            message: 'You do not have permission to modify this checklist',
-            timestamp: new Date().toISOString(),
-          },
-        },
-        { status: 403 }
       );
     }
 

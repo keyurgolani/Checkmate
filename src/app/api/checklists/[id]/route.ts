@@ -215,16 +215,9 @@ export const PUT = withAuth<{ id: string }, ChecklistResponse>(
     const checklistService = new ChecklistService(pb);
 
     const getResult = await checklistService.getById(id);
-    if (!getResult.success) {
+    // Another user's checklist answers exactly like a missing one
+    if (!getResult.success || getResult.data.user !== user.id) {
       return apiError(ChecklistErrorCodes.NOT_FOUND, 'Checklist not found', 404);
-    }
-
-    if (getResult.data.user !== user.id) {
-      return apiError(
-        ChecklistErrorCodes.PERMISSION_DENIED,
-        'You do not have permission to update this checklist',
-        403
-      );
     }
 
     if (body.name !== undefined && body.name.trim().length === 0) {
@@ -279,16 +272,9 @@ export const DELETE = withAuth<{ id: string }, { success: boolean }>(
     const checklistService = new ChecklistService(pb);
 
     const getResult = await checklistService.getById(id);
-    if (!getResult.success) {
+    // Another user's checklist answers exactly like a missing one
+    if (!getResult.success || getResult.data.user !== user.id) {
       return apiError(ChecklistErrorCodes.NOT_FOUND, 'Checklist not found', 404);
-    }
-
-    if (getResult.data.user !== user.id) {
-      return apiError(
-        ChecklistErrorCodes.PERMISSION_DENIED,
-        'You do not have permission to delete this checklist',
-        403
-      );
     }
 
     const result = await checklistService.delete(id);
