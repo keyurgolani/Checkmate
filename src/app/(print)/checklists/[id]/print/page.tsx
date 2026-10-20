@@ -20,25 +20,22 @@ export default async function ChecklistPrintPage({ params }: PageProps) {
   const templateService = new TemplateService(pb);
 
   const checklistResult = await checklistService.getById(id, "blueprint");
-  if (!checklistResult.success || !checklistResult.data.checklist) {
+  if (!checklistResult.success) {
     notFound();
   }
 
-  const checklist = checklistResult.data.checklist;
+  const checklist = checklistResult.data;
   if (checklist.user !== user.id) {
     notFound();
   }
 
   // Get blueprint title
   let blueprintTitle = "Unknown Template";
-  // @ts-ignore - Runtime uses blueprint, types say template
-  const expandedBlueprint = checklist.expand?.template || (checklist.expand as any)?.blueprint;
+  const expandedBlueprint = checklist.expand?.blueprint;
   if (expandedBlueprint) {
     blueprintTitle = expandedBlueprint.title;
   } else {
-    // @ts-ignore - Runtime uses blueprint
-    const blueprintId = checklist.template || (checklist as any).blueprint;
-    const templateResult = await templateService.getById(blueprintId);
+    const templateResult = await templateService.getById(checklist.blueprint);
     if (templateResult.success && templateResult.data) {
       blueprintTitle = templateResult.data.title;
     }

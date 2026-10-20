@@ -27,7 +27,6 @@ import {
   Info,
   Link as LinkIcon,
   CheckSquare,
-  Square,
   X,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
@@ -39,6 +38,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChecklistTracker,
   type ChecklistTask,
+  type ToggleConfirmation,
 } from "@/components/checklists/checklist-tracker";
 import { BulkActionBar, type BulkAction } from "@/components/shared/bulk-action-bar";
 import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
@@ -183,10 +183,12 @@ export function ChecklistDetailClient({
   const progressColor = isComplete ? "from-green-500/10 to-green-500/5" : "from-primary/10 to-primary/5";
   const progressBorderColor = isComplete ? "border-green-500/20" : "border-primary/20";
 
-  // Handle task toggle
+  // Handle task toggle. Resolves with the step state the server confirmed, or
+  // null when another toggle is in flight; rejects when the toggle fails, so
+  // the tracker shows Retry and announces nothing.
   const handleToggleTask = useCallback(
-    async (taskId: string) => {
-      if (isToggling) return;
+    async (taskId: string): Promise<ToggleConfirmation | null> => {
+      if (isToggling) return null;
 
       setIsToggling(true);
 
@@ -202,7 +204,7 @@ export function ChecklistDetailClient({
         );
 
         if (!response.ok) {
-          throw new Error("Failed to toggle task");
+          throw new Error(`Toggle failed with status ${response.status}`);
         }
 
         const data = await response.json();
@@ -240,10 +242,11 @@ export function ChecklistDetailClient({
                  triggerConfetti(0.5, 0.5);
              });
           }
+
+          return { isCompleted: data.task.isCompleted };
         }
-      } catch (error) {
-        console.error("Error toggling task:", error);
-        // Optionally show an error toast here
+
+        throw new Error("Toggle response did not include the step");
       } finally {
         setIsToggling(false);
       }
@@ -252,20 +255,11 @@ export function ChecklistDetailClient({
   );
 
   // ============================================================================
-  // Context menu items for task items
+  // Context menu items for task items. The tracker adds Mark Complete.
   // ============================================================================
 
   const contextMenuItems: ContextMenuItemConfig<ChecklistTask>[] = useMemo(
     () => [
-      {
-        label: (task: ChecklistTask) =>
-          task.isCompleted ? "Mark Incomplete" : "Mark Complete",
-        icon: (task: ChecklistTask) =>
-          task.isCompleted ? Square : CheckSquare,
-        action: (id: string) => {
-          handleToggleTask(id);
-        },
-      },
       {
         label: "Select",
         icon: CheckSquare,
@@ -287,7 +281,7 @@ export function ChecklistDetailClient({
         },
       },
     ],
-    [checklist.id, handleToggleTask, router]
+    [checklist.id, router]
   );
 
   // ============================================================================

@@ -142,7 +142,7 @@ export async function PUT(
     // Get the checklist to check ownership
     const getResult = await checklistService.getById(id);
 
-    if (!getResult.success || !getResult.data.checklist) {
+    if (!getResult.success) {
       return NextResponse.json(
         {
           success: false,
@@ -157,7 +157,7 @@ export async function PUT(
     }
 
     // Check if user owns this checklist
-    if (getResult.data.checklist.user !== user.id) {
+    if (getResult.data.user !== user.id) {
       return NextResponse.json(
         {
           success: false,
@@ -192,7 +192,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      task: formatChecklistItem(result.data.task as any),
+      task: formatChecklistItem(result.data.task),
       progress: result.data.progress ?? undefined,
     });
   } catch (error) {
