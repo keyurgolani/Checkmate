@@ -69,7 +69,6 @@ export default async function WorkspaceDetailPage({
     templateId: checklist.blueprint,
     templateTitle: checklist.expand?.blueprint?.title ?? 'Unknown Template',
     progress: checklist.progress ?? 0,
-    isSynced: checklist.isSynced ?? true,
     completedAt: checklist.completedAt ?? null,
     createdAt: checklist.created,
     updatedAt: checklist.updated,

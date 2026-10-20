@@ -31,20 +31,3 @@ export async function bulkDeleteChecklists(checklistIds: string[]) {
   revalidatePath("/checklists");
   return { success: errors.length === 0, errors, deletedCount: checklistIds.length - errors.length };
 }
-
-export async function bulkSyncChecklists(checklistIds: string[]) {
-  const { isAuthenticated, pb } = await getServerAuth();
-  if (!isAuthenticated) return { success: false, error: "Not authenticated" };
-
-  const service = new ChecklistService(pb);
-  const errors: string[] = [];
-  for (const id of checklistIds) {
-    const result = await service.syncWithTemplate(id);
-    if (!result.success) {
-      errors.push(result.error?.message ?? `Failed to sync ${id}`);
-    }
-  }
-
-  revalidatePath("/checklists");
-  return { success: errors.length === 0, errors };
-}

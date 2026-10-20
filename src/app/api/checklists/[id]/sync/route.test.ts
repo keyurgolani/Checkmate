@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NextRequest } from 'next/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakePocketBase, type FakePocketBase } from '@/test/fake-pocketbase';
 
 const { getServerAuth } = vi.hoisted(() => ({ getServerAuth: vi.fn() }));
@@ -79,6 +79,10 @@ beforeEach(() => {
   getServerAuth.mockReset();
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('run template sync (test plan item 1)', () => {
   it('does not report success for a run whose template gained a step', async () => {
     const fake = runWhoseTemplateGainedAStep();
@@ -100,6 +104,7 @@ describe('run template sync (test plan item 1)', () => {
 describe('POST /api/checklists/[id]/sync (test plan item 2)', () => {
   it('answers every signed-in caller with the same 410 RUN_SYNC_REMOVED body, before any session or run lookup', async () => {
     const fake = runWhoseTemplateGainedAStep();
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
     const bodies: unknown[] = [];
 
     for (const caller of [OWNER, OTHER_USER]) {
@@ -116,6 +121,8 @@ describe('POST /api/checklists/[id]/sync (test plan item 2)', () => {
     expect(bodies[1]).toEqual(bodies[0]);
     expect(getServerAuth).not.toHaveBeenCalled();
     expect(fake.calls).toEqual([]);
+    expect(info).toHaveBeenCalledTimes(2);
+    expect(info).toHaveBeenLastCalledWith(expect.stringContaining('run_sync.removed'));
   });
 
   it('leaves anonymous callers to the proxy, which answers 401', async () => {

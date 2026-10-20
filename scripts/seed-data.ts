@@ -1102,7 +1102,6 @@ async function createChecklists(
           blueprint: template.id,
           user: primaryUser.id,
           name: checklistNames[checklistIndex] || `Checklist ${checklistIndex + 1}`,
-          isSynced: true,
           progress: progress,
           completedAt: completedAt,
         });

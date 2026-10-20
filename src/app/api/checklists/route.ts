@@ -29,7 +29,6 @@ interface ChecklistResponse {
     templateId: string;
     userId: string;
     name: string;
-    isSynced: boolean;
     progress: number;
     completedAt: string | null;
     createdAt: string;
@@ -40,7 +39,6 @@ interface ChecklistResponse {
     templateId: string;
     userId: string;
     name: string;
-    isSynced: boolean;
     progress: number;
     completedAt: string | null;
     createdAt: string;
@@ -93,7 +91,6 @@ function formatChecklist(checklist: {
   blueprint: string;
   user: string;
   name: string;
-  isSynced: boolean;
   progress: number;
   completedAt: string | null;
   created: string;
@@ -104,7 +101,6 @@ function formatChecklist(checklist: {
     templateId: checklist.blueprint,
     userId: checklist.user,
     name: checklist.name,
-    isSynced: checklist.isSynced,
     progress: checklist.progress,
     completedAt: checklist.completedAt,
     createdAt: checklist.created,
@@ -194,7 +190,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ChecklistR
 
     return NextResponse.json({
       success: true,
-      checklists: filteredChecklists.map((item) => formatChecklist(item as any)),
+      checklists: filteredChecklists.map((item) => formatChecklist(item)),
     });
   } catch (error) {
     console.error('List checklists error:', error);
@@ -303,8 +299,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Checklist
     return NextResponse.json(
       {
         success: true,
-        checklist: formatChecklist(result.data.checklist as any),
-        tasks: result.data.tasks.map((item) => formatChecklistItem(item as any)),
+        checklist: formatChecklist(result.data.checklist),
+        tasks: result.data.tasks.map((item) => formatChecklistItem(item)),
       },
       { status: 201 }
     );

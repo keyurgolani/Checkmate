@@ -75,30 +75,6 @@ export interface BatchTaskResult {
 }
 
 /**
- * Conflict information during sync
- * Requirements: 5.5
- */
-export interface SyncConflict {
-  instanceItemId: string;
-  templateItemId: string; // Renamed from blueprintItemId
-  type: 'update_failed' | 'delete_failed' | 'add_failed';
-  message: string;
-}
-
-/**
- * Result for sync operations
- * Requirements: 5.5
- */
-export interface SyncResult {
-  success: boolean;
-  added: number;
-  updated: number;
-  removed: number;
-  conflicts: SyncConflict[];
-  error: ChecklistError | null;
-}
-
-/**
  * Input for adding a custom task to a checklist
  * Requirements: 5.3
  */
@@ -299,7 +275,6 @@ export class ChecklistService {
         name: input.name.trim(),
         description: templateResult.data.description ?? undefined,
         resources: templateResult.data.resources ?? undefined,
-        isSynced: true,
         progress: 0,
       };
 
@@ -1089,77 +1064,6 @@ export class ChecklistService {
         code: ChecklistErrorCodes.UNKNOWN_ERROR,
         message: 'Failed to toggle task completion',
       });
-    }
-  }
-
-  /**
-   * Syncs a checklist with its source template
-   * Requirements: 5.5
-   */
-  async syncWithTemplate(checklistId: string): Promise<SyncResult> {
-    try {
-      // Get the checklist
-      const checklistResult = await this.getById(checklistId);
-      if (!checklistResult.success) {
-        return {
-          success: false,
-          added: 0,
-          updated: 0,
-          removed: 0,
-          conflicts: [],
-          error: {
-            code: ChecklistErrorCodes.NOT_FOUND,
-            message: 'Checklist not found',
-          },
-        };
-      }
-
-      const checklist = checklistResult.data;
-      const templateId = checklist.blueprint;
-
-      // Get the template
-      const templateResult = await this.templateService.getById(templateId);
-      if (!templateResult.success || !templateResult.data) {
-        return {
-          success: false,
-          added: 0,
-          updated: 0,
-          removed: 0,
-          conflicts: [],
-          error: {
-            code: ChecklistErrorCodes.TEMPLATE_NOT_FOUND,
-            message: 'Source template not found',
-          },
-        };
-      }
-
-      // For now, return a simple success - full sync logic would be more complex
-      // Mark checklist as synced
-      await this.pb
-        .collection(Collections.CHECKLISTS)
-        .update(checklistId, { isSynced: true });
-
-      return {
-        success: true,
-        added: 0,
-        updated: 0,
-        removed: 0,
-        conflicts: [],
-        error: null,
-      };
-    } catch (caught) {
-      console.error('Error syncing with template:', caught);
-      return {
-        success: false,
-        added: 0,
-        updated: 0,
-        removed: 0,
-        conflicts: [],
-        error: {
-          code: ChecklistErrorCodes.UNKNOWN_ERROR,
-          message: 'Failed to sync with template',
-        },
-      };
     }
   }
 }

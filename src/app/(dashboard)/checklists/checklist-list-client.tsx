@@ -4,8 +4,8 @@
  * Checklist List Client Component
  *
  * Wraps ChecklistList with context menu items and bulk actions.
- * Defines right-click menu actions (Open, Edit Name, Sync, Export, Delete)
- * and bulk actions (Sync, Export, Delete) for the checklists page.
+ * Defines right-click menu actions (Open, Edit Name, Export, Delete)
+ * and bulk actions (Export, Delete) for the checklists page.
  */
 
 import { useState, useCallback } from "react";
@@ -15,8 +15,8 @@ import { EditChecklistDialog } from "@/components/checklists/edit-checklist-dial
 import type { ChecklistCardData } from "@/components/checklists/checklist-card";
 import type { ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { BulkAction } from "@/components/shared/bulk-action-bar";
-import { ExternalLink, Pencil, RefreshCw, Download, Trash2 } from "lucide-react";
-import { deleteChecklist, bulkDeleteChecklists, bulkSyncChecklists } from "./actions";
+import { ExternalLink, Pencil, Download, Trash2 } from "lucide-react";
+import { deleteChecklist, bulkDeleteChecklists } from "./actions";
 
 interface ChecklistListClientProps {
   checklists: ChecklistCardData[];
@@ -80,14 +80,6 @@ export function ChecklistListClient({ checklists }: ChecklistListClientProps) {
       },
     },
     {
-      label: "Sync with Template",
-      icon: RefreshCw,
-      action: async (id) => {
-        await bulkSyncChecklists([id]);
-        router.refresh();
-      },
-    },
-    {
       label: "Export",
       icon: Download,
       action: (id) => {
@@ -108,15 +100,6 @@ export function ChecklistListClient({ checklists }: ChecklistListClientProps) {
   ];
 
   const bulkActions: BulkAction[] = [
-    {
-      label: "Sync with Template",
-      icon: RefreshCw,
-      action: async () => {
-        if (selectedIds.size === 0) return;
-        await bulkSyncChecklists(Array.from(selectedIds));
-        router.refresh();
-      },
-    },
     {
       label: "Export",
       icon: Download,

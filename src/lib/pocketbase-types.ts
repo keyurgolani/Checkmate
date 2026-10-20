@@ -460,7 +460,6 @@ export interface Checklist extends BaseRecord {
   user: string; // User ID
   workspace: string | null; // Workspace ID (optional, derived from template)
   name: string;
-  isSynced: boolean;
   progress: number;
   completedAt: string | null;
   description: string | null;
@@ -478,7 +477,6 @@ export interface ChecklistCreate {
   user: string;
   workspace?: string;
   name: string;
-  isSynced?: boolean;
   progress?: number;
   completedAt?: string;
   description?: string;
@@ -488,7 +486,6 @@ export interface ChecklistCreate {
 export interface ChecklistUpdate {
   name?: string;
   workspace?: string | null;
-  isSynced?: boolean;
   progress?: number;
   completedAt?: string | null;
   description?: string | null;

@@ -60,7 +60,6 @@ export default async function ChecklistsPage() {
       templateId: checklist.blueprint, // checklist.blueprint is the ID
       templateTitle: templateTitleMap.get(checklist.blueprint) ?? "Unknown Template",
       progress: checklist.progress ?? 0,
-      isSynced: checklist.isSynced,
       completedAt: checklist.completedAt,
       createdAt: checklist.created,
       updatedAt: checklist.updated,
