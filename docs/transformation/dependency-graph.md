@@ -5,7 +5,7 @@
 This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.json) (CHECKMATE-01.3, #31), graph version 1. The JSON is the source and wins over any other sequencing text, #1 included.
 
 - 282 nodes: 1 root, 4 gates, 71 leaves, 206 slices.
-- 1669 edges (1669 `approved-refinement`): 490 merge-before-start, 1179 merge-before-merge.
+- 1690 edges (1690 `approved-refinement`): 495 merge-before-start, 1195 merge-before-merge.
 - 0 open owner decisions, 0 dropped capability edges.
 
 ## How to read it
@@ -22,7 +22,7 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 |---|---|---|---|---|
 | `G0` | 22.1 gate A: hermetic fixture and aggregate check | 0 | `22.1 · gate A` | 169 |
 | `G1` | 18.2 gate 1: migration ledger | 0 | `18.2 · gate 1` | 98 |
-| `G2` | 01.1 contracts and the three 01.2 slices | 1 | `01.1 · contracts`, `01.2 · envelope`, `01.2 · matrix`, `01.2 · substrate` | 86 |
+| `G2` | 01.1 contracts and the three 01.2 slices | 1 | `01.1 · contracts`, `01.2 · envelope`, `01.2 · matrix`, `01.2 · substrate` | 89 |
 | `G3` | 21.1 UI primitives | 2 | `21.1` | 128 |
 
 ## Wave 0
@@ -124,8 +124,8 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 77 | `02.3 · slice 2`<br>resolver, /api/v{n} rule, introspection, management routes, scopes, limits, events | backend, command | `G0`, `G2` | `02.3 · slice 1`, `11.1 · module` |
 | 78 | `02.3 · slice 3`<br>token management UI | ui | `G3` | `02.3 · slice 2`, `21.2`, `21.3`, `22.2 · b1` |
 | 79 | `02.3` (leaf, 3 slices)<br>Add scoped API tokens and service identities | backend, schema-changing, command, ui |  | all its slices: `02.3 · slice 1`, `02.3 · slice 2`, `02.3 · slice 3` |
-| 80 | `11.1 · template`<br>template-side keys, tokens and stale notice | backend, ui | `G0`, `G3` | `11.1 · module`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
-| 81 | `11.1 · run`<br>run-side keys, tokens and stale notice | backend, ui | `G0`, `G3` | `05.2 · slice 1`, `11.1 · module`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 80 | `11.1 · template`<br>template-side keys, tokens and stale notice | backend, ui | `G0`, `G2`, `G3` | `11.1 · module`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 81 | `11.1 · run`<br>run-side keys, tokens and stale notice | backend, ui | `G0`, `G2`, `G3` | `05.2 · slice 1`, `11.1 · module`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 82 | `11.1` (leaf, 3 slices)<br>Add expected revisions, idempotency, and typed conflict responses | backend, schema-changing, command, ui |  | all its slices: `11.1 · module`, `11.1 · template`, `11.1 · run` |
 | 83 | `02.2 · slice A`<br>Secret Reference lifecycle, resolver, inventory, checks, secret-encryption key | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `00.2`, `01.1`, `01.2`, `02.1 · slice B`, `11.1`, `12.1 · slice A`, `19.2 · slice A`, `19.2 · slice B`, `21.2`, `21.3`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 84 | `02.2 · slice B`<br>signing and backup-recipient keys, relay-token, checkmate keys, GET /api/keys<br>_#33 allows Wave 5 at the latest, before `16.1 · envelope` and 13.1._ | backend, command | `G0`, `G2` | `02.2 · slice A` |
@@ -148,8 +148,8 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 94 | `03.1 · lifecycle`<br>transfer, archive, unarchive, delete, purge job | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `03.1 · grants`, `12.1 · slice B` |
 | 95 | `02.1 · slice E`<br>DeleteAccount, account purge, OAuth removal<br>_Wave 3: it needs `03.1 · lifecycle`._ | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `02.1 · slice D`, `03.1 · lifecycle`, `12.1 · slice B` |
 | 96 | `03.1` (leaf, 4 slices)<br>Create workspace memberships and policy-backed roles | backend, schema-changing, command, ui |  | all its slices: `03.1 · policy`, `03.1 · members`, `03.1 · grants`, `03.1 · lifecycle` |
-| 97 | `03.2 · participants`<br>participant records, run roles, owner migration, decide() on run paths | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `00.1`, `01.1`, `01.2`, `02.1 · slice B`, `02.3`, `03.1 · policy`, `03.1 · members`, `03.1 · grants`, `11.1`, `12.1 · slice A`, `18.1`, `19.2 · slice A`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
-| 98 | `03.3 · primitive`<br>capability collection, registry, commands, exchange, holder sessions, events | backend, schema-changing, command | `G0`, `G1`, `G2`, `G3` | `01.1`, `01.2`, `02.1 · slice B`, `02.1 · slice C`, `02.3`, `03.1`, `03.2 · participants`, `11.1`, `12.1 · slice A`, `19.2 · slice A`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 97 | `03.2 · participants`<br>participant records, run roles, owner migration, decide() on run paths | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `00.1`, `01.1`, `01.2`, `02.1 · slice B`, `02.1 · slice E`, `02.3`, `03.1 · policy`, `03.1 · members`, `03.1 · grants`, `11.1`, `12.1 · slice A`, `18.1`, `19.2 · slice A`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 98 | `03.3 · primitive`<br>capability collection, registry, commands, exchange, holder sessions, events | backend, schema-changing, command | `G0`, `G1`, `G2`, `G3` | `01.1`, `01.2`, `02.1 · slice B`, `02.1 · slice C`, `02.3`, `03.1`, `03.2 · participants`, `05.2 · slice 1`, `11.1`, `12.1 · slice A`, `19.2 · slice A`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 99 | `03.3 · progress`<br>run-progress@1, holder view, events route, link UI | backend, ui | `G0`, `G3` | `03.3 · primitive`, `05.2 · slice 1` |
 | 100 | `17.2 · schema`<br>AppearanceV1, parsing, resolution, contrast fixes, safe theme | ui | `G3` | `01.1`, `01.2 · substrate`, `22.1 · gate B` |
 | 101 | `17.1 · resolver`<br>preference registry, resolver, read-only inspector | ui | `G3` | `01.2`, `17.2 · schema`, `22.1 · gate B` |
@@ -162,9 +162,9 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 108 | `17.3 · migrate`<br>account scope and the migration inspector | ui | `G3` | `17.1 · account`, `17.3 · safe` |
 | 109 | `19.2 · slice C`<br>first-operator token | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `01.2 · matrix`, `02.1 · slice B`, `02.3 · slice 1`, `03.1`, `12.1 · slice A`, `19.2 · slice B` |
 | 110 | `20.2 · workspace`<br>EnsurePersonalWorkspace in signup and template save | backend, command, ui | `G0`, `G2`, `G3` | `00.1 · slice C`, `03.1 · policy`, `11.1`, `21.3 · surfaces` |
-| 111 | `04.1 · storage`<br>migrations, preflight, Step Key backfill, digest, registry, revision 1 | backend, schema-changing, command | `G0`, `G1`, `G2`, `01.1 · adapter` | `00.1`, `02.1 · slice B`, `12.1 · slice A`, `16.2 · v1 repair`, `20.2 · workspace`, `22.1` |
-| 112 | `04.1 · commands`<br>applyDraftCommands, draft writers rewired, old routes removed | backend, command, ui | `G0`, `G2`, `G3` | `04.1 · storage`, `11.1` |
-| 113 | `04.1 · release`<br>minimal PublishRevision, run pointer, read switch, editor header | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `04.1 · commands` |
+| 111 | `04.1 · storage`<br>migrations, preflight, Step Key backfill, digest, registry, revision 1 | backend, schema-changing, command | `G0`, `G1`, `G2`, `01.1 · adapter` | `00.1`, `02.1 · slice B`, `11.1`, `12.1 · slice A`, `16.2 · v1 repair`, `20.2 · workspace`, `22.1` |
+| 112 | `04.1 · commands`<br>applyDraftCommands, draft writers rewired, old routes removed | backend, command, ui | `G0`, `G2`, `G3`, `01.1 · adapter` | `04.1 · storage`, `11.1` |
+| 113 | `04.1 · release`<br>minimal PublishRevision, run pointer, read switch, editor header | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3`, `01.1 · adapter` | `04.1 · commands` |
 | 114 | `04.1` (leaf, 3 slices)<br>Split template identity, editable draft, and immutable revision storage | backend, schema-changing, command, ui |  | all its slices: `04.1 · storage`, `04.1 · commands`, `04.1 · release` |
 | 115 | `04.2 · core`<br>validation, diff, apply, hooks, limits, preflight, shadow mode | backend | `G0`, `G1`, `G3` | `00.4`, `01.1`, `01.2`, `04.1`, `05.1 · contract`, `11.1`, `21.2`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 116 | `04.2 · publish`<br>PublishRevision replaces the minimal publish; enforcement on | backend, command | `G0`, `G2` | `04.2 · core` |
@@ -178,7 +178,7 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 124 | `04.3` (leaf, 3 slices)<br>Add deprecation, rollback, and historical rendering | backend, schema-changing, command, ui |  | all its slices: `04.3 · archive`, `04.3 · history`, `04.3 · rollback` |
 | 125 | `07.2 · contract`<br>run source storage, write protection, RunCreated, projections, tombstone | backend, schema-changing, command | `G0`, `G1`, `G2` | `01.1`, `01.2`, `04.1`, `11.1`, `12.1 · slice A` |
 | 126 | `07.1 · core`<br>CreateRun and StartRunFromDraft, entry points, legacy writer removed | backend, command, ui | `G0`, `G1`, `G2`, `G3` | `00.1`, `00.4`, `01.1`, `04.1`, `04.3`, `07.2 · contract`, `11.1`, `12.1 · slice A`, `18.2 · gate 1 workspace`, `20.2 · workspace` |
-| 127 | `07.1 · setup`<br>one Configure-run surface, section registry, bulk outcomes | backend, ui | `G0`, `G3` | `07.1 · core`, `07.2 · contract`, `21.3`, `22.1 · gate B` |
+| 127 | `07.1 · setup`<br>one Configure-run surface, section registry, bulk outcomes | backend, ui | `G0`, `G2`, `G3` | `07.1 · core`, `07.2 · contract`, `21.3`, `22.1 · gate B` |
 | 128 | `09.1 · SetStepState`<br>SetStepState replaces every step writer | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `01.1`, `01.2 · substrate`, `05.2 · slice 1`, `07.1 · core`, `09.1 · slice 0`, `11.1`, `12.1 · slice A` |
 | 129 | `03.2 · guests`<br>guest principals, redemption, sessions, (guest) routes | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `02.1 · slice E`, `03.2 · participants`, `03.3 · primitive`, `09.1 · SetStepState` |
 | 130 | `08.1 · slice 0`<br>owner Today: next step, in-progress and recently resumed sections | backend, ui | `G0`, `G3` | `01.1`, `03.1 · policy`, `03.1 · members`, `03.2 · participants`, `05.2 · slice 1`, `07.2 · contract`, `09.1 · SetStepState`, `18.1`, `21.2`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
@@ -220,7 +220,7 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 152 | `03.2 · slots`<br>binding record, validator, live-run binding, Configure-run section<br>_Wave 5: it needs `06.2 · slots`._ | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `02.1 · slice E`, `03.2 · guests`, `06.2 · slots`, `07.1 · core`, `07.1 · setup` |
 | 153 | `03.2` (leaf, 3 slices)<br>Add run participants, guests, and role-slot assignments | backend, schema-changing, command, ui |  | all its slices: `03.2 · participants`, `03.2 · guests`, `03.2 · slots` |
 | 154 | `06.2` (leaf, 3 slices)<br>Add typed parameters and role-slot binding | backend, schema-changing, command, ui |  | all its slices: `06.2 · parameters`, `06.2 · bindings`, `06.2 · slots` |
-| 155 | `06.3 · inspect`<br>dependency tree, dependents, legacy index, non-upgrade states | backend, ui | `G0`, `G1`, `G3` | `01.1`, `01.2`, `03.1`, `04.1`, `04.2`, `04.3`, `05.1`, `06.1 · includes`, `11.1`, `12.1 · slice A`, `18.1`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 155 | `06.3 · inspect`<br>dependency tree, dependents, legacy index, non-upgrade states | backend, ui | `G0`, `G1`, `G3` | `01.1`, `01.2`, `03.1`, `04.1`, `04.2`, `04.3`, `05.1`, `06.1`, `06.1 · includes`, `06.2`, `11.1`, `12.1 · slice A`, `18.1`, `21.3`, `22.1`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 156 | `06.3 · upgrade`<br>classifier, plan, review, acknowledgment, deferral, Library Updates | backend, schema-changing, command, ui | `G0`, `G1`, `G2`, `G3` | `04.2`, `04.3`, `06.2`, `06.3 · inspect` |
 | 157 | `06.3 · ranges`<br>module-include@3, SetInclude constraint, resolution at publish | backend, command | `G0`, `G2` | `06.3 · upgrade` |
 | 158 | `06.3 · fragments`<br>exact-match module suggestions | backend, ui | `G0`, `G3` | `06.3 · ranges` |
@@ -344,10 +344,10 @@ This is the ordered, tabular form of [`dependency-graph.json`](dependency-graph.
 | 248 | `10.3 · share`<br>standard and minimal profiles, 03.3 target, external viewer, print | backend, ui | `G0`, `G3` | `03.3 · primitive`, `10.3 · issue` |
 | 249 | `10.3 · revoke`<br>revocation, content purge, 18.3 restore review | backend, command, ui | `G0`, `G2`, `G3` | `10.3 · share` |
 | 250 | `10.3` (leaf, 3 slices)<br>Issue immutable portable completion records | backend, schema-changing, command, ui |  | all its slices: `10.3 · issue`, `10.3 · share`, `10.3 · revoke` |
-| 251 | `11.2 · slice 1`<br>connection manager, states, status UI, refetch on reconnect | backend, ui | `G0`, `G1`, `G2`, `G3` | `02.1 · slice C`, `04.1`, `09.1`, `09.2`, `11.1`, `19.2`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
+| 251 | `11.2 · slice 1`<br>connection manager, states, status UI, refetch on reconnect | backend, ui | `G0`, `G1`, `G2`, `G3` | `02.1 · slice C`, `03.1`, `03.2`, `03.3`, `04.1`, `04.3`, `07.2`, `09.1`, `09.2`, `11.1`, `12.1 · slice B`, `12.2`, `18.1`, `19.2`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 252 | `11.2 · slice 2`<br>positions, catch-up, reset, protocol version, limits | backend, ui | `G0`, `G3` | `03.1`, `03.2`, `03.3`, `04.3`, `07.2`, `11.2 · slice 1`, `12.1 · slice B`, `12.2`, `18.1` |
 | 253 | `11.2` (leaf, 2 slices)<br>Add cursor-based realtime reconnect and degraded-state UX | backend, ui |  | all its slices: `11.2 · slice 1`, `11.2 · slice 2` |
-| 254 | `11.3 · rebase`<br>server rebase, conflict details, causation checks, retry keys | backend, command | `G0`, `G2` | `01.2`, `04.1`, `04.2`, `09.1`, `11.1`, `12.1 · slice A`, `19.2`, `22.1` |
+| 254 | `11.3 · rebase`<br>server rebase, conflict details, causation checks, retry keys | backend, command | `G0`, `G2` | `01.2`, `04.1`, `04.2`, `09.1`, `09.3`, `10.2`, `11.1`, `11.2`, `12.1 · slice A`, `19.2`, `22.1` |
 | 255 | `11.3 · draft`<br>draft conflict row, Keep both, Preserve as new step, draft download | ui | `G3` | `11.2`, `11.3 · rebase`, `21.3`, `22.1 · gate B`, `22.2 · b1`, `22.2 · b2`, `22.2 · b3` |
 | 256 | `11.3 · run`<br>Keep mine for step state | backend, ui | `G0`, `G3` | `09.2 · outbox`, `09.3 · recovery`, `10.1`, `10.2`, `11.3 · rebase`, `11.3 · draft` |
 | 257 | `11.3` (leaf, 3 slices)<br>Add guided merge and retry for supported conflict classes | backend, command, ui |  | all its slices: `11.3 · rebase`, `11.3 · draft`, `11.3 · run` |
@@ -408,6 +408,19 @@ Judgment calls and clarifications recorded on edges, in JSON order.
 | `01.1 · contracts` | `01.2 · envelope` | merge-before-merge | #30 | Narrowed from #29 to `01.1 · contracts`: `01.1 · adapter` gates only #38 and sits outside G2 (#1, #31). Envelope has no start prerequisite, so this is merge order only. |
 | `01.2 · envelope` | `01.2 · matrix` | merge-before-merge | #30 | Envelope merges first. |
 | `01.2 · envelope` | `01.2 · substrate` | merge-before-merge | #30 | Envelope merges first. |
+| `G2` | `04.1 · storage` | merge-before-start | #30 | G2 merges before #38 starts. |
+| `G2` | `04.1 · commands` | merge-before-start | #30 | G2 merges before #38 starts. |
+| `G2` | `04.1 · release` | merge-before-start | #30 | G2 merges before #38 starts. |
+| `G2` | `07.1 · core` | merge-before-start | #30 | G2 merges before #47 starts. |
+| `G2` | `07.1 · setup` | merge-before-start | #30 | G2 merges before #47 starts. |
+| `G2` | `07.1 · binding` | merge-before-start | #30 | G2 merges before #47 starts. |
+| `G2` | `11.1 · module` | merge-before-start | #30 | G2 merges before #59 starts. |
+| `G2` | `11.1 · template` | merge-before-start | #30 | G2 merges before #59 starts. |
+| `G2` | `11.1 · run` | merge-before-start | #30 | G2 merges before #59 starts. |
+| `G2` | `12.1 · slice A` | merge-before-start | #30 | G2 merges before #62 starts. |
+| `G2` | `12.1 · slice B` | merge-before-start | #30 | G2 merges before #62 starts. |
+| `01.1 · adapter` | `04.1 · commands` | merge-before-start | #29 | The adapter merges before #38 starts. |
+| `01.1 · adapter` | `04.1 · release` | merge-before-start | #29 | The adapter merges before #38 starts. |
 | `19.2 · slice A` | `02.1 · slice B` | merge-before-merge | #32 | Narrowed from #84 to slice A (typed config): `19.2 · slice C` needs this slice, and slice D is Wave 9. |
 | `02.1 · slice C` | `02.1 · rule removal` | merge-before-merge | #32 | Drops the sign-in rule after C's cut-over; ships with `19.1 · slice 2`, which waits for C. |
 | `02.1 · slice B` | `02.2 · slice A` | merge-before-merge | #33 | Narrowed from #32 (sessions) to slice B: 02.1 slice E is Wave 3 and rule removal Wave 8. |
@@ -416,8 +429,9 @@ Judgment calls and clarifications recorded on edges, in JSON order.
 | `22.2 · b1` | `02.3 · slice 3` | merge-before-merge | #34 | Narrowed from #93 (harness) to b1: 22.2 part (c) is Wave 4. |
 | `02.1 · slice B` | `03.1 · policy` | merge-before-merge | #35 | Narrowed from #32 to slice B (sessions): `02.1 · slice E` needs `03.1 · lifecycle`. |
 | `19.2 · slice A` | `03.1 · members` | merge-before-merge | #35 | #84 is for email only (invitations). Narrowed to slice A: `19.2 · slice C` needs 03.1. |
-| `03.1 · grants` | `03.2 · participants` | merge-before-merge | #36 | #36 orders the leaf after #35; `· participants` names only policy, members and grants, and `· guests` follows `03.1 · lifecycle` through `02.1 · slice E`. |
-| `02.1 · slice B` | `03.2 · participants` | merge-before-merge | #36 | Narrowed from #32 to slice B (sessions): `02.1 · slice E` needs `03.1 · lifecycle` and gates guests and slots instead. |
+| `03.1 · grants` | `03.2 · participants` | merge-before-merge | #36 | #36 orders the leaf after #35 and names its slices policy, members and grants; `03.1 · lifecycle` reaches `· participants` through `02.1 · slice E`. |
+| `02.1 · slice B` | `03.2 · participants` | merge-before-merge | #36 | Narrowed from #32 (sessions) to slice B: `02.1 · rule removal` is Wave 8. |
+| `02.1 · slice E` | `03.2 · participants` | merge-before-merge | #36 | Slice E gates any non-owner admission, and the People section adds and invites non-owners. |
 | `19.2 · slice A` | `03.2 · participants` | merge-before-merge | #36 | Narrowed from #84 to slice A (typed config): `19.2 · slice D` is Wave 9. |
 | `03.2 · participants` | `03.2 · guests` | merge-before-merge | #36 | Rollout: participants, guests, slots. |
 | `03.3 · primitive` | `03.2 · guests` | merge-before-merge | #36 | Join links need 03.3's join-run target. |
@@ -428,20 +442,15 @@ Judgment calls and clarifications recorded on edges, in JSON order.
 | `02.1 · slice C` | `03.3 · primitive` | merge-before-merge | #37 | Narrowed from #32 to slices B and C (sessions, relay): `02.1 · rule removal` is Wave 8. |
 | `19.2 · slice A` | `03.3 · primitive` | merge-before-merge | #37 | Narrowed from #84 to slice A (typed config): `19.2 · slice D` is Wave 9. |
 | `03.3 · primitive` | `03.3 · progress` | merge-before-merge | #37 | `· progress` registers its target on the primitive. |
-| `05.2 · slice 1` | `03.3 · progress` | merge-before-merge | #1 Leaf edges beyond the gates | #37 lists 05.2 slice 1 for the leaf; its slice list and #1 place it at `· progress`. |
 | `03.3 · primitive` | `03.3 · template` | merge-before-merge | #37 | `· template` registers its target on the primitive. |
-| `G2` | `04.1 · storage` | merge-before-start | #30 | G2 merges before #38 starts. |
 | `02.1 · slice B` | `04.1 · storage` | merge-before-merge | #38 | Narrowed from #32 (resolvePrincipal) to slice B: `02.1 · rule removal` is Wave 8. |
 | `16.2 · v1 repair` | `04.1 · storage` | merge-before-merge | #75 | `· v1 repair` lands before #38 migrates templates. |
-| `11.1` | `04.1 · commands` | merge-before-merge | #1 Leaf edges beyond the gates | #38 lists #59 for the leaf; #1 places it at `· commands`. |
 | `02.1 · slice B` | `04.3 · archive` | merge-before-merge | #40 | Narrowed from #32 (actor) to slice B: `02.1 · rule removal` is Wave 8. |
 | `G1` | `05.2 · envelope` | merge-before-start | #42 | Narrowed from #81 to gate 1: `18.2 · gate 2` is Wave 7. |
 | `18.3 · slice A` | `05.2 · envelope` | merge-before-merge | #42 | Narrowed from #82 to slice A (snapshot and verify): `18.3 · slice B` is Wave 7. |
 | `16.2 · v1 keys` | `05.2 · envelope` | merge-before-merge | #75 | `· v1 keys` lands before #42's export 1.1.0, which `· envelope` ships. |
 | `05.2 · extraction` | `05.2 · retire-itemType` | merge-before-merge | #42 | `· retire-itemType` is the last slice; `instruction@1` is registered in `· extraction` and creatable from it. |
 | `18.3 · slice A` | `05.2 · retire-itemType` | merge-before-merge | #42 | Narrowed from #82 (verified snapshot) to slice A: `18.3 · slice B` is Wave 7. |
-| `06.1 · includes` | `06.3 · inspect` | merge-before-merge | #46 | Slice order narrows the leaf's "after #44 and #45": `· inspect` follows `06.1 · includes`, and `· upgrade` takes #45. |
-| `G2` | `07.1 · core` | merge-before-start | #30 | G2 merges before #47 starts. |
 | `07.2 · contract` | `07.1 · core` | merge-before-merge | #1 Wave plan | #48: slice A lands before #47 core. |
 | `07.1 · core` | `07.1 · setup` | merge-before-merge | #47 | Configure run calls core's CreateRun, which replaces the legacy writer. |
 | `19.2 · slice A` | `08.1 · slice 1` | merge-before-merge | #50 | Narrowed from #84 to slice A (typed config): `19.2 · slice D` is Wave 9. |
@@ -474,12 +483,9 @@ Judgment calls and clarifications recorded on edges, in JSON order.
 | `09.1` | `10.2 · attention` | merge-before-merge | #57 | Parent prerequisites narrow CHECKMATE-09 to #53 (focused execution). |
 | `10.2 · gate` | `10.2 · invalidation` | merge-before-merge | #57 | Until `· invalidation`, `· gate` vetoes plans touching a gate. |
 | `03.3 · primitive` | `10.3 · share` | merge-before-merge | #58 | #37 and #58: `· share` registers the 03.3 completion-record target on the primitive. |
-| `G2` | `11.1 · module` | merge-before-start | #30 | G2 merges before #59 starts. |
 | `02.1 · slice B` | `11.1 · module` | merge-before-merge | #59 | Narrowed from #32 (principal) to slice B: `02.1 · rule removal` is Wave 8. |
-| `09.2` | `11.2 · slice 1` | merge-before-merge | #60 | #54 lands first and owns held work. Leaf-level #35 to #37, #62 slice B, #63 and #80 apply to `· slice 2`, whose list names them. |
-| `11.2` | `11.3 · draft` | merge-before-merge | #61 | #61's "after #57, #55 and #60" applies per slice: `· draft` takes #60, `· run` takes #55 and #57. |
+| `09.2` | `11.2 · slice 1` | merge-before-merge | #60 | #54 lands first and owns held work. |
 | `11.3 · draft` | `11.3 · run` | merge-before-merge | #61 | Rollout order: rebase, draft, run. |
-| `G2` | `12.1 · slice A` | merge-before-start | #30 | G2 merges before #62 starts. |
 | `02.1 · slice C` | `12.2 · inbox` | merge-before-merge | #63 | Narrowed from #32 (relay) to slice C: `02.1 · rule removal` is Wave 8. |
 | `19.2 · slice A` | `12.2 · inbox` | merge-before-merge | #63 | Narrowed from #84 to slice A (typed config): `19.2 · slice D` is Wave 9. |
 | `02.1 · slice C` | `12.2 · audit` | merge-before-merge | #63 | Narrowed from #32 (relay) to slice C: `02.1 · rule removal` is Wave 8. |
@@ -581,7 +587,7 @@ Each filed epic dependency is realized by a leaf-level path, or dropped with a r
 | CHECKMATE-07 → CHECKMATE-10 | filed #12 Dependencies | `07.1` → `10.1 · evidence` |
 | CHECKMATE-09 → CHECKMATE-10 | filed #12 Dependencies | `09.1` → `10.1 · evidence` |
 | CHECKMATE-04 → CHECKMATE-11 | filed #13 Dependencies | `04.1` → `11.2 · slice 1` |
-| CHECKMATE-07 → CHECKMATE-11 | filed #13 Dependencies | `07.2` → `11.2 · slice 2` |
+| CHECKMATE-07 → CHECKMATE-11 | filed #13 Dependencies | `07.2` → `11.2 · slice 1` |
 | CHECKMATE-09 → CHECKMATE-11 | filed #13 Dependencies | `09.1` → `11.2 · slice 1` |
 | CHECKMATE-01 → CHECKMATE-12 | filed #14 Dependencies | `01.1` → `12.2 · inbox` |
 | CHECKMATE-02 → CHECKMATE-12 | filed #14 Dependencies | `02.1 · slice C` → `12.2 · inbox` |

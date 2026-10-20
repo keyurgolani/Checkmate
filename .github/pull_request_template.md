@@ -1,8 +1,8 @@
-Implements: CHECKMATE-NN.M[ · slice]
+Implements CHECKMATE-NN.M · <slice>
 Refs #N
 
 <!--
-First line: the stable ID this PR implements, plus the slice name from the leaf issue's Slices list when the leaf is sliced, for example `CHECKMATE-18.2 · gate 1`. Use `Closes #N` instead of `Refs #N` only when this PR finishes the issue.
+First line: `Implements`, a space and the stable ID this PR implements, with no colon. Add ` · ` and the slice name from the leaf issue's Slices list when the leaf is sliced (`Implements CHECKMATE-18.2 · gate 1`); leave it off when the leaf has no slices (`Implements CHECKMATE-00.2`). The release changelog groups merged PRs by this line. Use `Closes #N` instead of `Refs #N` only when this PR finishes the issue.
 
 docs/transformation/dependency-graph.md lists each node's predecessors. The owner merges nothing while one is open; no CI check enforces the order.
 -->

@@ -27,7 +27,7 @@ import {
   type GraphNode,
   type Kind,
 } from './graph';
-import { renderDependencyGraph } from './render';
+import { renderDependencyGraph } from './graph-markdown';
 
 const L = (n: string) => `CHECKMATE-${n}`;
 const S = (n: string, slice: string) => `CHECKMATE-${n} · ${slice}`;
@@ -45,36 +45,45 @@ const W0S = '#1 Wave 0 sequence';
 const LEB = '#1 Leaf edges beyond the gates';
 const MBM: EdgeKind = 'merge-before-merge';
 
-const golden = (from: string, to: string, sources: string[], extra: Partial<GoldenEdge> = {}): GoldenEdge => ({ from, to, sources, ...extra });
+const golden = (from: string, to: string, source: string, extra: Partial<GoldenEdge> = {}): GoldenEdge => ({ from, to, source, ...extra });
 
 /**
- * #31 groups these under #1's Important delivery refinements. The published #1
- * states `02.1 · slice C` → `19.1 · slice 2` and `19.2 · slice B` → `19.1 · slice 1`
- * under Leaf edges beyond the gates; #83 states the 00.4 and `19.2 · slice A`
- * edges, and only #31 states the other three 00 edges. The graph cites where
- * the text is, and either source passes.
+ * #31 lists these under #1's Important delivery refinements, which states only
+ * the gate edges. Each 19.1 edge cites the one place its text is: #1's Leaf
+ * edges beyond the gates for `02.1 · slice C` and `19.2 · slice B`, #83 for
+ * 00.4 and `19.2 · slice A`, and #31's own list for the other three 00 leaves.
  */
 const GOLDEN_DELIVERY: GoldenEdge[] = [
-  golden(S('22.1', 'gate A'), 'G0', [IDR]),
-  golden(S('18.2', 'gate 1'), 'G1', [IDR]),
-  golden(S('12.1', 'slice B'), S('18.2', 'gate 2'), [IDR]),
-  golden(S('02.1', 'slice C'), S('19.1', 'slice 2'), [IDR, LEB]),
-  ...ZERO_LEAVES.map((leaf) => golden(leaf, S('19.1', 'slice 1'), [IDR, '#83', '#31'])),
-  golden(S('19.2', 'slice A'), S('19.1', 'slice 1'), [IDR, '#83']),
-  golden(S('19.2', 'slice B'), S('19.1', 'slice 1'), [IDR, LEB]),
+  golden(S('22.1', 'gate A'), 'G0', IDR),
+  golden(S('18.2', 'gate 1'), 'G1', IDR),
+  golden(S('12.1', 'slice B'), S('18.2', 'gate 2'), IDR),
+  golden(S('02.1', 'slice C'), S('19.1', 'slice 2'), LEB),
+  ...['00.1', '00.2', '00.3'].map((n) => golden(L(n), S('19.1', 'slice 1'), '#31')),
+  golden(L('00.4'), S('19.1', 'slice 1'), '#83'),
+  golden(S('19.2', 'slice A'), S('19.1', 'slice 1'), '#83'),
+  golden(S('19.2', 'slice B'), S('19.1', 'slice 1'), LEB),
 ];
 
-/** #1 Wave 0 sequence: steps 1 to 8 as one merge-before-merge chain. */
+/**
+ * #1 Wave 0 sequence: steps 1 to 8 as one merge-before-merge chain, 00.3 slice A
+ * first, 09.1 slice 0 after step 1 with 07.3 stub removal before it, and the
+ * 19.3 upgrade note last before `v0.2.0`, which 21.1 starts from (#89).
+ */
 const STEP_2 = [S('18.2', 'gate 1'), S('00.3', 'slice B')];
 const STEP_3 = ['slice A', 'slice B', 'slice C'].map((s) => S('00.4', s));
 const GOLDEN_WAVE_0: GoldenEdge[] = [
-  ...STEP_2.map((to) => golden(S('22.1', 'gate A'), to, [W0S], { kind: MBM })),
-  ...STEP_2.flatMap((from) => STEP_3.map((to) => golden(from, to, [W0S], { kind: MBM }))),
-  ...STEP_3.map((from) => golden(from, S('00.1', 'slice A'), [W0S], { kind: MBM })),
-  golden(L('00.1'), S('00.4', 'slice D'), [W0S], { kind: MBM }),
-  golden(S('00.4', 'slice D'), S('18.3', 'slice A'), [W0S], { kind: MBM }),
-  golden(S('18.3', 'slice A'), S('18.2', 'gate 1 workspace'), [W0S], { kind: MBM }),
-  golden(S('18.2', 'gate 1 workspace'), L('00.2'), [W0S], { kind: MBM }),
+  ...STEP_2.map((to) => golden(S('22.1', 'gate A'), to, W0S, { kind: MBM })),
+  ...STEP_2.flatMap((from) => STEP_3.map((to) => golden(from, to, W0S, { kind: MBM }))),
+  ...STEP_3.map((from) => golden(from, S('00.1', 'slice A'), W0S, { kind: MBM })),
+  golden(L('00.1'), S('00.4', 'slice D'), W0S, { kind: MBM }),
+  golden(S('00.4', 'slice D'), S('18.3', 'slice A'), W0S, { kind: MBM }),
+  golden(S('18.3', 'slice A'), S('18.2', 'gate 1 workspace'), W0S, { kind: MBM }),
+  golden(S('18.2', 'gate 1 workspace'), L('00.2'), W0S, { kind: MBM }),
+  ...STEP_2.map((to) => golden(S('00.3', 'slice A'), to, W0S, { kind: MBM })),
+  golden(L('00.2'), S('19.3', 'upgrade note'), W0S, { kind: MBM }),
+  golden(S('22.1', 'gate A'), S('09.1', 'slice 0'), W0S, { kind: MBM }),
+  golden(S('07.3', 'stub removal'), S('09.1', 'slice 0'), W0S, { kind: MBM }),
+  golden(S('19.3', 'upgrade note'), S('21.1', 'tokens'), '#89', { kind: MBM }),
 ];
 
 /** #1 Leaf edges beyond the gates, at slice level (the two 19.1 edges are above). */
@@ -106,19 +115,23 @@ const GOLDEN_LEAF_EDGES: GoldenEdge[] = (
     [S('02.2', 'slice B'), S('16.1', 'envelope')],
     [S('02.2', 'slice B'), S('18.3', 'slice B')],
   ] as const
-).map(([from, to]) => golden(from, to, [LEB]));
+).map(([from, to]) => golden(from, to, LEB));
 
-/** Edges #31 cites from leaf bodies, plus the adapter edge from its Graph nodes contract. */
+/**
+ * Edges #31 cites from leaf bodies, plus the adapter edge from its Graph nodes
+ * contract. #31 cites #37 and #58 for the share edge; #58's `· share` slice
+ * names the 03.3 target. #38 states `· adapter` before `· storage`.
+ */
 const GOLDEN_LEAF_BODIES: GoldenEdge[] = [
-  golden(S('03.3', 'primitive'), S('10.3', 'share'), ['#37', '#58']),
-  golden(S('16.1', 'workflow'), S('13.1', 'contracts'), ['#65']),
-  golden(S('12.1', 'slice A'), S('10.3', 'issue'), ['#58']),
-  golden(S('12.1', 'slice B'), S('11.2', 'slice 2'), ['#60']),
-  golden(L('03.2'), S('15.3', 'participants'), ['#73']),
-  golden(L('08.1'), S('15.3', 'automations'), ['#73']),
-  golden(L('03.1'), S('17.1', 'workspace'), ['#77']),
-  ...ZERO_LEAVES.map((leaf) => golden(leaf, S('22.1', 'gate B'), ['#92'])),
-  golden(S('01.1', 'adapter'), S('04.1', 'storage'), ['#29', '#38'], { kind: 'merge-before-start' }),
+  golden(S('03.3', 'primitive'), S('10.3', 'share'), '#58'),
+  golden(S('16.1', 'workflow'), S('13.1', 'contracts'), '#65'),
+  golden(S('12.1', 'slice A'), S('10.3', 'issue'), '#58'),
+  golden(S('12.1', 'slice B'), S('11.2', 'slice 2'), '#60'),
+  golden(L('03.2'), S('15.3', 'participants'), '#73'),
+  golden(L('08.1'), S('15.3', 'automations'), '#73'),
+  golden(L('03.1'), S('17.1', 'workspace'), '#77'),
+  ...ZERO_LEAVES.map((leaf) => golden(leaf, S('22.1', 'gate B'), '#92')),
+  golden(S('01.1', 'adapter'), S('04.1', 'storage'), '#38', { kind: 'merge-before-start' }),
 ];
 
 const GOLDEN = [...GOLDEN_DELIVERY, ...GOLDEN_WAVE_0, ...GOLDEN_LEAF_EDGES, ...GOLDEN_LEAF_BODIES];
@@ -192,6 +205,29 @@ describe('#31 gate and Wave 0 contracts', () => {
     expect(route, route?.join(' → ')).toBeNull();
   });
 
+  it('opens no slice of #38, #47, #59 or #62 before G2 merges, and no slice of #38 before `01.1 · adapter`', () => {
+    const unheld: string[] = [];
+    const holdsEverySlice = (from: string, leaf: string) => {
+      const slices = graph.nodes.filter((node) => node.parent === leaf);
+      if (slices.length === 0) unheld.push(`${leaf} has no slices`);
+      for (const slice of slices) {
+        const held = graph.edges.some((e) => e.from === from && e.to === slice.id && e.kind === 'merge-before-start');
+        if (!held) unheld.push(`${from} → ${slice.id}`);
+      }
+    };
+    for (const leaf of ['04.1', '07.1', '11.1', '12.1']) holdsEverySlice('G2', L(leaf));
+    holdsEverySlice(S('01.1', 'adapter'), L('04.1'));
+    expect(unheld, 'missing merge-before-start edges').toEqual([]);
+  });
+
+  it('merges `19.3 · upgrade note` last in Wave 0: every other Wave 0 node reaches it', () => {
+    const last = S('19.3', 'upgrade note');
+    const arcs = approvedArcs(graph);
+    const waveZero = graph.nodes.filter((node) => node.plannedWave === 0 && node.id !== last);
+    const unordered = waveZero.filter((node) => findPath(arcs, [node.id], (id) => id === last) === null).map((node) => node.id);
+    expect(unordered, `Wave 0 nodes ${last} does not wait for`).toEqual([]);
+  });
+
   it('ships Wave 0 step 2 as one PR: no edge or path between its two slices', () => {
     const [gate1, slice3b] = STEP_2 as [string, string];
     expect(findPath(approvedArcs(graph), [gate1], (id) => id === slice3b)).toBeNull();
@@ -205,9 +241,10 @@ describe('#31 gate and Wave 0 contracts', () => {
 });
 
 describe('PR template', () => {
-  it('has the Implements field', () => {
+  it('opens with the Implements line in #1\'s form, which #94\'s changelog groups by', () => {
     const template = fs.readFileSync(path.resolve(__dirname, '../../.github/pull_request_template.md'), 'utf8');
-    expect(template).toMatch(/^Implements: CHECKMATE-NN\.M\[ · slice\]$/m);
+    expect(template.split('\n')[0]).toBe('Implements CHECKMATE-NN.M · <slice>');
+    expect(template).not.toMatch(/^Implements:/m);
   });
 });
 
@@ -268,7 +305,7 @@ function fixture(): DependencyGraph {
 }
 
 const FIXTURE_LEAVES = new Map([[L('00.1'), 25], [L('01.1'), 29], [L('02.1'), 32]]);
-const FIXTURE_GOLDEN = [golden(L('00.1'), L('01.1'), ['#29'])];
+const FIXTURE_GOLDEN = [golden(L('00.1'), L('01.1'), '#29')];
 const FIXTURE_WAVE_ZERO = [S('00.1', 'slice A')];
 
 function mutate(change: (g: DependencyGraph) => void): DependencyGraph {
@@ -319,6 +356,16 @@ describe('7. failing fixtures', () => {
       expect(errors).toContain('node CHECKMATE-02.1 · slice A: unknown kind "frontend"');
       expect(errors).toContain('edge CHECKMATE-00.1 → CHECKMATE-01.1: source "issue 29" must be "#N" or "#1 <section>"');
       expect(errors).toContain('edge G0 → CHECKMATE-01.1: unknown key "weight"');
+    });
+
+    it('rejects a capability edge from an epic to itself, which any one of its nodes would realize', () => {
+      const g = mutate((f) => {
+        f.capabilityEdges.push({ from: 'CHECKMATE-01', to: 'CHECKMATE-01', source: 'filed #3 Dependencies' });
+        f.droppedCapabilityEdges.push({ from: 'CHECKMATE-02', to: 'CHECKMATE-02', reason: 'stale' });
+      });
+      const errors = checkShape(g);
+      expect(errors).toContain('capability edge CHECKMATE-01 → CHECKMATE-01: self-loop');
+      expect(errors).toContain('dropped capability edge CHECKMATE-02 → CHECKMATE-02: self-loop');
     });
   });
 
@@ -488,6 +535,32 @@ describe('7. failing fixtures', () => {
       const target = changed.nodes.find((n) => n.id === S('01.3', 'graph')) as GraphNode;
       target.title = `${target.title} (edited)`;
       expect(renderDependencyGraph(changed)).not.toBe(fs.readFileSync(GRAPH_MD_PATH, 'utf8'));
+    });
+
+    it('keeps every table row to its header\'s columns when text holds pipes, line breaks or backticks', () => {
+      const odd = S('02.1', 'odd `|` name');
+      const g = mutate((f) => {
+        findNode(f, S('02.1', 'slice A')).title = 'a | b\nc';
+        findNode(f, S('02.1', 'slice B')).note = 'x|y\r\nz';
+        findEdge(f, L('00.1'), L('01.1')).note = 'p | q';
+        f.capabilityEdges = f.capabilityEdges.map((capability) => ({ ...capability, source: `${capability.source} | x` }));
+        f.nodes.push(node(odd, 'slice', L('02.1'), 32, 2, 2, []));
+        f.edges.push(edge(S('02.1', 'slice B'), odd, MBM, '#32'));
+      });
+      const markdown = renderDependencyGraph(g);
+      const columns = (line: string) => line.split(/(?<!\\)\|/).length;
+      const broken: string[] = [];
+      let width: number | null = null;
+      for (const line of markdown.split('\n')) {
+        if (!line.startsWith('|')) {
+          width = null;
+          continue;
+        }
+        width ??= columns(line);
+        if (columns(line) !== width) broken.push(line);
+      }
+      expect(broken).toEqual([]);
+      expect(markdown).toContain('``02.1 · odd `\\|` name``');
     });
   });
 });

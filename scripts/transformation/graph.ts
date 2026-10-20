@@ -92,8 +92,8 @@ export interface DependencyGraph {
 }
 
 export interface GoldenEdge extends EdgeRef {
-  /** Accepted `source` values. */
-  sources: string[];
+  /** The one `source` the edge cites: where its text is. */
+  source: string;
   status?: EdgeStatus;
   kind?: EdgeKind;
 }
@@ -395,12 +395,17 @@ export function checkShape(graph: DependencyGraph): string[] {
     }
   }
 
+  // An epic never depends on itself; capabilityPath would call such an edge realized by any one of its nodes.
   for (const capability of graph.capabilityEdges) {
-    if (!EPIC_ID.test(capability.from) || !EPIC_ID.test(capability.to)) errors.push(`capability edge ${edgeLabel(capability)}: epic ids look like CHECKMATE-NN`);
-    if (typeof capability.source !== 'string' || capability.source.trim() === '') errors.push(`capability edge ${edgeLabel(capability)}: source is required`);
+    const where = `capability edge ${edgeLabel(capability)}`;
+    if (!EPIC_ID.test(capability.from) || !EPIC_ID.test(capability.to)) errors.push(`${where}: epic ids look like CHECKMATE-NN`);
+    if (capability.from === capability.to) errors.push(`${where}: self-loop`);
+    if (typeof capability.source !== 'string' || capability.source.trim() === '') errors.push(`${where}: source is required`);
   }
   for (const dropped of graph.droppedCapabilityEdges) {
-    if (!EPIC_ID.test(dropped.from) || !EPIC_ID.test(dropped.to)) errors.push(`dropped capability edge ${edgeLabel(dropped)}: epic ids look like CHECKMATE-NN`);
+    const where = `dropped capability edge ${edgeLabel(dropped)}`;
+    if (!EPIC_ID.test(dropped.from) || !EPIC_ID.test(dropped.to)) errors.push(`${where}: epic ids look like CHECKMATE-NN`);
+    if (dropped.from === dropped.to) errors.push(`${where}: self-loop`);
   }
   for (const decision of graph.openDecisions) {
     if (typeof decision.question !== 'string' || decision.question.trim() === '') {
@@ -619,10 +624,10 @@ export function checkGoldenEdges(graph: DependencyGraph, golden: readonly Golden
   for (const want of golden) {
     const edge = byKey.get(edgeKey(want));
     if (!edge) {
-      errors.push(`missing golden edge ${edgeLabel(want)} (${want.sources.join(' or ')})`);
+      errors.push(`missing golden edge ${edgeLabel(want)} (${want.source})`);
       continue;
     }
-    if (!want.sources.includes(edge.source)) errors.push(`golden edge ${edgeLabel(want)}: source "${edge.source}", expected ${want.sources.map((s) => `"${s}"`).join(' or ')}`);
+    if (edge.source !== want.source) errors.push(`golden edge ${edgeLabel(want)}: source "${edge.source}", expected "${want.source}"`);
     const status = want.status ?? 'approved-refinement';
     if (edge.status !== status) errors.push(`golden edge ${edgeLabel(want)}: status ${edge.status}, expected ${status}`);
     if (want.kind && edge.kind !== want.kind) errors.push(`golden edge ${edgeLabel(want)}: kind ${edge.kind}, expected ${want.kind}`);
