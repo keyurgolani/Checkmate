@@ -12,9 +12,11 @@ import { describe, expect, it } from 'vitest';
 import { fontThemes } from '../../src/lib/themes/font-themes';
 import { checkFontHosts, findFontHosts, offOriginLinks, offOriginUrls } from './check-font-hosts.mjs';
 import {
+  BROWSER_USER_AGENT,
   FAMILIES,
   FONTS_DIR,
   GOOGLE_FONTS_COMMIT,
+  NEXT_FONT_USER_AGENT,
   REPO_ROOT,
   cssUrl,
   fileNames,
@@ -31,6 +33,7 @@ interface ManifestFamily {
   id: string;
   family: string;
   css: string;
+  userAgent: string;
   upstream: { repository: string; commit?: string } | null;
   license: { file: string; spdx: string; name: string; url: string; sha256: string };
   stylesheet: string;
@@ -38,7 +41,7 @@ interface ManifestFamily {
   files: { file: string; url: string; sha256: string; bytes: number }[];
 }
 
-const manifest = readManifest() as { userAgent: string; googleFontsCommit: string; families: ManifestFamily[] };
+const manifest = readManifest() as { googleFontsCommit: string; families: ManifestFamily[] };
 const read = (file: string) => fs.readFileSync(path.join(REPO_ROOT, file));
 const exists = (file: string) => fs.existsSync(path.join(REPO_ROOT, file));
 const href = (family: ManifestFamily) => `/${path.posix.relative('public', family.stylesheet)}`;
@@ -106,6 +109,8 @@ describe('vendored theme fonts', () => {
       const family = manifest.families.find((candidate) => candidate.files.some((entry) => entry.file === file));
       expect(family?.family, file).toBe(font.family);
       expect(family?.faces.find((face) => face.file === file)?.weight, file).toBe(font.weight);
+      // The files next/font/google downloaded for these four, so nothing changes on any platform.
+      expect(family?.userAgent, file).toBe(NEXT_FONT_USER_AGENT);
     }
   });
 
@@ -132,6 +137,7 @@ describe('vendored theme fonts', () => {
     for (const [index, family] of manifest.families.entries()) {
       const spec = FAMILIES[index]!;
       expect(family.css).toBe(cssUrl(spec.query));
+      expect(family.userAgent, family.id).toBe(spec.userAgent ?? BROWSER_USER_AGENT);
       expect(family.license.url).toBe(licenseUrl(spec.license, manifest.googleFontsCommit));
       for (const entry of family.files) expect(entry.url, entry.file).toMatch(/^https:\/\/fonts\.gstatic\.com\/s\/[\w-]+\/v\d+\/[\w-]+\.woff2$/);
       expect(new Set(family.faces.map((face) => face.file))).toEqual(new Set(family.files.map((entry) => entry.file)));

@@ -16,6 +16,12 @@
  * the upstream project's license as Google Fonts distributes it. The manifest
  * records every file's source URL and SHA-256, and the upstream repository.
  *
+ * css2 serves Windows and Linux a build with TrueType hinting and Apple
+ * platforms one without, and Apple platforms render both the same. Each
+ * family keeps the build it loaded before it was vendored: the four layout
+ * fonts the files next/font/google downloaded, and the others the build
+ * most browsers got.
+ *
  * Builds never run this script: the committed files are the artifact, and
  * scripts/fonts/fonts.test.ts checks them against the manifest offline.
  */
@@ -34,9 +40,12 @@ const CSS_API = 'https://fonts.googleapis.com/css2';
 const GOOGLE_FONTS_REPO = 'https://raw.githubusercontent.com/google/fonts';
 /** google/fonts main on 2026-10-16. Licenses and upstream metadata come from this commit. */
 export const GOOGLE_FONTS_COMMIT = '47d54ca1ebb14fd864695f1d39dc734f39017c33';
-/** The user agent next/font/google sends, so the css2 API serves the same woff2 files. */
-export const USER_AGENT =
+/** The user agent next/font/google sends, so css2 serves the files it downloaded. */
+export const NEXT_FONT_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36';
+/** Chrome on Windows, which gets the hinted build that Windows and Linux browsers load. */
+export const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
 const SUBSET = 'latin';
 
 /**
@@ -44,13 +53,14 @@ const SUBSET = 'latin';
  * the css2 `family` value: for the four that src/app/layout.tsx loads, the
  * weight axis range next/font/google requested, and for the others the
  * query their stylesheet link used before they were vendored. `license` is
- * the license file's path in google/fonts.
+ * the license file's path in google/fonts. `userAgent` defaults to
+ * BROWSER_USER_AGENT.
  */
 export const FAMILIES = [
-  { id: 'inter', query: 'Inter:wght@100..900', license: 'ofl/inter/OFL.txt' },
-  { id: 'plusJakarta', query: 'Plus+Jakarta+Sans:wght@200..800', license: 'ofl/plusjakartasans/OFL.txt' },
-  { id: 'outfit', query: 'Outfit:wght@100..900', license: 'ofl/outfit/OFL.txt' },
-  { id: 'manrope', query: 'Manrope:wght@200..800', license: 'ofl/manrope/OFL.txt' },
+  { id: 'inter', query: 'Inter:wght@100..900', license: 'ofl/inter/OFL.txt', userAgent: NEXT_FONT_USER_AGENT },
+  { id: 'plusJakarta', query: 'Plus+Jakarta+Sans:wght@200..800', license: 'ofl/plusjakartasans/OFL.txt', userAgent: NEXT_FONT_USER_AGENT },
+  { id: 'outfit', query: 'Outfit:wght@100..900', license: 'ofl/outfit/OFL.txt', userAgent: NEXT_FONT_USER_AGENT },
+  { id: 'manrope', query: 'Manrope:wght@200..800', license: 'ofl/manrope/OFL.txt', userAgent: NEXT_FONT_USER_AGENT },
   { id: 'poppins', query: 'Poppins:wght@300;400;500;600;700', license: 'ofl/poppins/OFL.txt' },
   { id: 'montserrat', query: 'Montserrat:wght@300;400;500;600;700', license: 'ofl/montserrat/OFL.txt' },
   { id: 'lato', query: 'Lato:wght@300;400;700', license: 'ofl/lato/OFL.txt' },
@@ -213,7 +223,8 @@ async function download(url, { headers = {}, attempts = 3 } = {}) {
 }
 
 async function fetchFamily(spec, root) {
-  const css = (await download(cssUrl(spec.query), { headers: { 'User-Agent': USER_AGENT } })).toString('utf8');
+  const userAgent = spec.userAgent ?? BROWSER_USER_AGENT;
+  const css = (await download(cssUrl(spec.query), { headers: { 'User-Agent': userAgent } })).toString('utf8');
   const parsed = parseFaces(css);
   if (parsed.length === 0) throw new Error(`fetch-fonts: no ${SUBSET} faces for ${spec.query}`);
   const families = new Set(parsed.map((face) => face.family));
@@ -236,6 +247,7 @@ async function fetchFamily(spec, root) {
     id: spec.id,
     family: parsed[0].family,
     css: cssUrl(spec.query),
+    userAgent,
     upstream: parseUpstream(metadata),
     license: {
       file: path.posix.join(dir, path.posix.basename(spec.license)),
@@ -285,7 +297,6 @@ async function fetchAll(root) {
   }
   const manifest = {
     $comment: `Written by scripts/fonts/fetch-fonts.mjs; do not edit. The source URL and SHA-256 of every fetched file under ${FONTS_DIR}. Each stylesheet is rendered from its family's faces.`,
-    userAgent: USER_AGENT,
     googleFontsCommit: GOOGLE_FONTS_COMMIT,
     families,
   };
