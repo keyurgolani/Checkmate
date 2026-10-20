@@ -1,0 +1,78 @@
+{
+  "$comment": "Path classes and job metadata for .github/workflows/ci.yml. scripts/ci/scope.mjs maps each changed file of a pull request to classes and runs the union of their jobs. An exclusive class overrides every other match (the first exclusive class listed wins); other classes add up; a file matching none is the default class. Pushes run every job. scripts/ci/aggregate.mjs reads the jobs table for failure classes and repro commands, and check-workflow.mjs keeps it in step with ci.yml.",
+  "jobs": {
+    "scope": {
+      "always": true,
+      "failureClass": "infra",
+      "repro": "node scripts/ci/scope.mjs --event pull_request --base {base}"
+    },
+    "checks": {
+      "always": true,
+      "failureClass": "gate",
+      "repro": "node scripts/ci/check-workflow.mjs && node scripts/ci/check-node-version.mjs"
+    },
+    "lint": {
+      "failureClass": "lint",
+      "repro": "node scripts/ci/lint-changed.mjs --base {base}"
+    },
+    "unit": {
+      "failureClass": "test",
+      "repro": "npm run test:unit"
+    },
+    "backend": {
+      "failureClass": "test",
+      "repro": "npm run test:backend"
+    },
+    "build": {
+      "failureClass": "build",
+      "repro": "NEXT_PUBLIC_POCKETBASE_URL=http://127.0.0.1:9 POCKETBASE_URL=http://127.0.0.1:9 npm run build"
+    },
+    "images": {
+      "failureClass": "build",
+      "repro": "docker build -t checkmate-app:ci . && docker build -t checkmate-pocketbase:ci docker/pocketbase"
+    }
+  },
+  "classes": [
+    {
+      "name": "toolchain",
+      "exclusive": true,
+      "jobs": "all",
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        ".npmrc",
+        ".nvmrc",
+        "tsconfig.json",
+        "*.config.ts",
+        "*.config.mjs",
+        "*.config.js",
+        "*.config.cjs",
+        ".github/**",
+        "scripts/ci/**",
+        "docker/pocketbase/Dockerfile",
+        "docker/pocketbase/pocketbase.sha256"
+      ]
+    },
+    {
+      "name": "docs",
+      "exclusive": true,
+      "jobs": [],
+      "paths": ["**/*.md", "docs/**"],
+      "except": ["docs/**/*.json"]
+    },
+    {
+      "name": "docker",
+      "jobs": ["images"],
+      "paths": ["Dockerfile*", "docker/**", ".dockerignore"]
+    },
+    {
+      "name": "fixture",
+      "jobs": ["backend"],
+      "paths": ["docker/pocketbase/pb_schema.json"]
+    }
+  ],
+  "default": {
+    "name": "code",
+    "jobs": ["lint", "unit", "backend", "build"]
+  }
+}
