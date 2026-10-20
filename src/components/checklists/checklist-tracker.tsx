@@ -16,8 +16,8 @@
  * - Announce state changes to screen readers
  */
 
-import { useState, useCallback, useMemo } from "react";
-import { Check, ChevronRight, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers } from "lucide-react";
+import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { AlertCircle, Check, CheckSquare, ChevronRight, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers, Square } from "lucide-react";
 import { buildTree, type TreeNode } from "@/lib/utils/tree";
 import { cn } from "@/lib/utils";
 import { LiveRegion, useStatusAnnouncer } from "@/components/ui/live-region";
@@ -45,11 +45,28 @@ export interface ChecklistTask {
   itemType?: "task" | "reference" | "phase";
 }
 
+/** The step state the server confirmed for a toggle. */
+export interface ToggleConfirmation {
+  isCompleted: boolean;
+}
+
 export interface ChecklistTrackerProps {
   tasks: ChecklistTask[];
-  onToggleTask: (taskId: string) => Promise<void>;
+  /**
+   * Sends one step's toggle. Resolve with the state the server confirmed, or
+   * null when nothing was sent; reject when the toggle failed. The tracker
+   * announces only confirmed changes and shows Retry under a failed step.
+   * The next toggle of a failed step passes `retryTarget`, the state the
+   * failed toggle aimed for, so the page can check whether the step was
+   * saved before it sends another flip.
+   */
+  onToggleTask: (taskId: string, retryTarget?: boolean) => Promise<ToggleConfirmation | null>;
   disabled?: boolean;
-  /** Context menu items for task items */
+  /**
+   * Context menu items for task items. The tracker puts Mark Complete or
+   * Mark Incomplete first, so a menu toggle fails and announces the same way
+   * as the checkbox.
+   */
   contextMenuItems?: ContextMenuItemConfig<ChecklistTask>[];
   /** Selection mode props */
   isSelectionMode?: boolean;
@@ -71,15 +88,17 @@ interface CheckboxProps {
   disabled?: boolean;
   loading?: boolean;
   id: string;
+  describedBy?: string;
 }
 
-function Checkbox({ checked, onChange, disabled, loading, id }: CheckboxProps) {
+function Checkbox({ checked, onChange, disabled, loading, id, describedBy }: CheckboxProps) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
       aria-labelledby={`label-${id}`}
+      aria-describedby={describedBy}
       disabled={disabled || loading}
       onClick={onChange}
       className={cn(
@@ -102,6 +121,88 @@ function Checkbox({ checked, onChange, disabled, loading, id }: CheckboxProps) {
 }
 
 // ============================================================================
+// Toggle Error Component
+// ============================================================================
+
+type ToggleAttempt = "complete" | "incomplete";
+
+/**
+ * Drops the failures that no longer apply: the step left the run, or it
+ * reached the state it was aiming for some other way, such as a realtime
+ * update or the bulk bar. Returns the same map when nothing changed.
+ */
+function pruneFailedToggles(
+  failures: Map<string, ToggleAttempt>,
+  tasks: ChecklistTask[]
+): Map<string, ToggleAttempt> {
+  let pruned = failures;
+  for (const [taskId, attempted] of failures) {
+    const task = tasks.find((t) => t.id === taskId);
+    const reachedTarget = task !== undefined && task.isCompleted === (attempted === "complete");
+    if (task === undefined || reachedTarget) {
+      if (pruned === failures) pruned = new Map(failures);
+      pruned.delete(taskId);
+    }
+  }
+  return pruned;
+}
+
+interface ToggleErrorProps {
+  id: string;
+  stepContent: string;
+  attempted: ToggleAttempt;
+  disabled: boolean;
+  onRetry: () => void;
+  /** Takes focus if Retry has it when the error goes away. */
+  returnFocusRef: React.RefObject<HTMLElement | null>;
+}
+
+/**
+ * Shown under a step whose toggle failed, until a retry is confirmed. It is
+ * not a live region, since only confirmed changes are announced. `id` names
+ * the message, which the step's controls use as their description.
+ */
+function ToggleError({ id, stepContent, attempted, disabled, onRetry, returnFocusRef }: ToggleErrorProps) {
+  const retryRef = useRef<HTMLButtonElement>(null);
+
+  // A confirmed retry removes this error. Give focus back to the step
+  // instead of dropping it to the page.
+  useLayoutEffect(() => {
+    const retry = retryRef.current;
+    const step = returnFocusRef.current;
+    return () => {
+      if (retry && retry === document.activeElement) {
+        step?.focus();
+      }
+    };
+  }, [returnFocusRef]);
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-destructive">
+      <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span id={id}>{`Couldn't mark this step ${attempted}.`}</span>
+      <button
+        ref={retryRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!disabled) onRetry();
+        }}
+        aria-disabled={disabled || undefined}
+        aria-label={`Retry marking ${stepContent} ${attempted}`}
+        className={cn(
+          "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-3 font-medium transition-colors",
+          "hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40",
+          "aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+        )}
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
 // Tree Item Component
 // ============================================================================
 
@@ -109,6 +210,7 @@ interface TreeItemProps {
   node: TaskTreeNode;
   onToggle: (taskId: string) => Promise<void>;
   loadingTasks: Set<string>;
+  failedToggles: Map<string, ToggleAttempt>;
   disabled?: boolean;
   expandedTasks: Set<string>;
   onToggleExpand: (taskId: string) => void;
@@ -124,6 +226,7 @@ function TreeItem({
   node,
   onToggle,
   loadingTasks,
+  failedToggles,
   disabled,
   expandedTasks,
   onToggleExpand,
@@ -137,6 +240,10 @@ function TreeItem({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedTasks.has(node.id);
   const isLoading = loadingTasks.has(node.id);
+  const failedToggle = failedToggles.get(node.id);
+  const toggleErrorId = `toggle-error-${node.id}`;
+  // Where focus returns when a confirmed retry removes the error.
+  const stepFocusRef = useRef<HTMLElement | null>(null);
   const depth = node.depth;
   const itemIsSelected = isSelected?.(node.id) ?? false;
 
@@ -155,6 +262,17 @@ function TreeItem({
       await onToggle(node.id);
     }
   }, [disabled, isLoading, node.id, onToggle]);
+
+  const toggleError = failedToggle ? (
+    <ToggleError
+      id={toggleErrorId}
+      stepContent={node.content}
+      attempted={failedToggle}
+      disabled={Boolean(disabled) || isLoading || isSelectionMode}
+      onRetry={handleToggle}
+      returnFocusRef={stepFocusRef}
+    />
+  ) : null;
 
   const handleExpandToggle = useCallback(
     (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -249,6 +367,9 @@ function TreeItem({
             isSelectionMode && !itemIsSelected && "opacity-75"
           )}
           style={indentStyle}
+          ref={(el) => {
+            stepFocusRef.current = el;
+          }}
           onClick={isSelectionMode ? handleRowClick : handleExpandToggle}
           onKeyDown={handleExpandKeyDown}
           role="button"
@@ -311,6 +432,12 @@ function TreeItem({
           </div>
         </div>
 
+        {toggleError && (
+          <div className="px-5 [@media(max-width:640px)]:[--indent-step:12px] sm:[--indent-step:24px]" style={indentStyle}>
+            {toggleError}
+          </div>
+        )}
+
         {/* Render children with smooth collapse animation */}
         {hasChildren && (
           <div
@@ -332,6 +459,7 @@ function TreeItem({
                     node={child}
                     onToggle={onToggle}
                     loadingTasks={loadingTasks}
+                    failedToggles={failedToggles}
                     disabled={disabled}
                     expandedTasks={expandedTasks}
                     onToggleExpand={onToggleExpand}
@@ -448,6 +576,7 @@ function TreeItem({
               onChange={handleCheckboxClick}
               disabled={disabled}
               loading={isLoading}
+              describedBy={toggleError ? toggleErrorId : undefined}
             />
           </div>
         )}
@@ -457,7 +586,13 @@ function TreeItem({
           {isReference ? (
             <div className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-base font-medium text-foreground block leading-tight group-hover:text-primary transition-colors">
+                <span
+                  ref={(el) => {
+                    stepFocusRef.current = el;
+                  }}
+                  tabIndex={-1}
+                  className="text-base font-medium text-foreground block leading-tight group-hover:text-primary transition-colors focus:outline-none"
+                >
                   {node.content}
                 </span>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -469,6 +604,7 @@ function TreeItem({
                     Click to expand
                   </span>
                 </div>
+                {toggleError}
               </div>
             </div>
           ) : (
@@ -476,6 +612,9 @@ function TreeItem({
             <div className="flex items-start gap-2">
               <label
                 id={`label-${node.id}`}
+                ref={(el) => {
+                  stepFocusRef.current = el;
+                }}
                 className={cn(
                   "text-[15px] cursor-pointer leading-relaxed block transition-all duration-200 pt-px",
                   node.isCompleted
@@ -495,6 +634,7 @@ function TreeItem({
                 tabIndex={0}
                 role="button"
                 aria-pressed={node.isCompleted}
+                aria-describedby={toggleError ? toggleErrorId : undefined}
               >
                 {node.content}
               </label>
@@ -511,6 +651,8 @@ function TreeItem({
                 </span>
               )}
             </div>
+
+            {toggleError}
 
             {/* Description - rendered as markdown */}
             {node.description && node.description.trim().length > 0 && (
@@ -585,6 +727,7 @@ function TreeItem({
                   node={child}
                   onToggle={onToggle}
                   loadingTasks={loadingTasks}
+                  failedToggles={failedToggles}
                   disabled={disabled}
                   expandedTasks={expandedTasks}
                   onToggleExpand={onToggleExpand}
@@ -702,22 +845,58 @@ export function ChecklistTracker({
   });
 
 
+  const [failedToggles, setFailedToggles] = useState<Map<string, ToggleAttempt>>(() => new Map());
+  // The steps as of the latest render, so a toggle that fails after a
+  // realtime update already saved its step doesn't record a stale failure.
+  const latestTasks = useRef(tasks);
+  useLayoutEffect(() => {
+    latestTasks.current = tasks;
+  }, [tasks]);
+
+  // Prune failures whenever the steps change, during render rather than in an
+  // effect, so a failure that stopped applying can't come back later.
+  const [prunedForTasks, setPrunedForTasks] = useState(tasks);
+  if (prunedForTasks !== tasks) {
+    setPrunedForTasks(tasks);
+    const pruned = pruneFailedToggles(failedToggles, tasks);
+    if (pruned !== failedToggles) setFailedToggles(pruned);
+  }
+
   const { message: statusMessage, politeness, announce } = useStatusAnnouncer();
 
   // Build tree structure from flat tasks
   const treeNodes = useMemo(() => buildTree(tasks), [tasks]);
 
-  // Handle task toggle with loading state and announcement
+  // Handle task toggle with loading state and announcement. Only a change the
+  // server confirmed is announced; a failure keeps the step as it was and
+  // shows Retry under it.
   const handleToggle = useCallback(
     async (taskId: string) => {
       const task = tasks.find(t => t.id === taskId);
+      if (!task || disabled) return;
+      // A failed toggle may still have saved the step, so the next toggle
+      // retries the state that failed attempt aimed for, whatever the step
+      // shows now, and tells the page so it can check before flipping.
+      const recorded = failedToggles.get(taskId);
+      const attempted: ToggleAttempt = recorded ?? (task.isCompleted ? "incomplete" : "complete");
+      const retryTarget = recorded === undefined ? undefined : recorded === "complete";
       setLoadingTasks((prev) => new Set(prev).add(taskId));
       try {
-        await onToggleTask(taskId);
-        // Announce the state change
-        if (task) {
-          const newState = !task.isCompleted;
-          announce(`${task.content} marked as ${newState ? "complete" : "incomplete"}`);
+        const confirmed = await onToggleTask(taskId, retryTarget);
+        if (confirmed) {
+          setFailedToggles((prev) => {
+            if (!prev.has(taskId)) return prev;
+            const next = new Map(prev);
+            next.delete(taskId);
+            return next;
+          });
+          announce(`${task.content} marked as ${confirmed.isCompleted ? "complete" : "incomplete"}`);
+        }
+      } catch {
+        const latest = latestTasks.current.find((t) => t.id === taskId);
+        const alreadySaved = latest !== undefined && latest.isCompleted === (attempted === "complete");
+        if (!alreadySaved) {
+          setFailedToggles((prev) => new Map(prev).set(taskId, attempted));
         }
       } finally {
         setLoadingTasks((prev) => {
@@ -727,7 +906,23 @@ export function ChecklistTracker({
         });
       }
     },
-    [onToggleTask, tasks, announce]
+    [onToggleTask, tasks, disabled, failedToggles, announce]
+  );
+
+  // The menu's Mark Complete goes through handleToggle, like the checkbox.
+  const stepMenuItems = useMemo<ContextMenuItemConfig<ChecklistTask>[] | undefined>(
+    () =>
+      contextMenuItems && [
+        {
+          label: (task: ChecklistTask) => (task.isCompleted ? "Mark Incomplete" : "Mark Complete"),
+          icon: (task: ChecklistTask) => (task.isCompleted ? Square : CheckSquare),
+          action: (id: string) => {
+            handleToggle(id);
+          },
+        },
+        ...contextMenuItems,
+      ],
+    [contextMenuItems, handleToggle]
   );
 
   // Handle expand/collapse toggle
@@ -831,10 +1026,11 @@ export function ChecklistTracker({
             node={node}
             onToggle={handleToggle}
             loadingTasks={loadingTasks}
+            failedToggles={failedToggles}
             disabled={disabled}
             expandedTasks={expandedTasks}
             onToggleExpand={handleToggleExpand}
-            contextMenuItems={contextMenuItems}
+            contextMenuItems={stepMenuItems}
             isSelectionMode={isSelectionMode}
             isSelected={isSelected}
             onSelectionClick={onSelectionClick}
