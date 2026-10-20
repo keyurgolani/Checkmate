@@ -50,15 +50,16 @@ const golden = (from: string, to: string, sources: string[], extra: Partial<Gold
 /**
  * #31 groups these under #1's Important delivery refinements. The published #1
  * states `02.1 · slice C` → `19.1 · slice 2` and `19.2 · slice B` → `19.1 · slice 1`
- * under Leaf edges beyond the gates, and the 00 leaves and `19.2 · slice A` only
- * through #83, so the graph cites where the text is and either source passes.
+ * under Leaf edges beyond the gates; #83 states the 00.4 and `19.2 · slice A`
+ * edges, and only #31 states the other three 00 edges. The graph cites where
+ * the text is, and either source passes.
  */
 const GOLDEN_DELIVERY: GoldenEdge[] = [
   golden(S('22.1', 'gate A'), 'G0', [IDR]),
   golden(S('18.2', 'gate 1'), 'G1', [IDR]),
   golden(S('12.1', 'slice B'), S('18.2', 'gate 2'), [IDR]),
   golden(S('02.1', 'slice C'), S('19.1', 'slice 2'), [IDR, LEB]),
-  ...ZERO_LEAVES.map((leaf) => golden(leaf, S('19.1', 'slice 1'), [IDR, '#83'])),
+  ...ZERO_LEAVES.map((leaf) => golden(leaf, S('19.1', 'slice 1'), [IDR, '#83', '#31'])),
   golden(S('19.2', 'slice A'), S('19.1', 'slice 1'), [IDR, '#83']),
   golden(S('19.2', 'slice B'), S('19.1', 'slice 1'), [IDR, LEB]),
 ];
