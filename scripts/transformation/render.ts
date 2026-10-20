@@ -1,5 +1,6 @@
 /**
- * Writes the ordered, tabular forms of the transformation files (#31).
+ * Writes the ordered, tabular forms of the transformation files (#31) and the
+ * 01.1 glossary (#29).
  *
  *   npx tsx scripts/transformation/render.ts           writes every target
  *   npx tsx scripts/transformation/render.ts --check   exits 1 when a target is stale
@@ -10,6 +11,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { GLOSSARY_FILE, renderGlossary } from '../../src/lib/domain/glossary-markdown';
 import { GRAPH_JSON_PATH, GRAPH_MD_PATH, loadGraph } from './graph';
 import { renderDependencyGraph } from './graph-markdown';
 
@@ -19,7 +21,10 @@ interface RenderTarget {
 }
 
 /** Each committed Markdown file and the renderer that produces it. */
-const RENDER_TARGETS: RenderTarget[] = [{ output: GRAPH_MD_PATH, render: () => renderDependencyGraph(loadGraph(GRAPH_JSON_PATH)) }];
+const RENDER_TARGETS: RenderTarget[] = [
+  { output: GRAPH_MD_PATH, render: () => renderDependencyGraph(loadGraph(GRAPH_JSON_PATH)) },
+  { output: path.resolve(__dirname, '../..', GLOSSARY_FILE), render: renderGlossary },
+];
 
 function main(args: string[]): number {
   const unknown = args.filter((arg) => arg !== '--check');
