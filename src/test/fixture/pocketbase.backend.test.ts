@@ -11,9 +11,10 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { ensurePocketBaseZip, REPO_ROOT, sha256 } from './binary';
+import { assetName, ensurePocketBaseZip, REPO_ROOT, sha256 } from './binary';
 import { FixtureError, isFixtureError, type FixtureErrorCode } from './errors';
 import { isPocketBaseFor, RUNS_ROOT, startPocketBase, tsxNodeArgs, type PocketBaseFixture } from './pocketbase';
+import { zipOf } from './test-zip';
 
 const fixtureDir = path.join(REPO_ROOT, 'src/test/fixture');
 
@@ -92,6 +93,24 @@ async function runDirs(): Promise<string[]> {
   return fs.readdir(RUNS_ROOT).catch(() => []);
 }
 
+async function readOwner(runDir: string): Promise<{ ownerPid: number; pbPid: number | null } | null> {
+  return fs
+    .readFile(path.join(RUNS_ROOT, runDir, 'owner.json'), 'utf8')
+    .then((text) => JSON.parse(text) as { ownerPid: number; pbPid: number | null })
+    .catch(() => null);
+}
+
+/** Polls `probe` every 10 ms until it returns a value or `timeoutMs` passes. */
+async function waitFor<T>(probe: () => Promise<T | undefined>, timeoutMs: number): Promise<T | undefined> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const value = await probe();
+    if (value !== undefined) return value;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  return undefined;
+}
+
 /** CI masks secrets through `::add-mask::` lines; pass a child's on to the runner. */
 function forwardMasks(output: string): string {
   const kept: string[] = [];
@@ -102,7 +121,7 @@ function forwardMasks(output: string): string {
   return kept.join('\n');
 }
 
-async function runTsx(script: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ code: number | null; output: string }> {
+function spawnTsx(script: string, args: string[], env: NodeJS.ProcessEnv) {
   const child = spawn(process.execPath, [...tsxNodeArgs(path.join(fixtureDir, script)), ...args], {
     cwd: REPO_ROOT,
     env,
@@ -111,8 +130,29 @@ async function runTsx(script: string, args: string[], env: NodeJS.ProcessEnv): P
   let output = '';
   child.stdout.on('data', (chunk: Buffer) => (output += chunk.toString()));
   child.stderr.on('data', (chunk: Buffer) => (output += chunk.toString()));
-  const [code] = (await once(child, 'exit')) as [number | null];
-  return { code, output: forwardMasks(output) };
+  const done = once(child, 'exit').then(([code]) => ({ code: code as number | null, output: forwardMasks(output) }));
+  return { child, done };
+}
+
+async function runTsx(script: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ code: number | null; output: string }> {
+  return spawnTsx(script, args, env).done;
+}
+
+/**
+ * A cached zip whose `pocketbase` is a shell script: it answers
+ * `superuser upsert`, then deletes itself, so the serve spawn fails.
+ */
+async function selfDeletingBinary(): Promise<{ version: string; cacheDir: string; checksumFile: string }> {
+  const fakeVersion = '0.0.0-selfdeleting';
+  const script = ['#!/bin/sh', 'if [ "$1" = superuser ]; then', '  rm -f "$0"', '  echo \'Successfully saved superuser "fixture"!\'', 'fi', ''].join('\n');
+  const zip = zipOf('pocketbase', Buffer.from(script));
+  const fakeAsset = assetName(fakeVersion, process.platform, process.arch);
+  const cacheDir = await tempDir('fake-binary');
+  await fs.mkdir(path.join(cacheDir, fakeVersion), { recursive: true });
+  await fs.writeFile(path.join(cacheDir, fakeVersion, fakeAsset), zip);
+  const checksumFile = path.join(cacheDir, 'pocketbase.sha256');
+  await fs.writeFile(checksumFile, `${sha256(zip)}  ${fakeAsset}\n`);
+  return { version: fakeVersion, cacheDir, checksumFile };
 }
 
 describe('startPocketBase', () => {
@@ -218,6 +258,23 @@ describe('startPocketBase', () => {
     expect(after.filter((name) => !before.includes(name))).toEqual([]);
   });
 
+  it('fails with FIXTURE_START_FAILED when the binary cannot be spawned, and cleans up', async () => {
+    const unhandled: unknown[] = [];
+    const record = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', record);
+    try {
+      const before = await runDirs();
+      const error = await expectFixtureError(startPocketBase({ schema: 'none', binary: await selfDeletingBinary() }), 'FIXTURE_START_FAILED');
+      expect(error.message).toContain('ENOENT');
+      const after = await runDirs();
+      expect(after.filter((name) => !before.includes(name))).toEqual([]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', record);
+    }
+  });
+
   it('restart() keeps the data directory, port and superuser token', async () => {
     const fixture = await track(startPocketBase({ schema: 'none' }));
     const user = await fixture.seedUser();
@@ -267,6 +324,27 @@ describe('startPocketBase', () => {
     await expect.poll(() => isPocketBaseFor(leftover.pid, leftover.runDir)).toBe(false);
     await expect(fs.access(leftover.runDir)).rejects.toThrow();
   });
+
+  it('keeps a detached run whose server is not up yet while its owner lives', async () => {
+    const holder = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60_000)'], { stdio: 'ignore' });
+    await once(holder, 'spawn');
+    await fs.mkdir(RUNS_ROOT, { recursive: true });
+    const runDir = await fs.mkdtemp(path.join(RUNS_ROOT, `run-${holder.pid}-`));
+    const owner = { ownerPid: holder.pid, pbPid: null, detached: true, createdAt: new Date().toISOString() };
+    await fs.writeFile(path.join(runDir, 'owner.json'), JSON.stringify(owner));
+    try {
+      await track(startPocketBase({ schema: 'none' }));
+      await expect(fs.access(runDir)).resolves.toBeUndefined();
+
+      holder.kill('SIGKILL');
+      await once(holder, 'exit');
+      await track(startPocketBase({ schema: 'none' }));
+      await expect(fs.access(runDir)).rejects.toThrow();
+    } finally {
+      holder.kill('SIGKILL');
+      await fs.rm(runDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('npm run fixture', () => {
@@ -300,5 +378,30 @@ describe('npm run fixture', () => {
     expect(isPocketBaseFor(instance.pid, instance.runDir)).toBe(false);
     await expect(fs.access(superuserFile)).rejects.toThrow();
     await expect(fs.access(instance.runDir)).rejects.toThrow();
+  });
+
+  it('start survives another start while its PocketBase is still coming up', async () => {
+    const stateDir = await tempDir('cli-race');
+    const env = { ...process.env, CHECKMATE_FIXTURE_STATE_DIR: stateDir };
+    const cli = spawnTsx('cli.ts', ['start'], env);
+    try {
+      // The CLI's run directory, caught before its PocketBase PID is recorded.
+      const caught = await waitFor(async () => {
+        if (cli.child.exitCode !== null) return 'exited';
+        const name = (await runDirs()).find((candidate) => candidate.startsWith(`run-${cli.child.pid}-`));
+        const owner = name ? await readOwner(name) : null;
+        return owner && owner.pbPid === null ? name : undefined;
+      }, 30_000);
+      expect(caught, 'the CLI run directory never showed up before its server').toMatch(/^run-/);
+
+      await track(startPocketBase({ schema: 'none' }));
+
+      const started = await cli.done;
+      expect(started.code, started.output).toBe(0);
+    } finally {
+      await cli.done;
+      const stopped = await runTsx('cli.ts', ['stop'], env);
+      expect(stopped.code, stopped.output).toBe(0);
+    }
   });
 });

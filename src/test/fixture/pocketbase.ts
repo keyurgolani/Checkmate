@@ -272,7 +272,7 @@ class Server {
     const log = await fs.open(logPath, 'a');
     const logStart = (await log.stat()).size;
     let child: ChildProcess;
-    let spawned: Promise<unknown>;
+    let started: Promise<Error | undefined>;
     let exited = false;
     try {
       child = spawn(
@@ -289,13 +289,25 @@ class Server {
         ],
         { stdio: ['ignore', log.fd, log.fd], detached: this.detached },
       );
-      // Listen before the next await: both events can fire while the log closes.
-      spawned = once(child, 'spawn');
+      // Listen before the next await: these can fire while the log closes. The
+      // promise never rejects, so a failed spawn can't escape as unhandled.
+      started = new Promise((resolve) => {
+        child.once('spawn', () => resolve(undefined));
+        // Stays attached, so a later error event can't crash the process.
+        child.on('error', (error) => resolve(error));
+      });
       child.once('exit', () => (exited = true));
     } finally {
       await log.close();
     }
-    await spawned;
+    const spawnError = await started;
+    if (spawnError) {
+      throw new FixtureError(
+        'FIXTURE_START_FAILED',
+        `could not run ${this.binary}: ${spawnError.message}`,
+        'check that the run directory and its binary still exist, then re-run',
+      );
+    }
     this.child = child;
     this.currentPort = port;
     if (this.detached) child.unref();
@@ -464,9 +476,11 @@ async function removeIfStale(runDir: string): Promise<void> {
       if (Date.now() - mtimeMs > 60_000) await fs.rm(runDir, { recursive: true, force: true });
       return;
     }
-    const alive = owner.detached ? isPocketBaseFor(owner.pbPid, runDir) : isAlive(owner.ownerPid);
-    if (alive) return;
-    if (owner.pbPid && isPocketBaseFor(owner.pbPid, runDir)) process.kill(owner.pbPid, 'SIGKILL');
+    // A run lives while the process that created it lives. A detached run (the
+    // CLI's) also outlives that process once its PocketBase is up.
+    const serverAlive = isPocketBaseFor(owner.pbPid, runDir);
+    if (isAlive(owner.ownerPid) || (owner.detached && serverAlive)) return;
+    if (serverAlive && owner.pbPid) process.kill(owner.pbPid, 'SIGKILL');
     await fs.rm(runDir, { recursive: true, force: true });
   } catch (error) {
     // Another start removed this directory first.
