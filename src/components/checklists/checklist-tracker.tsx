@@ -16,7 +16,7 @@
  * - Announce state changes to screen readers
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { AlertCircle, Check, CheckSquare, ChevronRight, Loader2, Sparkles, FileText, Info, Link as LinkIcon, ExternalLink, Layers, Square } from "lucide-react";
 import { buildTree, type TreeNode } from "@/lib/utils/tree";
 import { cn } from "@/lib/utils";
@@ -129,6 +129,8 @@ interface ToggleErrorProps {
   attempted: ToggleAttempt;
   disabled: boolean;
   onRetry: () => void;
+  /** Takes focus if Retry has it when the error goes away. */
+  returnFocusRef: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -136,23 +138,38 @@ interface ToggleErrorProps {
  * not a live region, since only confirmed changes are announced. `id` names
  * the message, which the step's controls use as their description.
  */
-function ToggleError({ id, stepContent, attempted, disabled, onRetry }: ToggleErrorProps) {
+function ToggleError({ id, stepContent, attempted, disabled, onRetry, returnFocusRef }: ToggleErrorProps) {
+  const retryRef = useRef<HTMLButtonElement>(null);
+
+  // A confirmed retry removes this error. Give focus back to the step
+  // instead of dropping it to the page.
+  useLayoutEffect(() => {
+    const retry = retryRef.current;
+    const step = returnFocusRef.current;
+    return () => {
+      if (retry && retry === document.activeElement) {
+        step?.focus();
+      }
+    };
+  }, [returnFocusRef]);
+
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-destructive">
       <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span id={id}>{`Couldn't mark this step ${attempted}.`}</span>
       <button
+        ref={retryRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          onRetry();
+          if (!disabled) onRetry();
         }}
-        disabled={disabled}
+        aria-disabled={disabled || undefined}
         aria-label={`Retry marking ${stepContent} ${attempted}`}
         className={cn(
           "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-3 font-medium transition-colors",
           "hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40",
-          "disabled:cursor-wait disabled:opacity-60"
+          "aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
         )}
       >
         Retry
@@ -199,8 +216,14 @@ function TreeItem({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedTasks.has(node.id);
   const isLoading = loadingTasks.has(node.id);
-  const failedToggle = failedToggles.get(node.id);
+  // A failure stops applying once the step reaches the state it was aiming
+  // for some other way, such as a realtime update or the bulk bar.
+  const recordedFailure = failedToggles.get(node.id);
+  const failedToggle =
+    recordedFailure && node.isCompleted === (recordedFailure === "incomplete") ? recordedFailure : undefined;
   const toggleErrorId = `toggle-error-${node.id}`;
+  // Where focus returns when a confirmed retry removes the error.
+  const stepFocusRef = useRef<HTMLElement | null>(null);
   const depth = node.depth;
   const itemIsSelected = isSelected?.(node.id) ?? false;
 
@@ -225,8 +248,9 @@ function TreeItem({
       id={toggleErrorId}
       stepContent={node.content}
       attempted={failedToggle}
-      disabled={Boolean(disabled) || isLoading}
+      disabled={Boolean(disabled) || isLoading || isSelectionMode}
       onRetry={handleToggle}
+      returnFocusRef={stepFocusRef}
     />
   ) : null;
 
@@ -323,6 +347,9 @@ function TreeItem({
             isSelectionMode && !itemIsSelected && "opacity-75"
           )}
           style={indentStyle}
+          ref={(el) => {
+            stepFocusRef.current = el;
+          }}
           onClick={isSelectionMode ? handleRowClick : handleExpandToggle}
           onKeyDown={handleExpandKeyDown}
           role="button"
@@ -539,7 +566,13 @@ function TreeItem({
           {isReference ? (
             <div className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-base font-medium text-foreground block leading-tight group-hover:text-primary transition-colors">
+                <span
+                  ref={(el) => {
+                    stepFocusRef.current = el;
+                  }}
+                  tabIndex={-1}
+                  className="text-base font-medium text-foreground block leading-tight group-hover:text-primary transition-colors focus:outline-none"
+                >
                   {node.content}
                 </span>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -559,6 +592,9 @@ function TreeItem({
             <div className="flex items-start gap-2">
               <label
                 id={`label-${node.id}`}
+                ref={(el) => {
+                  stepFocusRef.current = el;
+                }}
                 className={cn(
                   "text-[15px] cursor-pointer leading-relaxed block transition-all duration-200 pt-px",
                   node.isCompleted

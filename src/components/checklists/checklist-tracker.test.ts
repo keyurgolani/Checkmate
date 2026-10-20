@@ -110,6 +110,52 @@ describe('ChecklistTracker step toggle', () => {
     expect(onToggleTask.mock.calls).toEqual([['step-1'], ['step-1']]);
   });
 
+  it('gives focus back to the step when a retry is confirmed', async () => {
+    const onToggleTask = vi
+      .fn<OnToggleTask>()
+      .mockRejectedValueOnce(new Error('Toggle failed with status 503'))
+      .mockResolvedValueOnce({ isCompleted: true });
+    renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    const retry = await retryButton();
+    retry.focus();
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Unlock the doors' }));
+  });
+
+  it('drops the error once the step reaches that state another way', async () => {
+    const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
+    const { rerender } = renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    await retryButton();
+
+    // A realtime update or the bulk bar completes the step.
+    const completed = [{ ...STEPS[0]!, isCompleted: true }, STEPS[1]!];
+    rerender(createElement(ChecklistTracker, { tasks: completed, onToggleTask }));
+
+    expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull();
+    expect(screen.queryByText("Couldn't mark this step complete.")).toBeNull();
+  });
+
+  it('keeps Retry from sending while steps are being selected', async () => {
+    const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
+    const { rerender } = renderTracker(onToggleTask);
+
+    fireEvent.click(checkbox('Unlock the doors'));
+    await retryButton();
+    rerender(createElement(ChecklistTracker, { tasks: STEPS, onToggleTask, isSelectionMode: true }));
+    const retry = await retryButton();
+    fireEvent.click(retry);
+    await settle();
+
+    expect(retry.getAttribute('aria-disabled')).toBe('true');
+    expect(onToggleTask).toHaveBeenCalledTimes(1);
+  });
+
   it('gives a toggle from the context menu the same inline error', async () => {
     const onToggleTask = vi.fn<OnToggleTask>().mockRejectedValue(new Error('Toggle failed with status 500'));
     renderTracker(onToggleTask, { contextMenuItems: [] });
