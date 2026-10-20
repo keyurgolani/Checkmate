@@ -13,7 +13,7 @@
     },
     "lint": {
       "failureClass": "lint",
-      "repro": "node scripts/ci/lint-changed.mjs --base {base}"
+      "repro": "node scripts/ci/lint-changed.mjs --base {base} && node scripts/ci/check-shrinking-lists.mjs --base {base}"
     },
     "unit": {
       "failureClass": "test",
