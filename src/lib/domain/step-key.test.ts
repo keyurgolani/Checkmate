@@ -1,10 +1,19 @@
 /**
  * CHECKMATE-01.1 · contracts (#29), test plan item 5: `deriveLegacyStepKey`
- * golden values and the Step Key form. The golden keys were computed outside
+ * golden values and the Step Key rules. The golden keys were computed outside
  * this code, with Python's hashlib and checked against shasum.
  */
+import fs from 'fs';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { deriveLegacyStepKey, isStepKey, LEGACY_STEP_KEY_NAMESPACE, mintStepKey, sha256UuidV8 } from './step-key';
+import {
+  deriveLegacyStepKey,
+  isStepKey,
+  LEGACY_STEP_KEY_NAMESPACE,
+  mintStepKey,
+  sha256UuidV8,
+  STEP_KEY_MAX_LENGTH,
+} from './step-key';
 
 const GOLDEN: readonly (readonly [templateId: string, itemId: string, stepKey: string])[] = [
   ['ab12cd34ef56gh7', 'zy98xw76vu54ts3', 'c6474031-2755-8076-af48-0ef489cf0c2a'],
@@ -17,41 +26,42 @@ const UUID_V8 = /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 describe('deriveLegacyStepKey', () => {
-  it.each(GOLDEN)('derives the golden key for template %s, item %s', (templateId, itemId, stepKey) => {
-    expect(deriveLegacyStepKey(templateId, itemId)).toBe(stepKey);
+  it.each(GOLDEN)('derives the golden key for template %s, item %s', async (templateId, itemId, stepKey) => {
+    await expect(deriveLegacyStepKey(templateId, itemId)).resolves.toBe(stepKey);
   });
 
-  it('hashes `checkmate-step-key:v1:<templateId>:<itemId>`', () => {
+  it('hashes `checkmate-step-key:v1:<templateId>:<itemId>`', async () => {
     expect(LEGACY_STEP_KEY_NAMESPACE).toBe('checkmate-step-key:v1');
-    for (const [templateId, itemId] of GOLDEN) {
-      expect(deriveLegacyStepKey(templateId, itemId)).toBe(sha256UuidV8(`checkmate-step-key:v1:${templateId}:${itemId}`));
+    for (const [templateId, itemId, stepKey] of GOLDEN) {
+      await expect(sha256UuidV8(`checkmate-step-key:v1:${templateId}:${itemId}`)).resolves.toBe(stepKey);
     }
   });
 
-  it('formats a version-8 UUID with the RFC 9562 variant', () => {
-    for (const [templateId, itemId] of GOLDEN) expect(deriveLegacyStepKey(templateId, itemId)).toMatch(UUID_V8);
+  it('formats a version-8 UUID with the RFC 9562 variant', async () => {
+    for (const [templateId, itemId] of GOLDEN) await expect(deriveLegacyStepKey(templateId, itemId)).resolves.toMatch(UUID_V8);
   });
 
-  it('returns the same key on every call and a different key when the ids swap', () => {
-    expect(deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3')).toBe(deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3'));
-    expect(deriveLegacyStepKey('zy98xw76vu54ts3', 'ab12cd34ef56gh7')).not.toBe(deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3'));
+  it('returns the same key on every call and a different key when the ids swap', async () => {
+    const key = await deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3');
+    await expect(deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3')).resolves.toBe(key);
+    await expect(deriveLegacyStepKey('zy98xw76vu54ts3', 'ab12cd34ef56gh7')).resolves.not.toBe(key);
   });
 
-  it('gives every item of one template its own key', () => {
-    const keys = Array.from({ length: 500 }, (_, i) => deriveLegacyStepKey('ab12cd34ef56gh7', `item${i}`));
+  it('gives every item of one template its own key', async () => {
+    const keys = await Promise.all(Array.from({ length: 500 }, (_, i) => deriveLegacyStepKey('ab12cd34ef56gh7', `item${i}`)));
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('refuses an empty id or one with a colon, so no two pairs hash the same text', () => {
-    expect(() => deriveLegacyStepKey('', 'zy98xw76vu54ts3')).toThrow(TypeError);
-    expect(() => deriveLegacyStepKey('ab12cd34ef56gh7', '')).toThrow(TypeError);
+  it('refuses an empty id or one with a colon, so no two pairs hash the same text', async () => {
+    await expect(deriveLegacyStepKey('', 'zy98xw76vu54ts3')).rejects.toThrow(TypeError);
+    await expect(deriveLegacyStepKey('ab12cd34ef56gh7', '')).rejects.toThrow(TypeError);
     // Without the guard, ('a:b', 'c') and ('a', 'b:c') would hash the same text.
-    expect(() => deriveLegacyStepKey('a:b', 'c')).toThrow(/templateId/);
-    expect(() => deriveLegacyStepKey('a', 'b:c')).toThrow(/itemId/);
+    await expect(deriveLegacyStepKey('a:b', 'c')).rejects.toThrow(/templateId/);
+    await expect(deriveLegacyStepKey('a', 'b:c')).rejects.toThrow(/itemId/);
   });
 });
 
-describe('Step Key form', () => {
+describe('Step Key rules', () => {
   it('mints distinct version-4 UUIDs', () => {
     const keys = Array.from({ length: 200 }, () => mintStepKey());
     expect(new Set(keys).size).toBe(keys.length);
@@ -61,24 +71,25 @@ describe('Step Key form', () => {
     }
   });
 
-  it('accepts minted and derived keys', () => {
+  it('accepts minted, derived and authored keys', async () => {
     expect(isStepKey(mintStepKey())).toBe(true);
-    expect(isStepKey(deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3'))).toBe(true);
+    expect(isStepKey(await deriveLegacyStepKey('ab12cd34ef56gh7', 'zy98xw76vu54ts3'))).toBe(true);
+    // A key someone wrote in a blueprint file, or one an import kept.
+    for (const authored of ['check-the-lights', 'Step 1', 'x', 'a'.repeat(STEP_KEY_MAX_LENGTH)]) {
+      expect(isStepKey(authored), authored).toBe(true);
+    }
   });
 
-  it('rejects record ids and anything else that is not a lowercase version-4 or version-8 UUID', () => {
-    for (const value of [
-      'ab12cd34ef56gh7',
-      '',
-      'C6474031-2755-8076-AF48-0EF489CF0C2A',
-      '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
-      '0190d3c2-8c1e-7b4a-9f1e-3c5d7a9b1e2f',
-      'c6474031-2755-8076-0f48-0ef489cf0c2a',
-      'c6474031275580766f480ef489cf0c2a',
-      undefined,
-      42,
-    ]) {
+  it('rejects an empty or overlong key, a record id, and anything that is not a string', () => {
+    expect(STEP_KEY_MAX_LENGTH).toBe(128);
+    for (const value of ['', 'a'.repeat(STEP_KEY_MAX_LENGTH + 1), 'ab12cd34ef56gh7', undefined, null, 42]) {
       expect(isStepKey(value), String(value)).toBe(false);
     }
+  });
+
+  it('imports nothing from Node, so browser code can use it', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'step-key.ts'), 'utf8');
+    expect(source).not.toMatch(/from ['"](node:|crypto['"])/);
+    expect(source).not.toMatch(/require\(/);
   });
 });
