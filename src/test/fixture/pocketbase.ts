@@ -302,10 +302,10 @@ class Server {
     else trackForExit(child);
     await updateOwner(this.runDir, { pbPid: child.pid ?? null });
 
+    // Every health request must finish inside the deadline, or a slow first
+    // answer would count as a start within it.
     const deadline = Date.now() + this.startTimeoutMs;
     for (;;) {
-      if (!exited && (await isHealthy(this.url))) return;
-      await sleep(100);
       if (exited) {
         this.child = undefined;
         const output = await tail(logPath, logStart);
@@ -318,7 +318,8 @@ class Server {
         }
         throw new FixtureError('FIXTURE_START_FAILED', `PocketBase exited during start:\n${output}`, 'read the PocketBase output above');
       }
-      if (Date.now() > deadline) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
         await this.stop();
         throw new FixtureError(
           'FIXTURE_START_TIMEOUT',
@@ -326,6 +327,8 @@ class Server {
           'read the PocketBase output above; on an overloaded machine, re-run with fewer parallel jobs',
         );
       }
+      if (await isHealthy(this.url, Math.min(1_000, remaining))) return;
+      await sleep(Math.min(100, Math.max(0, deadline - Date.now())));
     }
   }
 }
@@ -533,9 +536,9 @@ async function assertPortFree(port: number): Promise<void> {
   });
 }
 
-async function isHealthy(url: string): Promise<boolean> {
+async function isHealthy(url: string, timeoutMs: number): Promise<boolean> {
   try {
-    const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1_000) });
+    const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(timeoutMs) });
     return response.ok;
   } catch {
     return false; // not listening yet
