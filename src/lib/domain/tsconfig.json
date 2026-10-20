@@ -1,0 +1,8 @@
+{
+  "$comment": "The domain contract on its own, with records.typetest.ts (#29 test plan item 7). Run `npx tsc --noEmit -p src/lib/domain/tsconfig.json`; CI's unit job does.",
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": ["**/*.ts"]
+}
