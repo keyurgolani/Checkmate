@@ -30,8 +30,21 @@ describe('scope', () => {
     expect(running(['src/lib/services/item.ts'])).toEqual(['lint', 'unit', 'backend', 'build']);
   });
 
-  it('runs backend and images for the schema the fixture loads', () => {
-    expect(running(['docker/pocketbase/pb_schema.json'])).toEqual(['backend', 'images']);
+  it('runs unit, backend and images for the schema the fixture loads and the retention test reads', () => {
+    expect(running(['docker/pocketbase/pb_schema.json'])).toEqual(['unit', 'backend', 'images']);
+  });
+
+  it.each([
+    'docs/architecture/glossary.md',
+    'docs/architecture/decisions/run.md',
+    'docs/transformation/dependency-graph.md',
+  ])('runs unit for %s, which a unit test checks against the data', (file) => {
+    expect(classifyFile(file, config)).toEqual(['contract-docs']);
+    expect(running([file, 'README.md'])).toEqual(['unit']);
+  });
+
+  it('still treats the dependency graph data as code', () => {
+    expect(running(['docs/transformation/dependency-graph.json'])).toEqual(['lint', 'unit', 'backend', 'build']);
   });
 
   it.each([

@@ -54,6 +54,12 @@
       ]
     },
     {
+      "name": "contract-docs",
+      "exclusive": true,
+      "jobs": ["unit"],
+      "paths": ["docs/architecture/**/*.md", "docs/transformation/**/*.md"]
+    },
+    {
       "name": "docs",
       "exclusive": true,
       "jobs": [],
@@ -67,7 +73,7 @@
     },
     {
       "name": "fixture",
-      "jobs": ["backend"],
+      "jobs": ["unit", "backend"],
       "paths": ["docker/pocketbase/pb_schema.json"]
     }
   ],

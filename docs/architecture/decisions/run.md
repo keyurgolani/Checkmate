@@ -1,0 +1,26 @@
+# Run
+
+- Status: Accepted
+- Contract: 1.0.0
+- Supersedes: none
+- Superseded by: none
+
+## Context
+
+One execution has three names today. Storage calls it an instance, services and the UI call it a checklist, and [`Collections`](https://github.com/keyurgolani/Checkmate/blob/9019d176ee456477d387d821c88a7c62977eebab/src/lib/pocketbase-types.ts#L642-L652) maps `CHECKLISTS` to `instances`. A run has no status either. Toggling a step sets or clears `completedAt` from the percentage ([`checklist.ts:1077-1083`](https://github.com/keyurgolani/Checkmate/blob/9019d176ee456477d387d821c88a7c62977eebab/src/lib/services/checklist.ts#L1077-L1083)), `calculateProgress` counts every run step and rounds 199 of 200 up to 100% ([`checklist.ts:1025-1045`](https://github.com/keyurgolani/Checkmate/blob/9019d176ee456477d387d821c88a7c62977eebab/src/lib/services/checklist.ts#L1025-L1045)), and a failed read counts as zero steps ([`checklist.ts:1003-1018`](https://github.com/keyurgolani/Checkmate/blob/9019d176ee456477d387d821c88a7c62977eebab/src/lib/services/checklist.ts#L1003-L1018)).
+
+## Decision
+
+1. Run is the entity, domain, API and navigation term. A run is one execution of one template revision. Plain-language copy may still say checklist.
+2. A run's `status` is `scheduled`, `active`, `completed` or `cancelled`. A `scheduled` run ([08.2](https://github.com/keyurgolani/Checkmate/issues/51)) becomes `active` on its first step change. One with no executable steps can go straight to `completed` through `CompleteRun`.
+3. `CompleteRun` makes a run `completed` as its own attributed event. It fires by itself only in the transaction where a step moves to `completed` and done reaches executable. Excepting, excluding or upgrading never completes a run. When one of them brings done to executable, or the run has no executable steps, the run offers `CompleteRun` instead.
+4. Only `ReopenRun`, with an actor and a reason, takes a run back out of `completed`. `CancelRun` makes it `cancelled`, which is terminal.
+5. A closed run rejects step commands with a typed conflict. A newer completion record ([10.3](https://github.com/keyurgolani/Checkmate/issues/58)) supersedes an old one, which is never edited.
+6. Blocked, overdue and offline are projection facets. A run's status never takes those values. `instances.isSynced` carries no state either. [07.3](https://github.com/keyurgolani/Checkmate/issues/49) removed its readers, and [07.2](https://github.com/keyurgolani/Checkmate/issues/48)'s migration drops the column.
+7. An executable step is an `included` run step of a checkable kind ([05.1](https://github.com/keyurgolani/Checkmate/issues/41)). Sections and include containers never count, and a legacy reference counts only when it has no included child steps. Done is `completed` or `excepted`. Progress is done over executable, rounded down. A run is complete when it has at least one executable step and all of them are done. A failed read changes nothing, and sending a step the state it already has changes nothing either.
+8. `instances` and the `instance_reminder` notification type stay as storage names behind the adapter until a migration renames them. The adapter maps the canonical `run_reminder` to the stored value.
+
+## Consequences
+
+- [07.1](https://github.com/keyurgolani/Checkmate/issues/47) builds run creation, [09.1](https://github.com/keyurgolani/Checkmate/issues/53) the `status` field and the run commands, and [05.2](https://github.com/keyurgolani/Checkmate/issues/42) the only progress function, `computeRunProgress`, which must pass [`progress-cases.ts`](../../../src/lib/domain/progress-cases.ts).
+- The transition table is in [`lifecycles.ts`](../../../src/lib/domain/lifecycles.ts) and the [glossary](../glossary.md#lifecycles).
