@@ -32,6 +32,8 @@ This comprehensive guide covers all deployment options for CheckMate, including 
 | **Storage** | 10GB SSD                       | 20GB+ SSD                    |
 | **OS**      | Linux (any distro with Docker) | Ubuntu 22.04 LTS / Debian 12 |
 
+CheckMate serves every Theme Studio font itself, from `/fonts` and `/_next/static/media`. Neither the image build nor a browser contacts Google Fonts or another font host, so a firewall that blocks outbound traffic, or a `font-src 'self'` Content Security Policy, needs no exception for fonts.
+
 ---
 
 ## Option 1: Homelab with Cloudflare Tunnel (Zero Cost)

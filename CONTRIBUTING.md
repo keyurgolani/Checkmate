@@ -51,6 +51,17 @@ A change to an access rule updates its pin in `src/test/access-rule-pins.json` i
 
 The `blueprints`, `items`, `instances` and `instanceItems` collections, the `blueprint`, `instance` and `sourceItem` fields, and the stored values built on them are legacy storage names. New code names legacy storage values only through `src/lib/domain/storage.ts`: collections through `Collections`, rows through `src/lib/domain/records.ts`. A ratchet test counts legacy names, deprecated aliases and the deprecated `Collections` keys per file against `src/lib/domain/legacy-name-baseline.ts`. When you remove one, lower that file's entry. CI fails a change that raises an entry or adds one, and a file you move keeps its count under its new path. `npx tsc --noEmit -p src/lib/domain/tsconfig.json` runs the record type test.
 
+### Theme fonts
+
+Theme Studio fonts ship with the app. Each web font in `src/lib/themes/font-themes.ts` has its latin-subset woff2 files, one `@font-face` stylesheet and its license under `public/fonts/<id>/`, and `scripts/fonts/manifest.json` records each file's source URL and SHA-256. Nothing fetches a font at build or run time.
+
+```bash
+node scripts/fonts/fetch-fonts.mjs           # fetch the families in FAMILIES again and rewrite public/fonts and the manifest
+node scripts/fonts/fetch-fonts.mjs --verify  # download every recorded file again and check it against the manifest
+```
+
+The unit suite checks the committed files against the manifest offline.
+
 ## Continuous Integration
 
 Every pull request to `main` or `next` runs `.github/workflows/ci.yml`, and its `aggregate` check is the one that must pass. The `scope` job classifies the changed files with `.github/ci-scope.json`:
@@ -70,7 +81,7 @@ git clone https://github.com/keyurgolani/Checkmate.git checkmate-ci && cd checkm
   && npm ci && npm run test:backend
 ```
 
-Until the lint baseline lands, CI lints the files a change touches (`node scripts/ci/lint-changed.mjs --base <sha>`), and a change may not add comments that turn ESLint rules off or set them inline. `npm run build` must pass with both PocketBase URLs pointing at `http://127.0.0.1:9`, where nothing listens.
+Until the lint baseline lands, CI lints the files a change touches (`node scripts/ci/lint-changed.mjs --base <sha>`), and a change may not add comments that turn ESLint rules off or set them inline. `npm run build` must pass with both PocketBase URLs pointing at `http://127.0.0.1:9`, where nothing listens, and with the Google Fonts hosts pointed at loopback. `node scripts/fonts/check-font-hosts.mjs` then fails the job if anything the build serves loads a font from another host.
 
 Images publish only from the `publish` job, after `aggregate` passes: for a `v*` tag, or for a push to `next` while the owner enables it.
 
