@@ -620,6 +620,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         filter: `title ~ "Checklist" && category = "life-events"`,
       });
 
+      expect(results.length).toBeGreaterThan(0);
       results.forEach(t => {
         expect(t.title).toContain('Checklist');
         expect(t.category).toBe('life-events');
@@ -627,30 +628,33 @@ describe('Integration Tests - Complex Scenarios', () => {
     });
 
     it('should paginate search results', async () => {
+      // Both pages use one total order. beforeEach repeats titles, so id breaks ties.
+      const sort = 'title,id';
+
       // Get first page (2 items per page)
       const page1 = await pbSearch.collection('blueprints').getList(1, 2, {
         filter: `visibility = "public"`,
-        sort: 'title',
+        sort,
       });
 
-      expect(page1.items.length).toBeLessThanOrEqual(2);
+      expect(page1.items).toHaveLength(2);
       expect(page1.page).toBe(1);
       expect(page1.perPage).toBe(2);
 
       // Get second page
       const page2 = await pbSearch.collection('blueprints').getList(2, 2, {
         filter: `visibility = "public"`,
+        sort,
       });
 
       expect(page2.page).toBe(2);
+      expect(page2.items.length).toBeGreaterThan(0);
 
       // Verify no overlap between pages
-      if (page1.items.length > 0 && page2.items.length > 0) {
-        const page1Ids = page1.items.map(t => t.id);
-        const page2Ids = page2.items.map(t => t.id);
-        const overlap = page1Ids.filter(id => page2Ids.includes(id));
-        expect(overlap).toHaveLength(0);
-      }
+      const page1Ids = page1.items.map(t => t.id);
+      const page2Ids = page2.items.map(t => t.id);
+      const overlap = page1Ids.filter(id => page2Ids.includes(id));
+      expect(overlap).toHaveLength(0);
     });
   });
 

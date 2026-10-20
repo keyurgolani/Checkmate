@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { CHECKSUM_FILE, parseChecksums, readPocketBaseVersion, RELEASE_BASE_URL } from './binary';
+import { FixtureError } from './errors';
 
 const PLATFORMS = ['darwin_amd64', 'darwin_arm64', 'linux_amd64', 'linux_arm64'];
 
@@ -14,8 +15,11 @@ const version = await readPocketBaseVersion();
 const pins = parseChecksums(await fs.readFile(CHECKSUM_FILE, 'utf8'));
 
 async function downloadSha256(url: string): Promise<string> {
-  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(120_000) });
-  if (!response.ok || !response.body) throw new Error(`GET ${url} returned HTTP ${response.status}`);
+  const fix = 'check network access to github.com and re-run';
+  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(120_000) }).catch((error: unknown) => {
+    throw new FixtureError('FIXTURE_DOWNLOAD_FAILED', `GET ${url} failed: ${String(error)}`, fix);
+  });
+  if (!response.ok || !response.body) throw new FixtureError('FIXTURE_DOWNLOAD_FAILED', `GET ${url} returned HTTP ${response.status}`, fix);
   const hash = createHash('sha256');
   const reader = response.body.getReader();
   for (;;) {

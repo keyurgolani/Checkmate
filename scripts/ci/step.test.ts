@@ -13,7 +13,7 @@ const read = (file: string | undefined) => (file && fs.existsSync(file) ? fs.rea
 
 describe('step', () => {
   it.each([
-    'FIXTURE_DOWNLOAD_FAILED: GET https://github.com/... failed',
+    "Serialized Error: { code: 'FIXTURE_DOWNLOAD_FAILED', fix: 'check network access to github.com' }",
     'Failed to fetch `Inter` from Google Fonts.',
     'npm error code ECONNRESET',
     'ERROR: failed to resolve source metadata for docker.io/library/node:24-alpine',
@@ -24,6 +24,11 @@ describe('step', () => {
   it('keeps the job class for ordinary failures, and reports timeouts', () => {
     expect(failureClass({ output: 'AssertionError: expected 1 to be 2', timedOut: false, fallback: 'test' })).toBe('test');
     expect(failureClass({ output: '', timedOut: true, fallback: 'test' })).toBe('timeout');
+  });
+
+  it('does not read a fixture code in a passing test name as an outage', () => {
+    const output = '✓ fails with FIXTURE_DOWNLOAD_FAILED when the release host returns an error\n× should paginate\nAssertionError: expected 1 to be 2';
+    expect(failureClass({ output, timedOut: false, fallback: 'test' })).toBe('test');
   });
 
   it('formats durations', () => {

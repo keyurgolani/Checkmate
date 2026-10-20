@@ -14,10 +14,14 @@ import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { appendSummary, isMain, setOutputs } from './lib/actions.mjs';
 
-/** Output that means the runner's network or a registry failed, not the code. */
+/**
+ * Output that means the runner's network or a registry failed, not the code.
+ * Fixture codes count only as a thrown error (vitest prints `code: '...'`),
+ * since test names mention them too.
+ */
 export const INFRA_SIGNATURES = [
-  /FIXTURE_DOWNLOAD_FAILED|FIXTURE_START_TIMEOUT/,
-  /Failed to fetch .*from Google Fonts|fonts\.(googleapis|gstatic)\.com/i,
+  /code: '(FIXTURE_DOWNLOAD_FAILED|FIXTURE_START_TIMEOUT)'/,
+  /Failed to fetch font|Failed to fetch .* from Google Fonts/,
   /npm (ERR!|error) (code )?E(CONNRESET|TIMEDOUT|AI_AGAIN|NOTFOUND|CONNREFUSED)\b|npm (ERR!|error) network/,
   /TLS handshake timeout|toomanyrequests|failed to resolve source metadata/i,
 ];
