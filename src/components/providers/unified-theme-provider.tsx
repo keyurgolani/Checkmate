@@ -15,7 +15,7 @@ import {
  * 
  * Single provider that handles all theme application:
  * - CSS variable generation and application
- * - Google Font loading
+ * - Font stylesheet loading, from this origin
  * - Design language CSS injection
  * - Dark/light mode sync with next-themes
  */
@@ -61,7 +61,7 @@ export function UnifiedThemeProvider({ children }: { children: React.ReactNode }
     const cssVars = generateThemeCssVariables(
       activeColorTheme,
       activeFontTheme,
-      mergedEffects as any
+      mergedEffects
     );
 
     Object.entries(cssVars).forEach(([key, value]) => {
@@ -83,7 +83,7 @@ export function UnifiedThemeProvider({ children }: { children: React.ReactNode }
       root.classList.remove('dark');
     }
 
-    // Load Google Font if needed
+    // Link the font's stylesheet, served from public/fonts, the first time it is selected
     if (activeFontTheme.googleFontUrl) {
       const existingLink = document.querySelector(`link[href="${activeFontTheme.googleFontUrl}"]`);
       if (!existingLink) {

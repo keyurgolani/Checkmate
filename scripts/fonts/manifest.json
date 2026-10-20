@@ -1,0 +1,1094 @@
+{
+  "$comment": "Written by scripts/fonts/fetch-fonts.mjs; do not edit. The source URL and SHA-256 of every fetched file under public/fonts. Each stylesheet is rendered from its family's faces.",
+  "googleFontsCommit": "47d54ca1ebb14fd864695f1d39dc734f39017c33",
+  "families": [
+    {
+      "id": "inter",
+      "family": "Inter",
+      "css": "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/rsms/inter",
+        "commit": "66647c0bbbe41a850d79d9c76fb13add3378940f"
+      },
+      "license": {
+        "file": "public/fonts/inter/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/inter/OFL.txt",
+        "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+      },
+      "stylesheet": "public/fonts/inter/inter.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "100 900",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/inter/inter-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/inter/inter-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2",
+          "sha256": "c940764593d0fe5d596be327ca7558855e018039fb78509aa21921fd3644c3e4",
+          "bytes": 48432
+        }
+      ]
+    },
+    {
+      "id": "plusJakarta",
+      "family": "Plus Jakarta Sans",
+      "css": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/tokotype/PlusJakartaSans",
+        "commit": "18d1cd2f7ea10481919d2f05c1f7064b7307fc26"
+      },
+      "license": {
+        "file": "public/fonts/plusJakarta/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/plusjakartasans/OFL.txt",
+        "sha256": "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99"
+      },
+      "stylesheet": "public/fonts/plusJakarta/plusJakarta.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "200 800",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/plusJakarta/plusJakarta-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/plusJakarta/plusJakarta-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yygg_vb.woff2",
+          "sha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215",
+          "bytes": 27272
+        }
+      ]
+    },
+    {
+      "id": "outfit",
+      "family": "Outfit",
+      "css": "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/Outfitio/Outfit-Fonts",
+        "commit": "902773808eb372f70fb34e8946dd1ffe604efc79"
+      },
+      "license": {
+        "file": "public/fonts/outfit/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/outfit/OFL.txt",
+        "sha256": "c676351bf8576b9aba743cd5eaa8c0e7ee0d51f805d720447b4df4ddb6a2e416"
+      },
+      "stylesheet": "public/fonts/outfit/outfit.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "100 900",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/outfit/outfit-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/outfit/outfit-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/outfit/v15/QGYvz_MVcBeNP4NJtEtqUYLknw.woff2",
+          "sha256": "92684e4acde79ef07758cd09380b7e01e9824d8b061eddeda046f78c166d7b12",
+          "bytes": 32228
+        }
+      ]
+    },
+    {
+      "id": "manrope",
+      "family": "Manrope",
+      "css": "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/manrope",
+        "commit": "6f81ebecdf65e4463b798cc07b16a4f8d5216917"
+      },
+      "license": {
+        "file": "public/fonts/manrope/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/manrope/OFL.txt",
+        "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+      },
+      "stylesheet": "public/fonts/manrope/manrope.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "200 800",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/manrope/manrope-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/manrope/manrope-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+          "sha256": "e310b55a7fd9677f5e3555e6c6c4d064fa1f1d24393f0ddbe217cea12a8c432f",
+          "bytes": 24576
+        }
+      ]
+    },
+    {
+      "id": "poppins",
+      "family": "Poppins",
+      "css": "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/itfoundry/Poppins",
+        "commit": "738d9d691b66f1ad917123c58df104d16c74e1a7"
+      },
+      "license": {
+        "file": "public/fonts/poppins/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/poppins/OFL.txt",
+        "sha256": "6be04893d770899a015649c7aa3b582f871b272f8747a92b78b17c3e5c8b2573"
+      },
+      "stylesheet": "public/fonts/poppins/poppins.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/poppins/poppins-latin-300-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "400",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/poppins/poppins-latin-400-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "500",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/poppins/poppins-latin-500-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "600",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/poppins/poppins-latin-600-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/poppins/poppins-latin-700-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/poppins/poppins-latin-300-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLDz8Z1xlFQ.woff2",
+          "sha256": "78bc3aa78faec288bbb3bf26c9a0fa4eb67b1e69da94a17233c5cab60525efdb",
+          "bytes": 7840
+        },
+        {
+          "file": "public/fonts/poppins/poppins-latin-400-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/poppins/v24/pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "sha256": "7d93459d86585bfcdbb7e0376056226adb25821ee54b96236fe2123e9560929f",
+          "bytes": 7884
+        },
+        {
+          "file": "public/fonts/poppins/poppins-latin-500-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2",
+          "sha256": "cd36de204aca2d5fa263a731f7c20009b5e3d754ba1f1e03c33e93a48f3e7446",
+          "bytes": 7748
+        },
+        {
+          "file": "public/fonts/poppins/poppins-latin-600-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2",
+          "sha256": "f4e80d9dfd374d02989b87a27b5ed4cb78fbb177c27f1478e9a8b0afb7513149",
+          "bytes": 8000
+        },
+        {
+          "file": "public/fonts/poppins/poppins-latin-700-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff2",
+          "sha256": "9338e65fc077355c7a87ae0d64cc101e23b9bf8ad78ae65f0f319c857311b526",
+          "bytes": 7816
+        }
+      ]
+    },
+    {
+      "id": "montserrat",
+      "family": "Montserrat",
+      "css": "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/JulietaUla/Montserrat",
+        "commit": "cc8daf2e7085006b9c112542fc82b58afc13521d"
+      },
+      "license": {
+        "file": "public/fonts/montserrat/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/montserrat/OFL.txt",
+        "sha256": "8b7141c03fa4f8d44e6345d5d4931709290f0f67875e452e95ac1fd3a027802e"
+      },
+      "stylesheet": "public/fonts/montserrat/montserrat.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/montserrat/v31/JTUSjIg1_i6t8kCHKm459Wlhyw.woff2",
+          "sha256": "06b16db7a969135d48d38c49183be7fb88d4452e2a3011957c7851941f4e4879",
+          "bytes": 37956
+        }
+      ]
+    },
+    {
+      "id": "lato",
+      "family": "Lato",
+      "css": "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/LatoGFVersion",
+        "commit": "080cb69711ca050d91e9c866e58df7a73095c69a"
+      },
+      "license": {
+        "file": "public/fonts/lato/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/lato/OFL.txt",
+        "sha256": "74ba064d03f1f1c4a952da936c3eb71866c34404916734de3cae73b34357e59e"
+      },
+      "stylesheet": "public/fonts/lato/lato.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/lato/lato-latin-300-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "400",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/lato/lato-latin-400-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/lato/lato-latin-700-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/lato/lato-latin-300-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/lato/v25/S6u9w4BMUTPHh7USSwiPGQ.woff2",
+          "sha256": "115f6a626ca115d4ad5581b59275327e0e860b30330a52b0f785561332dd2429",
+          "bytes": 23236
+        },
+        {
+          "file": "public/fonts/lato/lato-latin-400-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/lato/v25/S6uyw4BMUTPHjx4wXg.woff2",
+          "sha256": "918b7dc3e2e2d015c16ce08b57bcb64d2253bafc1707658f361e72865498e537",
+          "bytes": 23580
+        },
+        {
+          "file": "public/fonts/lato/lato-latin-700-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/lato/v25/S6u9w4BMUTPHh6UVSwiPGQ.woff2",
+          "sha256": "c447dd7677b419db7b21dbdfc6277c7816a913ffda76fd2e52702df538de0e49",
+          "bytes": 23040
+        }
+      ]
+    },
+    {
+      "id": "openSans",
+      "family": "Open Sans",
+      "css": "https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/opensans",
+        "commit": "bd7e37632246368c60fdcbd374dbf9bad11969b6"
+      },
+      "license": {
+        "file": "public/fonts/openSans/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/opensans/OFL.txt",
+        "sha256": "fbbbcfef55318de350562559b671360de6d597112ecc5c73881b05092db89602"
+      },
+      "stylesheet": "public/fonts/openSans/openSans.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2",
+          "sha256": "d8e4fe0452aa2076429a9bb5d8757d00a994dd95986cf950e9a1a371b9a072a0",
+          "bytes": 48320
+        }
+      ]
+    },
+    {
+      "id": "raleway",
+      "family": "Raleway",
+      "css": "https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/theleagueof/raleway",
+        "commit": "938ac770222935d0d9d7b7b60e9373afd0cc5543"
+      },
+      "license": {
+        "file": "public/fonts/raleway/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/raleway/OFL.txt",
+        "sha256": "7e946cf1171784d1015279e7dc35f827957a6b5d1f1f659ae0c98e5f5e37ed9b"
+      },
+      "stylesheet": "public/fonts/raleway/raleway.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/raleway/v37/1Ptug8zYS_SKggPNyC0ITw.woff2",
+          "sha256": "b1bef1f03a77a36fc257c5525e32a1dd621bb6f935b743a419da7ed0b18dc8f5",
+          "bytes": 48264
+        }
+      ]
+    },
+    {
+      "id": "nunito",
+      "family": "Nunito",
+      "css": "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/nunito",
+        "commit": "8c6a9bb9732545b9ed53f29ec5e1ab0ff53c4e6f"
+      },
+      "license": {
+        "file": "public/fonts/nunito/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/nunito/OFL.txt",
+        "sha256": "580df76c95a1ec5ab878ceb25bb3d85c6a076804e9c970c8c6972aea775fdf65"
+      },
+      "stylesheet": "public/fonts/nunito/nunito.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/nunito/v32/XRXV3I6Li01BKofINeaB.woff2",
+          "sha256": "ba344451eab25b217a165363b1982048a5e5830a0daf36577973955a04cac793",
+          "bytes": 39128
+        }
+      ]
+    },
+    {
+      "id": "sourceSans",
+      "family": "Source Sans 3",
+      "css": "https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/adobe-fonts/source-sans",
+        "commit": "272b22b02e097e8eff1372111f88b5ab6063499f"
+      },
+      "license": {
+        "file": "public/fonts/sourceSans/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/sourcesans3/OFL.txt",
+        "sha256": "09746787287a289323b0ec3cff4d1a4a801331b82b7207c1e186f5d26619a392"
+      },
+      "stylesheet": "public/fonts/sourceSans/sourceSans.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/sourcesans3/v20/nwpStKy2OAdR1K-IwhWudF-R3w8aZQ.woff2",
+          "sha256": "19143dca075972bc84e3fd9eab7416dd40cc565dccb2435a044bdfabe060c7d5",
+          "bytes": 28872
+        }
+      ]
+    },
+    {
+      "id": "quicksand",
+      "family": "Quicksand",
+      "css": "https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/ThomasJockin/QuicksandFamily",
+        "commit": "02ead1c009102a433b9cd155f611df1e5f49bd9c"
+      },
+      "license": {
+        "file": "public/fonts/quicksand/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/quicksand/OFL.txt",
+        "sha256": "14d28541780d90f6577bb7abcc6f005bf6969614294e75c82abb8758a696ad46"
+      },
+      "stylesheet": "public/fonts/quicksand/quicksand.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/quicksand/v37/6xKtdSZaM9iE8KbpRA_hK1QN.woff2",
+          "sha256": "2add7d60b1cd2ab84c9967e23d5ec08eb3fc9635c46855b17d59404dec6b410e",
+          "bytes": 28244
+        }
+      ]
+    },
+    {
+      "id": "comfortaa",
+      "family": "Comfortaa",
+      "css": "https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/alexeiva/comfortaa",
+        "commit": "4aa21cfb7b018629dcf17aab6220e638411c7164"
+      },
+      "license": {
+        "file": "public/fonts/comfortaa/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/comfortaa/OFL.txt",
+        "sha256": "bc85bae0b512b799bbfb2b916e4d0a34cfd963d09778cd783e248b479e67760a"
+      },
+      "stylesheet": "public/fonts/comfortaa/comfortaa.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/comfortaa/v47/1Ptsg8LJRfWJmhDAuUs4TYFq.woff2",
+          "sha256": "408f20ae9895ceefa460a383d76497a91abc469e3d00b49f080efc7f4b12c60e",
+          "bytes": 30872
+        }
+      ]
+    },
+    {
+      "id": "fredoka",
+      "family": "Fredoka",
+      "css": "https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/hafontia-zz/Fredoka-One",
+        "commit": "35c584ff23450c9bcdf8819706e12fcdeefe1712"
+      },
+      "license": {
+        "file": "public/fonts/fredoka/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/fredoka/OFL.txt",
+        "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
+      },
+      "stylesheet": "public/fonts/fredoka/fredoka.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/fredoka/v17/X7n64b87HvSqjb_WIi2yDCRwoQ_k7367_DWu89U.woff2",
+          "sha256": "99d6c78e043710d4f83ed90716779798b7b04eb690f73e0ad0e8f32d1f0e98c2",
+          "bytes": 29732
+        }
+      ]
+    },
+    {
+      "id": "baloo2",
+      "family": "Baloo 2",
+      "css": "https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/yanone/Baloo2-Variable",
+        "commit": "da523dfa21aa0e376253d61c21e39146dc55702a"
+      },
+      "license": {
+        "file": "public/fonts/baloo2/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/baloo2/OFL.txt",
+        "sha256": "ad09b05dc8bc678c9daf7c4c5f7ef1f55e5726127f4330b2e98e40b9dffcb860"
+      },
+      "stylesheet": "public/fonts/baloo2/baloo2.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "400 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/baloo2/v23/wXKrE3kTposypRyd51jcAA.woff2",
+          "sha256": "26fb4610d4bc976d2584ca15e66c11465dbc1f267a10dca668fcb3080dfe59c1",
+          "bytes": 33188
+        }
+      ]
+    },
+    {
+      "id": "righteous",
+      "family": "Righteous",
+      "css": "https://fonts.googleapis.com/css2?family=Righteous&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/librefonts/righteous",
+        "commit": "583c13c301c5e1dd0a4ae2d7b6cd42bc9c58f953"
+      },
+      "license": {
+        "file": "public/fonts/righteous/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/righteous/OFL.txt",
+        "sha256": "1c5bc055869d5e9151ec7774082727db720ec4293c65be67f91a4bdcaeb02998"
+      },
+      "stylesheet": "public/fonts/righteous/righteous.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "400",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/righteous/righteous-latin-400-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/righteous/righteous-latin-400-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/righteous/v18/1cXxaUPXBpj2rGoU7C9WiHGF.woff2",
+          "sha256": "17055c538efddf7a754a98bb7db3d15405316dfb4645c287421ed3e7f8769144",
+          "bytes": 12756
+        }
+      ]
+    },
+    {
+      "id": "oswald",
+      "family": "Oswald",
+      "css": "https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/OswaldFont",
+        "commit": "89795261ac9eeb9aa8cd99f43982c4e4b0e53261"
+      },
+      "license": {
+        "file": "public/fonts/oswald/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/oswald/OFL.txt",
+        "sha256": "0fd731a904b729a4e02eaf5e8ebd06783edd9abe400e8882760160230675b652"
+      },
+      "stylesheet": "public/fonts/oswald/oswald.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/oswald/v57/TK3iWkUHHAIjg752GT8G.woff2",
+          "sha256": "bd73278ee0c50041b91b4c03d1229e35b501637f46b6409e7da2d3a758446ea5",
+          "bytes": 28488
+        }
+      ]
+    },
+    {
+      "id": "orbitron",
+      "family": "Orbitron",
+      "css": "https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/orbitron-vf",
+        "commit": "f16482824e0ce4d008dee59b9b632e9ce9663359"
+      },
+      "license": {
+        "file": "public/fonts/orbitron/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/orbitron/OFL.txt",
+        "sha256": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819"
+      },
+      "stylesheet": "public/fonts/orbitron/orbitron.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "400 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/orbitron/v35/yMJRMIlzdpvBhQQL_Qq7dy0.woff2",
+          "sha256": "c25a9f9da5d9f3db1bf2a01474722dc9b377675b7bbab6d0dfda6902794fd1ed",
+          "bytes": 11800
+        }
+      ]
+    },
+    {
+      "id": "exo2",
+      "family": "Exo 2",
+      "css": "https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/Exo-2.0",
+        "commit": "f83ea8a02d3e1d6963ab6e910038521f27e283a2"
+      },
+      "license": {
+        "file": "public/fonts/exo2/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/exo2/OFL.txt",
+        "sha256": "7f95a8eeecc6904ffc81cd10cc8ebc7fcee72a67922924bf45f02dff03b88127"
+      },
+      "stylesheet": "public/fonts/exo2/exo2.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/exo2/v26/7cHmv4okm5zmbtYoK-4.woff2",
+          "sha256": "4a259dde317e08aa5d37e6eb684e222ae833516b2a0fccba36ee5e36224f16be",
+          "bytes": 40896
+        }
+      ]
+    },
+    {
+      "id": "spaceGrotesk",
+      "family": "Space Grotesk",
+      "css": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/floriankarsten/space-grotesk",
+        "commit": "03507d024a01282884232081fc6011c09ff4e849"
+      },
+      "license": {
+        "file": "public/fonts/spaceGrotesk/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/spacegrotesk/OFL.txt",
+        "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
+      },
+      "stylesheet": "public/fonts/spaceGrotesk/spaceGrotesk.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+          "sha256": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d",
+          "bytes": 22288
+        }
+      ]
+    },
+    {
+      "id": "spaceMono",
+      "family": "Space Mono",
+      "css": "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/spacemono",
+        "commit": "329858c2c4dbd3476f972a4ae00624b018cf4b81"
+      },
+      "license": {
+        "file": "public/fonts/spaceMono/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/spacemono/OFL.txt",
+        "sha256": "8e4ee42b2553e1e01504e61cb0d46d148cd8c9e5eacaa3622a7df2d4f2955b9f"
+      },
+      "stylesheet": "public/fonts/spaceMono/spaceMono.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "400",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/spaceMono/spaceMono-latin-400-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/spaceMono/spaceMono-latin-700-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/spaceMono/spaceMono-latin-400-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/spacemono/v17/i7dPIFZifjKcF5UAWdDRYEF8RQ.woff2",
+          "sha256": "fb4a81a2d0a893e5c38c394a7e716a1cef0b24610a0af49c96f6d529bd66bf2b",
+          "bytes": 16520
+        },
+        {
+          "file": "public/fonts/spaceMono/spaceMono-latin-700-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/spacemono/v17/i7dMIFZifjKcF5UAWdDRaPpZUFWaHg.woff2",
+          "sha256": "2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+          "bytes": 16724
+        }
+      ]
+    },
+    {
+      "id": "workSans",
+      "family": "Work Sans",
+      "css": "https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/weiweihuanghuang/Work-Sans",
+        "commit": "b35c81086186162164947bd39574683073d9b268"
+      },
+      "license": {
+        "file": "public/fonts/workSans/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/worksans/OFL.txt",
+        "sha256": "749aca05078664ce682dce1b1b10096ac397cb088c1a6df4e1bb56f0092a9272"
+      },
+      "stylesheet": "public/fonts/workSans/workSans.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/worksans/v24/QGYsz_wNahGAdqQ43Rh_fKDp.woff2",
+          "sha256": "1dd49afc07fb2231b2ff686cbf007725fb2742271bb1f28ebd98f22a0d817343",
+          "bytes": 50316
+        }
+      ]
+    },
+    {
+      "id": "archivo",
+      "family": "Archivo",
+      "css": "https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/Omnibus-Type/Archivo",
+        "commit": "b5d63988ce19d044d3e10362de730af00526b672"
+      },
+      "license": {
+        "file": "public/fonts/archivo/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/archivo/OFL.txt",
+        "sha256": "108b4e57c9c796d3d38d0428ca7ee39de47ad93187302718d9b2d8864b9b716b"
+      },
+      "stylesheet": "public/fonts/archivo/archivo.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/archivo/v25/k3kPo8UDI-1M0wlSV9XAw6lQkqWY8Q82sLydOxI.woff2",
+          "sha256": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+          "bytes": 34928
+        }
+      ]
+    },
+    {
+      "id": "firaCode",
+      "family": "Fira Code",
+      "css": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/tonsky/FiraCode",
+        "commit": "8da49d55f8b5978c5f888dd85452b79aad16cca2"
+      },
+      "license": {
+        "file": "public/fonts/firaCode/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/firacode/OFL.txt",
+        "sha256": "926041dac670e6922505e35ac1661a4e8d20f1ffeabbbcb5edb5544370702369"
+      },
+      "stylesheet": "public/fonts/firaCode/firaCode.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/firacode/v27/uU9NCBsR6Z2vfE9aq3bh3dSD.woff2",
+          "sha256": "771bf4b79a97fc005d12866168bd39d868a9dd3d5903008fe8b796723c8a56f4",
+          "bytes": 36276
+        }
+      ]
+    },
+    {
+      "id": "jetBrainsMono",
+      "family": "JetBrains Mono",
+      "css": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/JetBrains/JetBrainsMono",
+        "commit": "19371302b95d218af43299bce79ddbddd0bc364d"
+      },
+      "license": {
+        "file": "public/fonts/jetBrainsMono/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/jetbrainsmono/OFL.txt",
+        "sha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d"
+      },
+      "stylesheet": "public/fonts/jetBrainsMono/jetBrainsMono.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbV2o-flEEny0FZhsfKu5WU4xD7OwE.woff2",
+          "sha256": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e",
+          "bytes": 40404
+        }
+      ]
+    },
+    {
+      "id": "ibmPlexMono",
+      "family": "IBM Plex Mono",
+      "css": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/plex",
+        "commit": "9ab3b5b3b96325fb20f365ee0804adca92024cbf"
+      },
+      "license": {
+        "file": "public/fonts/ibmPlexMono/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/ibmplexmono/OFL.txt",
+        "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+      },
+      "stylesheet": "public/fonts/ibmPlexMono/ibmPlexMono.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-300-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "400",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-400-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "500",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-500-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "600",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-600-normal.woff2"
+        },
+        {
+          "style": "normal",
+          "weight": "700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-700-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-300-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3oQIwlBFgg.woff2",
+          "sha256": "d2ce22595d55a52b0c63f837515729bd97706bfa1b833816509f13d93daa59b5",
+          "bytes": 14748
+        },
+        {
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-400-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2",
+          "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+          "bytes": 14708
+        },
+        {
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-500-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2",
+          "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+          "bytes": 14888
+        },
+        {
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-600-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3vAOwlBFgg.woff2",
+          "sha256": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83",
+          "bytes": 15620
+        },
+        {
+          "file": "public/fonts/ibmPlexMono/ibmPlexMono-latin-700-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3pQPwlBFgg.woff2",
+          "sha256": "4f84d86cfd060f4ded334358ff8a4c81d4db2ed5addd568359d693f44a87765a",
+          "bytes": 14908
+        }
+      ]
+    },
+    {
+      "id": "robotoMono",
+      "family": "Roboto Mono",
+      "css": "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "upstream": {
+        "repository": "https://github.com/googlefonts/RobotoMono",
+        "commit": "111eb14e367888c9374da4da0b018e72cf8ac46d"
+      },
+      "license": {
+        "file": "public/fonts/robotoMono/OFL.txt",
+        "spdx": "OFL-1.1",
+        "name": "SIL Open Font License 1.1",
+        "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/robotomono/OFL.txt",
+        "sha256": "50ab8dd54680d3473f649c9db86fece88434d097c7834475c1c72d2f8c429215"
+      },
+      "stylesheet": "public/fonts/robotoMono/robotoMono.css",
+      "faces": [
+        {
+          "style": "normal",
+          "weight": "300 700",
+          "display": "swap",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
+        }
+      ],
+      "files": [
+        {
+          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2",
+          "url": "https://fonts.gstatic.com/s/robotomono/v31/L0x5DF4xlVMF-BfR8bXMIjhLq38.woff2",
+          "sha256": "b81cd55177300649be8f95b3b747d721ce607e8ed2856e25bd0c630cfd631faf",
+          "bytes": 32796
+        }
+      ]
+    }
+  ]
+}
