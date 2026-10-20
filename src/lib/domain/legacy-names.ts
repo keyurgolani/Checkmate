@@ -73,7 +73,8 @@ export const PERMANENT_ENTRIES: readonly Exemption[] = [
   {
     path: 'src/lib/services/export/import-parsers.ts',
     owner: '16.2',
-    reason: "The v1 export reader: 1.x files name their template `blueprint`. #75 removes this file once #74's readLegacyExport replaces it.",
+    reason:
+      "The v1 export reader. 1.x files can carry their template as `blueprint`, and its CSV reader takes a `blueprint` column. #75 removes this file once #74's readLegacyExport replaces it.",
   },
   {
     path: 'src/lib/portable/',

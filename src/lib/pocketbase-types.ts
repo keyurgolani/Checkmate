@@ -623,8 +623,8 @@ export interface ActivityLogCreate {
 
 // ============================================================================
 // Collection Names (for type-safe collection access)
-// The storage adapter in src/lib/domain/storage.ts owns them, and code
-// outside src/lib/domain/ names a collection only through `Collections`.
+// The storage adapter in src/lib/domain/storage.ts owns them. New code
+// names a collection through `Collections`, never a literal.
 // ============================================================================
 
 export { Collections };

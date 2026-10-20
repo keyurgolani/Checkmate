@@ -8,10 +8,11 @@
  * `Collections` in pocketbase-types.ts re-exports the collection map from
  * here. records.ts reads and writes rows through these maps.
  *
- * Code outside src/lib/domain/ names collections through `Collections` and
- * never writes a legacy storage name itself: legacy-names.test.ts counts them
- * per file against legacy-name-baseline.ts, which only shrinks. An 18.2
- * migration that renames a storage name changes this file in the same PR.
+ * New code outside src/lib/domain/ names collections through `Collections` and
+ * never writes a legacy storage name itself. legacy-names.test.ts counts the
+ * uses that remain, per file, against legacy-name-baseline.ts, which only
+ * shrinks. An 18.2 migration that renames a storage name changes this file in
+ * the same PR.
  */
 
 /**
@@ -178,12 +179,11 @@ export const SELECT_FIELDS = {
   activityAction: { collection: 'activityLog', field: 'action', values: ACTIVITY_ACTIONS },
 } as const satisfies Readonly<Record<string, SelectField>>;
 
+const FIELD_RENAMES: Partial<Record<CollectionKey, Readonly<Record<string, string>>>> = STORAGE_FIELDS;
+
 /** The stored name of a field: its rename, or the name itself. */
 export function storageField(collection: CollectionKey, field: string): string {
-  const renames: Readonly<Record<string, string>> | undefined = (STORAGE_FIELDS as Partial<Record<CollectionKey, Readonly<Record<string, string>>>>)[
-    collection
-  ];
-  return renames?.[field] ?? field;
+  return FIELD_RENAMES[collection]?.[field] ?? field;
 }
 
 /** The canonical value for a stored one, or undefined when the map has no such stored value. */
