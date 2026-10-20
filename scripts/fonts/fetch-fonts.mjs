@@ -35,6 +35,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const MANIFEST_PATH = 'scripts/fonts/manifest.json';
 export const FONTS_DIR = 'public/fonts';
+/** Where a fetch stages its files: gitignored, and on the same filesystem as public/. */
+export const STAGING_DIR = '.cache/fetch-fonts';
 
 const CSS_API = 'https://fonts.googleapis.com/css2';
 const GOOGLE_FONTS_REPO = 'https://raw.githubusercontent.com/google/fonts';
@@ -222,9 +224,10 @@ async function download(url, { headers = {}, attempts = 3 } = {}) {
   throw new Error(`fetch-fonts: could not download ${url}: ${lastError.message}`);
 }
 
-async function fetchFamily(spec, root) {
+/** Downloads one family and writes its files under `out`, laid out like the repository. */
+async function fetchFamily(spec, out, get) {
   const userAgent = spec.userAgent ?? BROWSER_USER_AGENT;
-  const css = (await download(cssUrl(spec.query), { headers: { 'User-Agent': userAgent } })).toString('utf8');
+  const css = (await get(cssUrl(spec.query), { headers: { 'User-Agent': userAgent } })).toString('utf8');
   const parsed = parseFaces(css);
   if (parsed.length === 0) throw new Error(`fetch-fonts: no ${SUBSET} faces for ${spec.query}`);
   const families = new Set(parsed.map((face) => face.family));
@@ -234,14 +237,14 @@ async function fetchFamily(spec, root) {
   const names = fileNames(spec.id, parsed);
   const files = [];
   for (const [url, name] of names) {
-    const buffer = await download(url);
+    const buffer = await get(url);
     files.push({ file: path.posix.join(dir, name), url, sha256: sha256(buffer), bytes: buffer.length, buffer });
   }
 
   const licenseSource = licenseUrl(spec.license);
-  const licenseBuffer = await download(licenseSource);
+  const licenseBuffer = await get(licenseSource);
   const metadataPath = `${path.posix.dirname(spec.license)}/METADATA.pb`;
-  const metadata = (await download(licenseUrl(metadataPath))).toString('utf8');
+  const metadata = (await get(licenseUrl(metadataPath))).toString('utf8');
 
   const family = {
     id: spec.id,
@@ -266,16 +269,10 @@ async function fetchFamily(spec, root) {
     files: files.map(({ file, url, sha256: hash, bytes }) => ({ file, url, sha256: hash, bytes })),
   };
 
-  // Write only after every download for the family succeeded.
-  const absoluteDir = path.join(root, dir);
-  fs.mkdirSync(absoluteDir, { recursive: true });
-  const keep = new Set([family.license.file, family.stylesheet, ...files.map(({ file }) => file)].map((file) => path.posix.basename(file)));
-  for (const entry of fs.readdirSync(absoluteDir)) {
-    if (!keep.has(entry)) fs.rmSync(path.join(absoluteDir, entry), { recursive: true });
-  }
-  for (const { file, buffer } of files) fs.writeFileSync(path.join(root, file), buffer);
-  fs.writeFileSync(path.join(root, family.license.file), licenseBuffer);
-  fs.writeFileSync(path.join(root, family.stylesheet), renderStylesheet(family));
+  fs.mkdirSync(path.join(out, dir), { recursive: true });
+  for (const { file, buffer } of files) fs.writeFileSync(path.join(out, file), buffer);
+  fs.writeFileSync(path.join(out, family.license.file), licenseBuffer);
+  fs.writeFileSync(path.join(out, family.stylesheet), renderStylesheet(family));
   return family;
 }
 
@@ -283,26 +280,71 @@ export function readManifest(root = REPO_ROOT) {
   return JSON.parse(fs.readFileSync(path.join(root, MANIFEST_PATH), 'utf8'));
 }
 
-async function fetchAll(root) {
-  const families = [];
-  for (const spec of FAMILIES) {
-    const family = await fetchFamily(spec, root);
-    const bytes = family.files.reduce((sum, file) => sum + file.bytes, 0);
-    console.log(`fetch-fonts: ${family.id} (${family.family}): ${family.files.length} file(s), ${bytes} bytes`);
-    families.push(family);
-  }
-  const known = new Set(FAMILIES.map((spec) => spec.id));
-  for (const entry of fs.readdirSync(path.join(root, FONTS_DIR))) {
-    if (!known.has(entry)) console.warn(`fetch-fonts: ${FONTS_DIR}/${entry} is not in FAMILIES; remove it if no font uses it`);
-  }
-  const manifest = {
-    $comment: `Written by scripts/fonts/fetch-fonts.mjs; do not edit. The source URL and SHA-256 of every fetched file under ${FONTS_DIR}. Each stylesheet is rendered from its family's faces.`,
-    googleFontsCommit: GOOGLE_FONTS_COMMIT,
-    families,
+/**
+ * Moves the staged families and then the manifest into place. It only
+ * renames within one filesystem, and holds SIGINT and SIGTERM until it's
+ * done, so a stop can't land between a family and the manifest.
+ */
+function commitStaged(root, staging, families) {
+  let stopped;
+  const hold = (signal) => {
+    stopped = signal;
   };
-  fs.writeFileSync(path.join(root, MANIFEST_PATH), `${JSON.stringify(manifest, null, 2)}\n`);
-  const total = families.flatMap((family) => family.files).reduce((sum, file) => sum + file.bytes, 0);
-  console.log(`fetch-fonts: wrote ${families.length} families, ${total} bytes of woff2, and ${MANIFEST_PATH}`);
+  process.on('SIGINT', hold);
+  process.on('SIGTERM', hold);
+  try {
+    fs.mkdirSync(path.join(root, FONTS_DIR), { recursive: true });
+    for (const family of families) {
+      const target = path.join(root, FONTS_DIR, family.id);
+      if (fs.existsSync(target)) fs.renameSync(target, path.join(staging, 'replaced', family.id));
+      fs.renameSync(path.join(staging, FONTS_DIR, family.id), target);
+    }
+    fs.mkdirSync(path.join(root, path.dirname(MANIFEST_PATH)), { recursive: true });
+    fs.renameSync(path.join(staging, MANIFEST_PATH), path.join(root, MANIFEST_PATH));
+  } finally {
+    process.off('SIGINT', hold);
+    process.off('SIGTERM', hold);
+  }
+  if (stopped) process.kill(process.pid, stopped);
+}
+
+/**
+ * Fetches every family into STAGING_DIR and writes nothing else until all
+ * of them have downloaded. Then it moves the families and the manifest into
+ * place, so a failed or interrupted fetch leaves public/fonts and the
+ * manifest as they were.
+ */
+export async function fetchAll({ root = REPO_ROOT, families: specs = FAMILIES, get = download, log = console.log } = {}) {
+  const staging = path.join(root, STAGING_DIR);
+  fs.rmSync(staging, { recursive: true, force: true });
+  fs.mkdirSync(path.join(staging, 'replaced'), { recursive: true });
+  try {
+    const families = [];
+    for (const spec of specs) {
+      const family = await fetchFamily(spec, staging, get);
+      const bytes = family.files.reduce((sum, file) => sum + file.bytes, 0);
+      log(`fetch-fonts: ${family.id} (${family.family}): ${family.files.length} file(s), ${bytes} bytes`);
+      families.push(family);
+    }
+    const manifest = {
+      $comment: `Written by scripts/fonts/fetch-fonts.mjs; do not edit. The source URL and SHA-256 of every fetched file under ${FONTS_DIR}. Each stylesheet is rendered from its family's faces.`,
+      googleFontsCommit: GOOGLE_FONTS_COMMIT,
+      families,
+    };
+    fs.mkdirSync(path.join(staging, path.dirname(MANIFEST_PATH)), { recursive: true });
+    fs.writeFileSync(path.join(staging, MANIFEST_PATH), `${JSON.stringify(manifest, null, 2)}\n`);
+    commitStaged(root, staging, families);
+
+    const known = new Set(specs.map((spec) => spec.id));
+    for (const entry of fs.readdirSync(path.join(root, FONTS_DIR))) {
+      if (!known.has(entry)) log(`fetch-fonts: ${FONTS_DIR}/${entry} is not in FAMILIES; remove it if no font uses it`);
+    }
+    const total = families.flatMap((family) => family.files).reduce((sum, file) => sum + file.bytes, 0);
+    log(`fetch-fonts: wrote ${families.length} families, ${total} bytes of woff2, and ${MANIFEST_PATH}`);
+    return manifest;
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
+  }
 }
 
 async function verifyAll(root) {
@@ -333,7 +375,7 @@ async function verifyAll(root) {
 async function main() {
   const { values } = parseArgs({ options: { verify: { type: 'boolean', default: false } } });
   if (values.verify) await verifyAll(REPO_ROOT);
-  else await fetchAll(REPO_ROOT);
+  else await fetchAll();
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) await main();
