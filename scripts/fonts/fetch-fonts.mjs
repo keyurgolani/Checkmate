@@ -146,6 +146,24 @@ export function fileNames(id, faces) {
   return names;
 }
 
+/**
+ * One face per file. css2 gives a variable font one @font-face per weight
+ * asked for, all naming the same url, and a browser fetches the url once
+ * per face it uses; one face over the weight range fetches it once and
+ * renders every weight in that range the same way.
+ */
+export function mergeFaces(faces) {
+  return [...Map.groupBy(faces, (face) => face.url).values()].map((shared) => {
+    const [first] = shared;
+    for (const key of ['family', 'style', 'display', 'unicodeRange']) {
+      if (shared.some((face) => face[key] !== first[key])) throw new Error(`fetch-fonts: faces of ${first.url} differ in ${key}`);
+    }
+    const bounds = shared.flatMap((face) => face.weight.split(/\s+/).map(Number));
+    const [min, max] = [Math.min(...bounds), Math.max(...bounds)];
+    return { ...first, weight: min === max ? String(min) : `${min} ${max}` };
+  });
+}
+
 /** The stylesheet for one manifest family. The test renders it again and compares. */
 export function renderStylesheet(family) {
   const license = path.posix.basename(family.license.file);
@@ -226,7 +244,7 @@ async function fetchFamily(spec, root) {
       sha256: sha256(licenseBuffer),
     },
     stylesheet: path.posix.join(dir, `${spec.id}.css`),
-    faces: parsed.map((face) => ({
+    faces: mergeFaces(parsed).map((face) => ({
       style: face.style,
       weight: face.weight,
       display: face.display,

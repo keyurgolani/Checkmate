@@ -19,6 +19,7 @@ import {
   cssUrl,
   fileNames,
   licenseUrl,
+  mergeFaces,
   parseFaces,
   parseUpstream,
   readManifest,
@@ -137,13 +138,25 @@ describe('vendored theme fonts', () => {
     }
   });
 
-  it('vendors the latin subset in woff2 only, at the weights each family asked for', () => {
+  it('vendors the latin subset in woff2 only, one face per file over the weights each family asked for', () => {
     const [latin] = manifest.families[0]!.faces.map((face) => face.unicodeRange);
     expect(latin).toMatch(/^U\+0000-00FF, /);
+    const span = (weight: string) => {
+      const [low = NaN, high = low] = weight.split(' ').map(Number);
+      return [low, high] as const;
+    };
     for (const [index, family] of manifest.families.entries()) {
       const axis = /:wght@(.+)$/.exec(FAMILIES[index]!.query)?.[1];
-      const weights = axis === undefined ? ['400'] : axis.includes('..') ? [axis.replace('..', ' ')] : axis.split(';');
-      expect(family.faces.map((face) => face.weight), family.id).toEqual(weights);
+      const asked = axis === undefined ? ['400'] : axis.includes('..') ? [axis.replace('..', ' ')] : axis.split(';');
+      const bounds = asked.flatMap((weight) => span(weight));
+      // Each weight asked for falls in exactly one face, and no face reaches past them.
+      for (const weight of asked) {
+        const [low, high] = span(weight);
+        const covering = family.faces.filter((face) => span(face.weight)[0] <= low && high <= span(face.weight)[1]);
+        expect(covering, `${family.id} ${weight}`).toHaveLength(1);
+      }
+      for (const face of family.faces) expect(bounds, family.id).toEqual(expect.arrayContaining([...span(face.weight)]));
+      expect(new Set(family.faces.map((face) => face.file)).size, family.id).toBe(family.faces.length);
       for (const face of family.faces) {
         expect(face.unicodeRange, family.id).toBe(latin);
         expect(face.file, family.id).toMatch(new RegExp(`^${FONTS_DIR}/${family.id}/${family.id}-latin-(?:wght|\\d+)-normal\\.woff2$`));
@@ -192,6 +205,8 @@ describe('fetch-fonts', () => {
   it('names a variable font file once, whether css2 gives a range or one url per weight', () => {
     const shared = parseFaces(css.replaceAll('/b.woff2', '/a.woff2'));
     expect([...fileNames('sample', shared).values()]).toEqual(['sample-latin-wght-normal.woff2']);
+    expect(mergeFaces(shared).map((face) => face.weight)).toEqual(['400 700']);
+    expect(mergeFaces(parseFaces(css)).map((face) => face.weight)).toEqual(['400', '700']);
     const range = parseFaces(css.replace("font-weight: 400;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/sample/v1/a", "font-weight: 100 900;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/sample/v1/a"));
     expect(fileNames('sample', range).get('https://fonts.gstatic.com/s/sample/v1/a.woff2')).toBe('sample-latin-wght-normal.woff2');
   });

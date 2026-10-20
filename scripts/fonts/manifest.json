@@ -244,35 +244,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/montserrat/montserrat-latin-wght-normal.woff2"
@@ -366,35 +338,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/openSans/openSans-latin-wght-normal.woff2"
@@ -428,35 +372,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/raleway/raleway-latin-wght-normal.woff2"
@@ -490,35 +406,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/nunito/nunito-latin-wght-normal.woff2"
@@ -552,35 +440,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/sourceSans/sourceSans-latin-wght-normal.woff2"
@@ -614,35 +474,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/quicksand/quicksand-latin-wght-normal.woff2"
@@ -676,35 +508,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/comfortaa/comfortaa-latin-wght-normal.woff2"
@@ -738,35 +542,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/fredoka/fredoka-latin-wght-normal.woff2"
@@ -800,28 +576,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "400 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/baloo2/baloo2-latin-wght-normal.woff2"
@@ -889,35 +644,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/oswald/oswald-latin-wght-normal.woff2"
@@ -951,28 +678,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "400 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/orbitron/orbitron-latin-wght-normal.woff2"
@@ -1006,35 +712,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/exo2/exo2-latin-wght-normal.woff2"
@@ -1068,35 +746,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/spaceGrotesk/spaceGrotesk-latin-wght-normal.woff2"
@@ -1177,35 +827,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/workSans/workSans-latin-wght-normal.woff2"
@@ -1239,35 +861,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/archivo/archivo-latin-wght-normal.woff2"
@@ -1301,35 +895,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/firaCode/firaCode-latin-wght-normal.woff2"
@@ -1363,35 +929,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/jetBrainsMono/jetBrainsMono-latin-wght-normal.woff2"
@@ -1511,35 +1049,7 @@
       "faces": [
         {
           "style": "normal",
-          "weight": "300",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "400",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "500",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "600",
-          "display": "swap",
-          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
-          "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
-        },
-        {
-          "style": "normal",
-          "weight": "700",
+          "weight": "300 700",
           "display": "swap",
           "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
           "file": "public/fonts/robotoMono/robotoMono-latin-wght-normal.woff2"
