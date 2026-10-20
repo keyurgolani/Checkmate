@@ -9,6 +9,13 @@ import "./globals.css";
 // Vendored under public/fonts by scripts/fonts/fetch-fonts.mjs, over the same
 // weight ranges as before. Each @font-face keeps the family's own name, since
 // that is the name its font-themes.ts entry renders.
+//
+// Turbopack applies the `declarations` font-family to the @font-face only. Each
+// --font-* variable still names the const, so --font-plus-jakarta points at
+// "plusJakarta", which no @font-face declares. Nothing renders through these
+// variables today. When the theme-axes work in #78 (CHECKMATE-17.2) moves the
+// entries to var(--font-*), drop `declarations` in the same change, or the 12
+// multi-word families stop matching.
 const outfit = localFont({
   src: "../../public/fonts/outfit/outfit-latin-wght-normal.woff2",
   weight: "100 900",
