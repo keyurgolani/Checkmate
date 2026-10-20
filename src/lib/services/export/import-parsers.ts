@@ -19,7 +19,7 @@ import { type Result, ok, err } from '../../result';
  * Import error
  */
 export interface ImportError {
-  code: string;
+  code: ImportErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -89,6 +89,9 @@ export const ImportErrorCodes = {
   UNSUPPORTED_VERSION: 'IMPORT_009',
   UNKNOWN_ERROR: 'IMPORT_999',
 } as const;
+
+/** One of the ImportErrorCodes values. */
+export type ImportErrorCode = (typeof ImportErrorCodes)[keyof typeof ImportErrorCodes];
 
 // ============================================================================
 // Result Helpers

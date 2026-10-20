@@ -95,7 +95,7 @@ export type TemplateResult = Result<Template, TemplateError>;
  * Template error with code and message
  */
 export interface TemplateError {
-  code: string;
+  code: TemplateErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -113,8 +113,12 @@ export const TemplateErrorCodes = {
   TITLE_TOO_LONG: 'TEMPLATE_006',
   INVALID_VISIBILITY: 'TEMPLATE_007',
   SHARED_REQUIRES_COLLABORATORS: 'TEMPLATE_008',
+  DUPLICATE_FAILED: 'TEMPLATE_DUPLICATE_FAILED',
   UNKNOWN_ERROR: 'TEMPLATE_999',
 } as const;
+
+/** One of the TemplateErrorCodes values. */
+export type TemplateErrorCode = (typeof TemplateErrorCodes)[keyof typeof TemplateErrorCodes];
 
 // ============================================================================
 // Constants
@@ -838,7 +842,7 @@ export class TemplateService {
       return ok(newTemplate as Template);
     } catch (error) {
       return err({
-        code: "TEMPLATE_DUPLICATE_FAILED",
+        code: TemplateErrorCodes.DUPLICATE_FAILED,
         message: error instanceof Error ? error.message : "Failed to duplicate template",
       });
     }

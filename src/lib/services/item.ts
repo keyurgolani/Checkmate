@@ -86,7 +86,7 @@ export type ItemResult = Result<Item, ItemError>;
  * Item error with code and message
  */
 export interface ItemError {
-  code: string;
+  code: ItemErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -118,6 +118,9 @@ export const ItemErrorCodes = {
   CIRCULAR_REFERENCE: 'ITEM_011',
   UNKNOWN_ERROR: 'ITEM_999',
 } as const;
+
+/** One of the ItemErrorCodes values. */
+export type ItemErrorCode = (typeof ItemErrorCodes)[keyof typeof ItemErrorCodes];
 
 // ============================================================================
 // Constants
@@ -618,7 +621,7 @@ export class ItemService {
   /** 
    * @deprecated Use getByTemplate instead
    */
-  async getByBlueprint(templateId: string, options?: any) {
+  async getByBlueprint(templateId: string, options?: { expand?: string; sort?: string }) {
     return this.getByTemplate(templateId, options);
   }
 

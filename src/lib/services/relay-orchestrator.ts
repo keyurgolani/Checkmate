@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { LLMService } from './llm';
+import { LLMService, type LLMError } from './llm';
 import { WebResearchService, WEB_RESEARCH_PROVIDER_CONFIG } from './web-research';
 import { isLLMSelfHosted, isWebResearchSelfHosted } from '@/lib/relay-utils';
 import type { RequestSpec } from '@/lib/relay-utils';
@@ -19,9 +19,12 @@ export interface WorkflowState {
   expiresAt: number;
 }
 
+/** The error a relay result carries: the LLM service's, or an unknown operation's. */
+export type RelayError = LLMError | { code: 'UNKNOWN'; message: string };
+
 export type RelayResult =
   | { relay: true; token: string; requestSpec: RequestSpec }
-  | { relay: false; result: { success: boolean; [key: string]: unknown } };
+  | { relay: false; result: { success: boolean; error?: RelayError | null; [key: string]: unknown } };
 
 // ============================================================================
 // Relay Orchestrator

@@ -30,7 +30,7 @@ export interface WebSearchResult {
 export type WebResearchResult = Result<WebSearchResult[], WebResearchError>;
 
 export interface WebResearchError {
-  code: string;
+  code: WebResearchErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -48,6 +48,9 @@ export const WebResearchErrorCodes = {
   BASE_URL_REQUIRED: 'WEB_006',
   UNKNOWN_ERROR: 'WEB_999',
 } as const;
+
+/** One of the WebResearchErrorCodes values. */
+export type WebResearchErrorCode = (typeof WebResearchErrorCodes)[keyof typeof WebResearchErrorCodes];
 
 // ============================================================================
 // Provider Configuration

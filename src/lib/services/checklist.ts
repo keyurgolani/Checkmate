@@ -51,7 +51,7 @@ export type ChecklistResult = Result<Instance, ChecklistError>;
  * Checklist error with code and message
  */
 export interface ChecklistError {
-  code: string;
+  code: ChecklistErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -132,6 +132,9 @@ export const ChecklistErrorCodes = {
   ITEM_NOT_FOUND: 'CHECKLIST_006',
   UNKNOWN_ERROR: 'CHECKLIST_999',
 } as const;
+
+/** One of the ChecklistErrorCodes values. */
+export type ChecklistErrorCode = (typeof ChecklistErrorCodes)[keyof typeof ChecklistErrorCodes];
 
 // ============================================================================
 // Constants

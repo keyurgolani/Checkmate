@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      failure_class: ${{ steps.install.outputs.failure_class || steps.lint.outputs.failure_class }}
+      failure_class: ${{ steps.install.outputs.failure_class || steps.lint.outputs.failure_class || steps.shrink.outputs.failure_class }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -99,6 +99,12 @@ jobs:
         env:
           BASE_SHA: ${{ needs.scope.outputs.base }}
         run: node scripts/ci/step.mjs --name "eslint on changed files" --class lint -- node scripts/ci/lint-changed.mjs --base "$BASE_SHA"
+      # Lists like src/lib/api/codeless-error-bodies.ts may only shrink against the merge base.
+      - id: shrink
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          BASE_SHA: ${{ needs.scope.outputs.base }}
+        run: node scripts/ci/step.mjs --name "shrink-only lists" --class lint -- node scripts/ci/check-shrinking-lists.mjs --base "$BASE_SHA"
 
   unit:
     needs: scope

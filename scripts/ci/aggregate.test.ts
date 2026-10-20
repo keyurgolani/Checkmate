@@ -93,7 +93,7 @@ describe('aggregate', () => {
       'git clone https://github.com/keyurgolani/Checkmate.git checkmate-ci && cd checkmate-ci && git fetch origin pull/7/head && git checkout --detach c0ffee && npm ci && npm run test:backend',
     );
     expect(reproCommand({ job: 'lint', config, env: { REPOSITORY: 'keyurgolani/Checkmate', SHA: 'feed' }, base: 'b45e' })).toBe(
-      'git clone https://github.com/keyurgolani/Checkmate.git checkmate-ci && cd checkmate-ci && git checkout --detach feed && npm ci && node scripts/ci/lint-changed.mjs --base b45e',
+      'git clone https://github.com/keyurgolani/Checkmate.git checkmate-ci && cd checkmate-ci && git checkout --detach feed && npm ci && node scripts/ci/lint-changed.mjs --base b45e && node scripts/ci/check-shrinking-lists.mjs --base b45e',
     );
   });
 

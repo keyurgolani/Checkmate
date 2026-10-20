@@ -63,7 +63,7 @@ export type WorkspaceResult = Result<Workspace, WorkspaceError>;
  * Workspace error with code and message
  */
 export interface WorkspaceError {
-  code: string;
+  code: WorkspaceErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -91,6 +91,9 @@ export const WorkspaceErrorCodes = {
   NOT_ARCHIVED: 'WORKSPACE_007',
   UNKNOWN_ERROR: 'WORKSPACE_999',
 } as const;
+
+/** One of the WorkspaceErrorCodes values. */
+export type WorkspaceErrorCode = (typeof WorkspaceErrorCodes)[keyof typeof WorkspaceErrorCodes];
 
 // ============================================================================
 // Constants

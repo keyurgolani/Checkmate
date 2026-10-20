@@ -38,7 +38,7 @@ export interface InviteCollaboratorInput {
  * Collaboration error with code and message
  */
 export interface CollaborationError {
-  code: string;
+  code: CollaborationErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -70,6 +70,9 @@ export const CollaborationErrorCodes = {
   NOT_AUTHENTICATED: 'COLLAB_010',
   UNKNOWN_ERROR: 'COLLAB_999',
 } as const;
+
+/** One of the CollaborationErrorCodes values. */
+export type CollaborationErrorCode = (typeof CollaborationErrorCodes)[keyof typeof CollaborationErrorCodes];
 
 // ============================================================================
 // Helper Functions

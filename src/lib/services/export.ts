@@ -132,7 +132,7 @@ export type ExportResult = Result<ExportPayload, ExportError>;
  * Export error
  */
 export interface ExportError {
-  code: string;
+  code: ExportErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -166,6 +166,9 @@ export const ExportErrorCodes = {
   EXPORT_FAILED: 'EXPORT_004',
   UNKNOWN_ERROR: 'EXPORT_999',
 } as const;
+
+/** One of the ExportErrorCodes values. */
+export type ExportErrorCode = (typeof ExportErrorCodes)[keyof typeof ExportErrorCodes];
 
 // ============================================================================
 // Helper Functions
