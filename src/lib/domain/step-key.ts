@@ -6,8 +6,9 @@
  * The server mints a version-4 UUID for a new step, and baseline steps get a
  * derived version-8 UUID. Keys that people write in blueprint files (16.3) or
  * that imports keep (16.1, 16.2) may be any opaque string that `isStepKey`
- * accepts. These are async functions on Web Crypto with no `node:` import, so
- * the browser and the server run the same code.
+ * accepts. The file uses Web Crypto and imports no `node:` module, so the
+ * browser and the server run the same code, and the hashing functions are
+ * async.
  */
 
 /** The text `deriveLegacyStepKey` hashes starts with this. Changing it is a major contract bump. */
