@@ -4,9 +4,10 @@
  * says `success: false` with no error at all.
  *
  * This is the merge-time list of CHECKMATE-01.2 · envelope (#30). #91
- * (CHECKMATE-21.3) owns it and moves these onto the envelope, so it only
- * shrinks: error-codes.test.ts fails when a file's count differs from its
- * entry here, or when an entry goes above its count at merge time.
+ * (CHECKMATE-21.3, async states) owns it and moves these onto the envelope,
+ * so it only shrinks. error-codes.test.ts fails when a file's count differs
+ * from its entry here, and scripts/ci/check-shrinking-lists.mjs fails a
+ * change that raises an entry or adds one.
  */
 export const CODELESS_ERROR_BODIES: Readonly<Record<string, number>> = {
   'src/app/(dashboard)/checklists/[id]/actions.ts': 4,

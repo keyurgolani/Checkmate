@@ -45,7 +45,7 @@ export type AuthResult = Result<{ user: User; token: string }, AuthError>;
  * Authentication error with code and message
  */
 export interface AuthError {
-  code: string;
+  code: AuthErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -91,6 +91,9 @@ export const AuthErrorCodes = {
   USER_EXISTS: 'AUTH_007',
   UNKNOWN_ERROR: 'AUTH_999',
 } as const;
+
+/** One of the AuthErrorCodes values. */
+export type AuthErrorCode = (typeof AuthErrorCodes)[keyof typeof AuthErrorCodes];
 
 // ============================================================================
 // Helper Functions

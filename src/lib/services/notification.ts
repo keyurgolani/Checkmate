@@ -42,7 +42,7 @@ export type NotificationsListResult = Result<
  * Notification error with code and message
  */
 export interface NotificationError {
-  code: string;
+  code: NotificationErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -71,6 +71,9 @@ export const NotificationErrorCodes = {
   CREATION_FAILED: 'NOTIF_004',
   UNKNOWN_ERROR: 'NOTIF_999',
 } as const;
+
+/** One of the NotificationErrorCodes values. */
+export type NotificationErrorCode = (typeof NotificationErrorCodes)[keyof typeof NotificationErrorCodes];
 
 // ============================================================================
 // Helper Functions

@@ -60,7 +60,7 @@ export type Theme = 'light' | 'dark' | 'system';
  * Preferences error with code and message
  */
 export interface PreferencesError {
-  code: string;
+  code: PreferencesErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -95,6 +95,9 @@ export const PreferencesErrorCodes = {
   FETCH_FAILED: 'PREF_005',
   UNKNOWN_ERROR: 'PREF_999',
 } as const;
+
+/** One of the PreferencesErrorCodes values. */
+export type PreferencesErrorCode = (typeof PreferencesErrorCodes)[keyof typeof PreferencesErrorCodes];
 
 // ============================================================================
 // Validation Functions

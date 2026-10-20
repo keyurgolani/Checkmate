@@ -1,10 +1,12 @@
 /**
  * CHECKMATE-01.2 · envelope (#30), test plan item 7: the registry, the
  * legacy map, and a scan of src/ that keeps both in step with the code.
- * error-envelope.test.ts covers the helper half of item 7.
+ * error-envelope.test.ts covers the helper, and src/test/error-code-scan.test.ts
+ * the forms the scan reads.
  */
 
 import { existsSync } from 'node:fs';
+import { STATUS_CODES } from 'node:http';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT, scanErrorCodes, type ErrorCodeScan } from '@/test/error-code-scan';
@@ -15,6 +17,7 @@ import {
   isOutcomeCode,
   isRegistryCode,
   mapLegacyCode,
+  reservedFor,
   type CodeSpec,
   type RegistryCode,
 } from './error-codes';
@@ -38,21 +41,24 @@ const DENIAL_SEMANTICS: ReadonlyArray<readonly [code: string, status: number, le
   ['POLICY_UNAVAILABLE', 503, '01.2'],
 ];
 
-/** Codeless error bodies per file when `· envelope` merged. #91's list may only go below these. */
-const MERGE_TIME_CODELESS: Readonly<Record<string, number>> = {
-  'src/app/(dashboard)/checklists/[id]/actions.ts': 4,
-  'src/app/(dashboard)/checklists/actions.ts': 4,
-  'src/app/(dashboard)/discover/actions.ts': 4,
-  'src/app/(dashboard)/settings/actions.ts': 4,
-  'src/app/(dashboard)/templates/actions.ts': 8,
-  'src/app/(dashboard)/workspaces/[id]/actions.ts': 8,
-  'src/app/(dashboard)/workspaces/actions.ts': 16,
-  'src/app/api/auth/demo-reset/route.ts': 2,
-  'src/app/api/auth/signout/route.ts': 1,
-  'src/app/api/dashboard/summary/route.ts': 7,
-  'src/app/api/setup/route.ts': 3,
-  'src/app/api/templates/request-access/route.ts': 7,
-};
+/** Codes the public issues of #25, #26, #28 and #81 define, with the leaf each waits for. */
+const WAVE_0_CODES: ReadonlyArray<readonly [code: string, status: number, leaf: string]> = [
+  ['ACCESS_ALREADY_GRANTED', 409, '00.1'],
+  ['SERVER_IDENTITY_UNAVAILABLE', 503, '00.1'],
+  ['SECRET_NOT_ACCEPTED', 400, '00.2'],
+  ['EGRESS_DENIED', 403, '00.2'],
+  ['CREDENTIAL_ENDPOINT_CHANGED', 409, '00.2'],
+  ['CREDENTIAL_UNAVAILABLE', 409, '00.2'],
+  ['CREDENTIAL_STORE_UNAVAILABLE', 503, '00.2'],
+  ['CONFIG_001', 503, '00.4'],
+  ['CONFIG_002', 503, '00.4'],
+  ['CONFIG_003', 503, '00.4'],
+  ['CONFIG_004', 503, '00.4'],
+  ['CONFIG_005', 503, '00.4'],
+  ['WORKSPACE_FORBIDDEN', 403, '18.2'],
+  ['SCHEMA_INCOMPATIBLE', 503, '18.2'],
+  ['SCHEMA_HEAD_UNAVAILABLE', 503, '18.2'],
+];
 
 const LEGACY_CODES = new Set(LEGACY_CODE_MAP.map((use) => use.code));
 
@@ -60,19 +66,22 @@ function uniqueSorted(values: Iterable<string>): string[] {
   return [...new Set(values)].sort();
 }
 
+function sentKey(use: { file: string; method: string | null; code: string; status: number | null }): string {
+  return `${use.file} ${use.method} ${use.code} ${use.status}`;
+}
+
 describe('registry', () => {
-  it('gives every code one status and its copy', () => {
+  it('gives every code one real HTTP status of its kind, and its copy', () => {
     const malformed = CODES.flatMap((code) => {
       const { status, message } = ERROR_CODES[code];
       const problems: string[] = [];
       if (!/^[A-Z][A-Z0-9_]*$/.test(code)) problems.push('name is not UPPER_SNAKE');
-      if (!Number.isInteger(status)) problems.push(`status ${status} is not an integer`);
-      if (isOutcomeCode(code) ? status >= 300 : status < 400 || status > 599) problems.push(`status ${status}`);
+      if (STATUS_CODES[status] === undefined) problems.push(`status ${status} is not an HTTP status`);
+      if (!isOutcomeCode(code) && (status < 400 || status > 599)) problems.push(`error code with status ${status}`);
       if (!/^\S.*\.$/.test(message) || /[\u2013\u2014]/.test(message)) problems.push(`copy "${message}"`);
       return problems.map((problem) => `${code}: ${problem}`);
     });
 
-    expect(new Set(CODES).size).toBe(CODES.length);
     expect(malformed).toEqual([]);
   });
 
@@ -82,7 +91,7 @@ describe('registry', () => {
       if (leaf === '01.2') {
         expect(registered, code).toBe(status);
       } else {
-        // #32 (CHECKMATE-02.1) registers these; when it does, the status must hold.
+        // #32 (CHECKMATE-02.1, sessions) registers these; when it does, the status must hold.
         expect([undefined, status], code).toContain(registered);
       }
     }
@@ -92,48 +101,71 @@ describe('registry', () => {
     expect(ERROR_CODES.POLICY_UNAVAILABLE.status).toBe(503);
   });
 
-  it('keeps outcome codes on 2xx, starting with UNCHANGED', () => {
-    expect(CODES.filter(isOutcomeCode)).toEqual(['UNCHANGED']);
-    expect(ERROR_CODES.UNCHANGED.status).toBe(200);
+  it('registers the codes the Wave 0 issues define at their statuses, reserved until each leaf sends them', () => {
+    for (const [code, status, leaf] of WAVE_0_CODES) {
+      expect(REGISTRY[code]?.status, code).toBe(status);
+      expect([leaf, undefined], code).toContain(REGISTRY[code]?.reservedFor);
+    }
+    expect(ERROR_CODES.SIGNUP_DISABLED.status).toBe(403);
+    expect(reservedFor('SIGNUP_DISABLED')).toBeUndefined();
   });
 });
 
 describe('legacy map', () => {
-  it('keys each use by (legacy code, status, returning file) once', () => {
-    const keys = LEGACY_CODE_MAP.map((use) => `${use.code} ${use.status} ${use.file}`);
-    const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index);
+  it('keys each use by (legacy code, status, returning file, method), with reasons only where one key has two meanings', () => {
+    const byKey = new Map<string, Array<string | undefined>>();
+    for (const use of LEGACY_CODE_MAP) byKey.set(sentKey(use), [...(byKey.get(sentKey(use)) ?? []), use.reason]);
+    const malformed = [...byKey].filter(([, reasons]) =>
+      reasons.length === 1 ? reasons[0] !== undefined : reasons.some((reason) => !reason) || new Set(reasons).size !== reasons.length
+    );
 
-    expect(duplicates).toEqual([]);
+    expect(malformed).toEqual([]);
   });
 
-  it('maps each use to a registered error code', () => {
-    const unmapped = LEGACY_CODE_MAP.filter((use) => !isRegistryCode(use.to) || isOutcomeCode(use.to));
+  it('maps each use to a registered error code a route may send now', () => {
+    const unmapped = LEGACY_CODE_MAP.filter((use) => !isRegistryCode(use.to) || isOutcomeCode(use.to) || reservedFor(use.to));
 
     expect(unmapped).toEqual([]);
   });
 
-  it('names files that exist', () => {
+  it('gives each sent use a real HTTP status and a method, and names files that exist', () => {
+    const malformed = LEGACY_CODE_MAP.filter((use) =>
+      use.status === null ? use.method !== null : STATUS_CODES[use.status] === undefined || !use.method
+    );
     const missing = uniqueSorted(LEGACY_CODE_MAP.map((use) => use.file)).filter(
       (file) => !existsSync(path.join(REPO_ROOT, file))
     );
 
+    expect(malformed).toEqual([]);
     expect(missing).toEqual([]);
   });
 
   it('tells apart the uses of one legacy code', () => {
-    expect(mapLegacyCode('TEMPLATE_003', 401, 'src/app/api/templates/[id]/route.ts')).toBe('AUTH_REQUIRED');
-    expect(mapLegacyCode('TEMPLATE_003', 403, 'src/app/api/templates/[id]/route.ts')).toBe('FORBIDDEN');
-    expect(mapLegacyCode('AUTH_001', 401, 'src/app/api/auth/signin/route.ts')).toBe('AUTH_001');
-    expect(mapLegacyCode('AUTH_001', 401, 'src/app/api/llm/models/route.ts')).toBe('AUTH_REQUIRED');
-    expect(mapLegacyCode('COLLAB_001', 500, 'src/app/api/collaborators/[id]/accept/route.ts')).toBe('NOT_FOUND');
-    expect(mapLegacyCode('IMPORT_009', 400, 'src/app/api/templates/import/route.ts')).toBe('UNSUPPORTED_VERSION');
-    expect(mapLegacyCode('NOTIF_001', null, 'src/lib/services/notification.ts')).toBe('NOT_FOUND');
+    const templates = 'src/app/api/templates/[id]/route.ts';
+    const collaborators = 'src/app/api/templates/[id]/collaborators/route.ts';
+    const reset = 'src/app/api/auth/reset-password/route.ts';
+
+    expect(mapLegacyCode({ code: 'TEMPLATE_003', status: 401, file: templates, method: 'PUT' })).toBe('AUTH_REQUIRED');
+    expect(mapLegacyCode({ code: 'TEMPLATE_003', status: 403, file: templates, method: 'PUT' })).toBe('FORBIDDEN');
+    expect(mapLegacyCode({ code: 'AUTH_001', status: 401, file: 'src/app/api/auth/signin/route.ts', method: 'POST' })).toBe('AUTH_001');
+    expect(mapLegacyCode({ code: 'AUTH_001', status: 401, file: 'src/app/api/llm/models/route.ts', method: 'POST' })).toBe('AUTH_REQUIRED');
+    expect(mapLegacyCode({ code: 'COLLAB_004', status: 403, file: collaborators, method: 'GET' })).toBe('NOT_FOUND');
+    expect(mapLegacyCode({ code: 'COLLAB_004', status: 403, file: collaborators, method: 'POST' })).toBe('FORBIDDEN');
+    expect(mapLegacyCode({ code: 'TEMPLATE_003', status: 403, file: 'src/app/api/templates/[id]/copy/route.ts', method: 'POST' })).toBe('NOT_FOUND');
+    expect(mapLegacyCode({ code: 'AUTH_006', status: 400, file: reset, method: 'POST', reason: 'invalid input' })).toBe('VALIDATION_FAILED');
+    expect(mapLegacyCode({ code: 'AUTH_006', status: 400, file: reset, method: 'POST', reason: 'reset token rejected' })).toBe('CAPABILITY_INVALID');
+    expect(mapLegacyCode({ code: 'IMPORT_009', status: 400, file: 'src/app/api/templates/import/route.ts', method: 'POST' })).toBe('UNSUPPORTED_VERSION');
+    expect(mapLegacyCode({ code: 'AUTH_004', status: 401, file: 'src/proxy.ts', method: '*' })).toBe('AUTH_REQUIRED');
+    expect(mapLegacyCode({ code: 'NOTIF_001', status: null, file: 'src/lib/services/notification.ts', method: null })).toBe('NOT_FOUND');
   });
 
-  it('returns nothing for a use it does not list', () => {
-    expect(mapLegacyCode('TEMPLATE_003', 418, 'src/app/api/templates/[id]/route.ts')).toBeUndefined();
-    expect(mapLegacyCode('TEMPLATE_003', 403, 'src/app/api/items/[id]/route.ts')).toBeUndefined();
-    expect(mapLegacyCode('NOT_A_CODE', 400, 'src/proxy.ts')).toBeUndefined();
+  it('returns nothing for a use it does not list, or a two-meaning use without its reason', () => {
+    const templates = 'src/app/api/templates/[id]/route.ts';
+
+    expect(mapLegacyCode({ code: 'TEMPLATE_003', status: 418, file: templates, method: 'PUT' })).toBeUndefined();
+    expect(mapLegacyCode({ code: 'TEMPLATE_003', status: 403, file: templates, method: 'GET' })).toBeUndefined();
+    expect(mapLegacyCode({ code: 'NOT_A_CODE', status: 400, file: 'src/proxy.ts', method: '*' })).toBeUndefined();
+    expect(mapLegacyCode({ code: 'AUTH_006', status: 400, file: 'src/app/api/auth/reset-password/route.ts', method: 'POST' })).toBeUndefined();
   });
 });
 
@@ -144,13 +176,8 @@ describe('source scan', () => {
     scan = scanErrorCodes();
   }, 120_000);
 
-  it('finds the codes it scans for', () => {
-    expect(scan.members.length).toBeGreaterThan(0);
-    expect(scan.literals.length).toBeGreaterThan(0);
-    expect(scan.sent.length).toBeGreaterThan(0);
-  });
-
   it('registers every *ErrorCodes member and literal error code in src/, in the registry or the legacy map', () => {
+    expect(scan.members.length).toBeGreaterThan(0);
     const unregistered = uniqueSorted([...scan.members, ...scan.literals].map((site) => site.code)).filter(
       (code) => !LEGACY_CODES.has(code) && !isRegistryCode(code)
     );
@@ -158,44 +185,56 @@ describe('source scan', () => {
     expect(unregistered).toEqual([]);
   });
 
-  it('keeps no legacy entry for a code src/ no longer has', () => {
-    const present = new Set([...scan.members, ...scan.literals].map((site) => site.code));
-    const stale = uniqueSorted(LEGACY_CODES).filter((code) => !present.has(code));
-
-    expect(stale).toEqual([]);
+  it('pins down the code and status of every response a route or the proxy sends', () => {
+    expect(scan.unresolved.map(({ file, line, reason }) => `${file}:${line} ${reason}`)).toEqual([]);
   });
 
-  it('maps every response that pairs a fixed code with a fixed status', () => {
+  it('maps every response that sends a code, by method and status', () => {
+    expect(scan.sent.length).toBeGreaterThan(0);
+    const listed = new Set(LEGACY_CODE_MAP.filter((use) => use.status !== null).map(sentKey));
     const unmapped = scan.sent
-      .filter(({ code, status, file }) => {
-        if (mapLegacyCode(code, status, file) !== undefined) return false;
-        return !(isRegistryCode(code) && ERROR_CODES[code].status === status);
+      .filter((site) => {
+        if (listed.has(sentKey(site))) return false;
+        return !(isRegistryCode(site.code) && ERROR_CODES[site.code].status === site.status);
       })
-      .map(({ code, status, file, line, via }) => `${file}:${line} sends ${code} with ${status} (${via})`);
+      .map(({ code, status, file, line, method, via }) => `${file}:${line} ${method} sends ${code} with ${status} (${via})`);
 
     expect(unmapped).toEqual([]);
   });
 
-  it('lists a code as in process only where it is produced and no response sends it', () => {
-    const inProcess = LEGACY_CODE_MAP.filter((use) => use.status === null);
-    const produced = new Set([...scan.members, ...scan.literals].map((site) => `${site.code} ${site.file}`));
+  it('keeps no legacy row that no response sends, or that the file no longer produces', () => {
+    const sent = new Set(scan.sent.map(sentKey));
     const sentCodes = new Set(scan.sent.map((site) => site.code));
-    const sentWithStatus = new Set(LEGACY_CODE_MAP.filter((use) => use.status !== null).map((use) => use.code));
+    const produced = new Set([...scan.members, ...scan.literals].map((site) => `${site.code} ${site.file}`));
+    const stale = LEGACY_CODE_MAP.filter((use) =>
+      use.status === null ? !produced.has(`${use.code} ${use.file}`) || sentCodes.has(use.code) : !sent.has(sentKey(use))
+    ).map((use) => `${sentKey(use)}${use.reason ? ` (${use.reason})` : ''}`);
 
-    expect(inProcess.length).toBeGreaterThan(0);
-    expect(inProcess.filter((use) => !produced.has(`${use.code} ${use.file}`))).toEqual([]);
-    expect(inProcess.filter((use) => sentCodes.has(use.code) || sentWithStatus.has(use.code))).toEqual([]);
+    expect(stale).toEqual([]);
   });
 
-  it('fails on a codeless error body under src/app unless #91 list allows it, and the list only shrinks', () => {
+  it('sends no reserved code, and leaves no other registered code unused', () => {
+    const used = new Set([
+      ...LEGACY_CODE_MAP.map((use) => use.to),
+      ...scan.envelope.map((site) => site.code),
+      ...scan.sent.map((site) => site.code),
+    ]);
+    const problems = CODES.flatMap((code) => {
+      const leaf = reservedFor(code);
+      if (leaf && used.has(code)) return [`${code} is reserved for ${leaf} but already sent; drop the reservation`];
+      if (!leaf && !used.has(code)) return [`${code} is registered but nothing sends or maps to it; reserve it for its leaf`];
+      return [];
+    });
+
+    expect(problems).toEqual([]);
+  });
+
+  it('fails on a codeless error body under src/app unless #91 (CHECKMATE-21.3) lists it', () => {
     const found: Record<string, number> = {};
     for (const body of scan.codeless) found[body.file] = (found[body.file] ?? 0) + 1;
 
-    const grown = Object.entries(CODELESS_ERROR_BODIES)
-      .filter(([file, count]) => count > (MERGE_TIME_CODELESS[file] ?? 0))
-      .map(([file, count]) => `${file}: ${count} is above its merge-time ${MERGE_TIME_CODELESS[file] ?? 0}`);
-
-    expect(grown).toEqual([]);
-    expect(found).toEqual(CODELESS_ERROR_BODIES);
+    expect(found, 'Return the error-envelope.ts body, or lower codeless-error-bodies.ts when one goes').toEqual(
+      CODELESS_ERROR_BODIES
+    );
   });
 });

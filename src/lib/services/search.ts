@@ -61,7 +61,7 @@ export interface SearchResult<T> {
  * Search error with code and message
  */
 export interface SearchError {
-  code: string;
+  code: SearchErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -81,6 +81,9 @@ export const SearchErrorCodes = {
   SEARCH_FAILED: 'SEARCH_003',
   UNKNOWN_ERROR: 'SEARCH_999',
 } as const;
+
+/** One of the SearchErrorCodes values. */
+export type SearchErrorCode = (typeof SearchErrorCodes)[keyof typeof SearchErrorCodes];
 
 // ============================================================================
 // Constants

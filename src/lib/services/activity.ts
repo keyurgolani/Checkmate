@@ -42,7 +42,7 @@ export type ActivityLogsListResult = Result<
  * Activity log error with code and message
  */
 export interface ActivityLogError {
-  code: string;
+  code: ActivityLogErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -90,6 +90,9 @@ export const ActivityLogErrorCodes = {
   NOT_SHARED_BLUEPRINT: 'ACTIVITY_006',
   UNKNOWN_ERROR: 'ACTIVITY_999',
 } as const;
+
+/** One of the ActivityLogErrorCodes values. */
+export type ActivityLogErrorCode = (typeof ActivityLogErrorCodes)[keyof typeof ActivityLogErrorCodes];
 
 // ============================================================================
 // Helper Functions

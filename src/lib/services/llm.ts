@@ -74,7 +74,7 @@ export interface TemplateEnhancement {
 export type LLMResult<T> = Result<T, LLMError>;
 
 export interface LLMError {
-  code: string;
+  code: LLMErrorCode;
   message: string;
   details?: Record<string, unknown>;
 }
@@ -94,6 +94,9 @@ export const LLMErrorCodes = {
   INVALID_SETTINGS: 'LLM_008',
   UNKNOWN_ERROR: 'LLM_999',
 } as const;
+
+/** One of the LLMErrorCodes values. */
+export type LLMErrorCode = (typeof LLMErrorCodes)[keyof typeof LLMErrorCodes];
 
 // ============================================================================
 // Provider Configuration
@@ -767,7 +770,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
   /**
    * Parses an LLM response, extracting JSON and validating structure based on operation type.
    */
-  parseLLMResponse(operation: string, responseText: string): LLMResult<any> {
+  parseLLMResponse(operation: string, responseText: string): LLMResult<unknown> {
     try {
       if (operation === 'text') {
         return ok(responseText);
@@ -806,7 +809,7 @@ Provide enhanced versions of ALL ${template.items.length} steps with detailed de
           if (!parsed.enhancedItems || !Array.isArray(parsed.enhancedItems)) {
             return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Invalid enhancement structure' });
           }
-          if (parsed.enhancedItems.some((item: any) => !item.id)) {
+          if (parsed.enhancedItems.some((item: { id?: unknown }) => !item.id)) {
             return err({ code: LLMErrorCodes.INVALID_RESPONSE, message: 'Some enhanced items are missing IDs' });
           }
           break;
