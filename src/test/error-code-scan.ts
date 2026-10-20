@@ -24,12 +24,11 @@
  * their type, not their literal.
  */
 
-import { readdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { REPO_ROOT, sourceFiles } from './source-files';
 
-export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+export { REPO_ROOT, sourceFiles };
 
 const CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 const HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
@@ -75,18 +74,6 @@ export interface ErrorCodeScan {
 export interface ScanOptions {
   /** Scan these repo-relative files with these contents instead of src/. */
   readonly sources?: Readonly<Record<string, string>>;
-}
-
-function isTestFile(file: string): boolean {
-  return file.startsWith('src/test/') || /\.test\.tsx?$/.test(file) || file.endsWith('.d.ts');
-}
-
-/** Non-test .ts and .tsx files under src/, repo-relative with forward slashes. */
-export function sourceFiles(): string[] {
-  return readdirSync(path.join(REPO_ROOT, 'src'), { recursive: true, encoding: 'utf8' })
-    .map((entry) => path.posix.join('src', entry.split(path.sep).join('/')))
-    .filter((file) => /\.tsx?$/.test(file) && !isTestFile(file))
-    .sort();
 }
 
 function compilerOptions(): ts.CompilerOptions {

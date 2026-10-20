@@ -6,6 +6,7 @@
  */
 
 import type { RecordModel } from 'pocketbase';
+import { Collections, type StorageCollection } from './domain/storage';
 
 // ============================================================================
 // Enums
@@ -622,31 +623,14 @@ export interface ActivityLogCreate {
 
 // ============================================================================
 // Collection Names (for type-safe collection access)
-// Note: These map to actual PocketBase collection names which remain unchanged
+// The storage adapter in src/lib/domain/storage.ts owns them. New code
+// names a collection through `Collections`, never a literal.
 // ============================================================================
 
-export type CollectionName = 
-  | 'users' 
-  | 'workspaces' 
-  | 'blueprints'  // Template collection in PocketBase
-  | 'items' 
-  | 'collaborators' 
-  | 'instances'   // Checklist collection in PocketBase
-  | 'instanceItems' // ChecklistItem collection in PocketBase
-  | 'notifications' 
-  | 'activityLog';
+export { Collections };
 
-export const Collections = {
-  USERS: 'users' as const,
-  WORKSPACES: 'workspaces' as const,
-  TEMPLATES: 'blueprints' as const, // Maps to 'blueprints' collection in PocketBase
-  ITEMS: 'items' as const,
-  COLLABORATORS: 'collaborators' as const,
-  CHECKLISTS: 'instances' as const,  // Maps to 'instances' collection in PocketBase
-  CHECKLIST_ITEMS: 'instanceItems' as const, // Maps to 'instanceItems' collection in PocketBase
-  NOTIFICATIONS: 'notifications' as const,
-  ACTIVITY_LOG: 'activityLog' as const,
-} as const;
+/** Every stored collection name. */
+export type CollectionName = StorageCollection;
 
 // ============================================================================
 // Type Guards

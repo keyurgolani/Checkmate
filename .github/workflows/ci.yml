@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      failure_class: ${{ steps.install.outputs.failure_class || steps.test.outputs.failure_class }}
+      failure_class: ${{ steps.install.outputs.failure_class || steps.test.outputs.failure_class || steps.types.outputs.failure_class }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -125,6 +125,10 @@ jobs:
       # The sentinel holds 127.0.0.1:8090 and fails the job if anything connects.
       - id: test
         run: node scripts/ci/step.mjs --name "npm run test:unit" --class test --timeout-minutes 10 -- node scripts/ci/sentinel.mjs -- npm run test:unit
+      # #29's type test: src/lib/domain/records.typetest.ts fails to compile if a record type lets a wrong field read through.
+      - id: types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node scripts/ci/step.mjs --name "domain type test" --class test -- npx tsc --noEmit -p src/lib/domain/tsconfig.json
 
   backend:
     needs: scope
