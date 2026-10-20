@@ -54,7 +54,9 @@ A change to an access rule updates its pin in `src/test/access-rule-pins.json` i
 Every pull request to `main` or `next` runs `.github/workflows/ci.yml`, and its `aggregate` check is the one that must pass. The `scope` job classifies the changed files with `.github/ci-scope.json`:
 
 - Docs only (`*.md`, `docs/`): only the always-on `scope` and `checks` jobs run.
+- Contract docs (`.md` files under `docs/architecture/` and `docs/transformation/`): unit, because unit tests check them against the data they describe.
 - Docker files: the two image builds.
+- The schema (`docker/pocketbase/pb_schema.json`): unit, backend and the image builds. The retention test reads it.
 - Code: lint, unit, backend and build.
 - Toolchain (package files, `.nvmrc`, configs, `.github/`, `scripts/ci/`): every job. Pushes run every job too.
 
