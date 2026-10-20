@@ -156,7 +156,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      failure_class: ${{ steps.install.outputs.failure_class || steps.build.outputs.failure_class }}
+      failure_class: ${{ steps.install.outputs.failure_class || steps.offline.outputs.failure_class || steps.build.outputs.failure_class || steps.fonts.outputs.failure_class }}
     # No secrets, and nothing listens on the discard port.
     env:
       NEXT_PUBLIC_POCKETBASE_URL: http://127.0.0.1:9
@@ -170,8 +170,14 @@ jobs:
           node-version-file: .nvmrc
       - id: install
         run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --no-audit --no-fund
+      # #83 test 11: theme fonts are vendored, so the build runs with Google Fonts pointed at loopback.
+      - id: offline
+        run: node scripts/ci/step.mjs --name "block Google Fonts" --class infra -- sh scripts/fonts/block-google-fonts.sh
       - id: build
         run: node scripts/ci/step.mjs --name "npm run build" --class build --timeout-minutes 12 -- npm run build
+      # Nothing the build serves may load a font from another host (scripts/fonts/check-font-hosts.mjs).
+      - id: fonts
+        run: node scripts/ci/step.mjs --name "theme font hosts" --class build -- node scripts/fonts/check-font-hosts.mjs
 
   images:
     needs: scope
