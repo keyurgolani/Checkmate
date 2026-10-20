@@ -83,6 +83,9 @@ docker-compose.override.yml
 /pb_data
 /pb_migrations
 
+# test fixture cache (PocketBase release zips, fixture CLI state)
+/.cache/
+
 # superpowers (auto-generated specs/plans)
 docs/superpowers/
 

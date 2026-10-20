@@ -1,25 +1,42 @@
+# Publishes the app and PocketBase images. It has no trigger of its own:
+# ci.yml's publish job calls it after the aggregate check passes.
+#
+#   push to next (while PUBLISH_FROM_NEXT is 'true')  edge, sha-<short>
+#   push of the highest vX.Y.Z tag                    vX.Y.Z, latest
+#   push of an older vX.Y.Z tag                       vX.Y.Z
+#   push to main, any pull request                    nothing
+#
+# Tag publishes run one at a time (see ci.yml), and each moves latest only
+# after its build, on a fresh tag list, so an older release can't move it
+# back past a newer one.
+#
+# The Docker Hub secrets live in the `release` environment, which the
+# publish job declares; a caller job can't. The job repeats the caller's
+# condition so a new caller can't widen it.
+
 name: Publish Container Images
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
 
 permissions:
   contents: read
-  packages: write
-
-env:
-  GHCR_NAMESPACE: ghcr.io/${{ github.repository_owner }}
-  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
   publish:
     name: Publish ${{ matrix.image.name }} image
+    if: ${{ github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/next' && vars.PUBLISH_FROM_NEXT == 'true')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -32,51 +49,84 @@ jobs:
             context: ./docker/pocketbase
             file: ./docker/pocketbase/Dockerfile
             image-name: checkmate-pocketbase
+    env:
+      GHCR_NAMESPACE: ghcr.io/${{ github.repository_owner }}
+      DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          cache-binary: false
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: |
             ${{ env.GHCR_NAMESPACE }}/${{ matrix.image.image-name }}
             ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image.image-name }}
+          flavor: |
+            latest=false
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/next' }}
+            type=sha,prefix=sha-,format=short,enable=${{ github.ref == 'refs/heads/next' }}
+            type=raw,value=${{ github.ref_name }},enable=${{ github.ref_type == 'tag' }}
           labels: |
             org.opencontainers.image.title=CheckMate ${{ matrix.image.name }}
             org.opencontainers.image.description=CheckMate ${{ matrix.image.name }} container image
 
+      # No build cache, so a pull request can't poison a published layer.
       - name: Build and publish image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
           platforms: linux/amd64
           push: true
+          no-cache: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+
+      # A tag pushed while this one built may be higher, so fetch the tags again.
+      - name: Move latest to this release
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          GHCR_IMAGE: ${{ env.GHCR_NAMESPACE }}/${{ matrix.image.image-name }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image.image-name }}
+        run: |
+          git fetch --force --tags origin
+          latest="$(node scripts/ci/is-latest.mjs "$REF_NAME")"
+          if [ "$latest" != true ]; then
+            echo "$REF_NAME is not the highest release tag, so latest stays where it is."
+            exit 0
+          fi
+          for image in "$GHCR_IMAGE" "$DOCKERHUB_IMAGE"; do
+            image="$(printf '%s' "$image" | tr '[:upper:]' '[:lower:]')"
+            docker buildx imagetools create --tag "$image:latest" "$image:$REF_NAME"
+          done

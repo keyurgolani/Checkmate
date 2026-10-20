@@ -48,7 +48,7 @@ Log in with the demo account (`demo@checkmate.local` / `demo_checkmate_2026`). A
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24 (see `.nvmrc`)
 - Docker and Docker Compose
 
 ### Development with Docker (Recommended)
@@ -90,7 +90,7 @@ If you prefer to run Next.js locally:
 
 ```bash
 # Install dependencies
-npm install
+npm ci
 
 # Start only PocketBase in Docker
 docker compose -f docker-compose.dev.yml up pocketbase -d
@@ -182,7 +182,9 @@ npm run start            # Start production server
 npm run lint             # Run ESLint
 
 # Testing
-npm test                 # Run tests
+npm test                 # Run all tests; backend suites start their own PocketBase
+npm run test:unit        # Unit tests only
+npm run test:backend     # Backend tests only
 npm run test:coverage    # Run tests with coverage
 
 # Docker

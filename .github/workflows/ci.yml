@@ -1,0 +1,223 @@
+# Pull request and push validation. `aggregate` is the only required check.
+#
+# scope classifies a pull request's files with .github/ci-scope.json; pushes
+# run every job. Each job starts its own services and runs its command
+# through scripts/ci/step.mjs, which records duration, result and failure
+# class. aggregate fails on a failed, cancelled or wrongly skipped job and
+# prints a fresh-clone repro command for each. publish runs only after a
+# green aggregate, for a v* tag push or for a push to next while the owner
+# sets the PUBLISH_FROM_NEXT variable to 'true'. scripts/ci/check-workflow.mjs
+# enforces these rules on every run.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, next]
+  push:
+    branches: [main, next]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+# A new commit cancels a pull request's older run. Pushes never share a group,
+# so a branch push can't displace a pending tag run of the same commit.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-push-{0}-{1}', github.ref, github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.plan.outputs.lint }}
+      unit: ${{ steps.plan.outputs.unit }}
+      backend: ${{ steps.plan.outputs.backend }}
+      build: ${{ steps.plan.outputs.build }}
+      images: ${{ steps.plan.outputs.images }}
+      base: ${{ steps.plan.outputs.base }}
+      reasons: ${{ steps.plan.outputs.reasons }}
+      failure_class: ${{ steps.plan.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: node scripts/ci/step.mjs --name scope --class infra -- node scripts/ci/scope.mjs --event "$EVENT_NAME" --base "$BASE_SHA" --before "$BEFORE_SHA"
+
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      failure_class: ${{ steps.install.outputs.failure_class || steps.workflow.outputs.failure_class || steps.node.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: install
+        run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --ignore-scripts --no-audit --no-fund
+      - id: workflow
+        run: node scripts/ci/step.mjs --name check-workflow --class gate -- node scripts/ci/check-workflow.mjs
+      - id: node
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node scripts/ci/step.mjs --name check-node-version --class gate -- node scripts/ci/check-node-version.mjs
+
+  lint:
+    needs: scope
+    if: ${{ needs.scope.outputs.lint == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      failure_class: ${{ steps.install.outputs.failure_class || steps.lint.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: install
+        run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --no-audit --no-fund
+      - id: lint
+        env:
+          BASE_SHA: ${{ needs.scope.outputs.base }}
+        run: node scripts/ci/step.mjs --name "eslint on changed files" --class lint -- node scripts/ci/lint-changed.mjs --base "$BASE_SHA"
+
+  unit:
+    needs: scope
+    if: ${{ needs.scope.outputs.unit == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      failure_class: ${{ steps.install.outputs.failure_class || steps.test.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: install
+        run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --no-audit --no-fund
+      # The sentinel holds 127.0.0.1:8090 and fails the job if anything connects.
+      - id: test
+        run: node scripts/ci/step.mjs --name "npm run test:unit" --class test --timeout-minutes 10 -- node scripts/ci/sentinel.mjs -- npm run test:unit
+
+  backend:
+    needs: scope
+    if: ${{ needs.scope.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      failure_class: ${{ steps.install.outputs.failure_class || steps.test.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: install
+        run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --no-audit --no-fund
+      # Starts its own PocketBase (src/test/fixture); the sentinel fails the job on any connection to 8090.
+      - id: test
+        run: node scripts/ci/step.mjs --name "npm run test:backend" --class test --timeout-minutes 12 -- node scripts/ci/sentinel.mjs -- npm run test:backend
+
+  build:
+    needs: scope
+    if: ${{ needs.scope.outputs.build == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      failure_class: ${{ steps.install.outputs.failure_class || steps.build.outputs.failure_class }}
+    # No secrets, and nothing listens on the discard port.
+    env:
+      NEXT_PUBLIC_POCKETBASE_URL: http://127.0.0.1:9
+      POCKETBASE_URL: http://127.0.0.1:9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: install
+        run: node scripts/ci/step.mjs --name "npm ci" --class build -- npm ci --no-audit --no-fund
+      - id: build
+        run: node scripts/ci/step.mjs --name "npm run build" --class build --timeout-minutes 12 -- npm run build
+
+  images:
+    needs: scope
+    if: ${{ needs.scope.outputs.images == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failure_class: ${{ steps.app.outputs.failure_class || steps.pocketbase.outputs.failure_class }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # Build only; nothing is pushed from here.
+      - id: app
+        run: node scripts/ci/step.mjs --name "docker build app" --class build --timeout-minutes 15 -- docker build --pull -t checkmate-app:ci .
+      - id: pocketbase
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/step.mjs --name "docker build pocketbase" --class build --timeout-minutes 10 -- docker build --pull -t checkmate-pocketbase:ci docker/pocketbase
+
+  aggregate:
+    if: always()
+    needs: [scope, checks, lint, unit, backend, build, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/aggregate.mjs
+
+  publish:
+    needs: aggregate
+    if: ${{ !cancelled() && needs.aggregate.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/next' && vars.PUBLISH_FROM_NEXT == 'true')) }}
+    permissions:
+      contents: read
+      packages: write
+    # Tag publishes share one group, so they run one at a time and none stops
+    # midway. publish-images.yml checks for a higher tag before moving latest.
+    concurrency:
+      group: ${{ github.ref_type == 'tag' && 'publish-tags' || format('publish-{0}', github.ref) }}
+      cancel-in-progress: false
+    uses: ./.github/workflows/publish-images.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

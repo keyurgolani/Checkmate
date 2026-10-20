@@ -1,0 +1,70 @@
+{
+  "$comment": "SHA-256 of each access rule PocketBase serves for the baseline schema, checked by src/test/backend-verification.test.ts. A rule is hashed as JSON after collapsing whitespace runs to one space and trimming, so a null rule hashes as null. A PR that changes a rule on purpose updates its pin in the same PR; the failing test prints the served digest.",
+  "collections": {
+    "users": {
+      "listRule": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "viewRule": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "createRule": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "updateRule": "ca16f331e7bd6a24fbd72ff8aa3884fa1b67d4deaf7dadaf68b7092d499f2ccb",
+      "deleteRule": "ca16f331e7bd6a24fbd72ff8aa3884fa1b67d4deaf7dadaf68b7092d499f2ccb",
+      "authRule": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "manageRule": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    "workspaces": {
+      "listRule": "448527d284758687795e9c6962d568bcb76ebc9f04a90bfaceac443169a582b4",
+      "viewRule": "448527d284758687795e9c6962d568bcb76ebc9f04a90bfaceac443169a582b4",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "448527d284758687795e9c6962d568bcb76ebc9f04a90bfaceac443169a582b4",
+      "deleteRule": "448527d284758687795e9c6962d568bcb76ebc9f04a90bfaceac443169a582b4"
+    },
+    "blueprints": {
+      "listRule": "04eeeb7558fa7fa35a09828a50057898df9b98676f20a8e6f0d7fd7c76b67b40",
+      "viewRule": "04eeeb7558fa7fa35a09828a50057898df9b98676f20a8e6f0d7fd7c76b67b40",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "7a6d118d1a590a4ee4b7397fc40006329ab6a866561419f50db06f40cbb23cca",
+      "deleteRule": "448527d284758687795e9c6962d568bcb76ebc9f04a90bfaceac443169a582b4"
+    },
+    "items": {
+      "listRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "viewRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "deleteRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d"
+    },
+    "collaborators": {
+      "listRule": "bdfbbd765250fd4254be53d7f32dfaaa990c79578c82d2b95f7b9692ee75c0b5",
+      "viewRule": "bdfbbd765250fd4254be53d7f32dfaaa990c79578c82d2b95f7b9692ee75c0b5",
+      "createRule": "9ef2c813b5de82d405733963b3a33f71f192481ffa33b4638dd3c63f1ad99dc5",
+      "updateRule": "bdfbbd765250fd4254be53d7f32dfaaa990c79578c82d2b95f7b9692ee75c0b5",
+      "deleteRule": "bdfbbd765250fd4254be53d7f32dfaaa990c79578c82d2b95f7b9692ee75c0b5"
+    },
+    "instances": {
+      "listRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "viewRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "createRule": "7c2e5c6040cf946ec78dac7d1ec8788121f69a7ddc74e094349685b840b6a41d",
+      "updateRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "deleteRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f"
+    },
+    "instanceItems": {
+      "listRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "viewRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "deleteRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d"
+    },
+    "notifications": {
+      "listRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "viewRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f",
+      "deleteRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f"
+    },
+    "activityLog": {
+      "listRule": "c322315e5fa3ae0b3b8a8d24c777c0d5cf507d30e6bb5e734f95737e70ea71b9",
+      "viewRule": "c322315e5fa3ae0b3b8a8d24c777c0d5cf507d30e6bb5e734f95737e70ea71b9",
+      "createRule": "e313302590400d6380193f69abf25e9f34388e0c129b0097722a34c0a029c90d",
+      "updateRule": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "deleteRule": "bc6873159b7417fa96db4a0bc936cf6a5fee0e40d511058ebc7805d27f00228f"
+    }
+  }
+}

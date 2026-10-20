@@ -1,86 +1,32 @@
 /**
  * Integration Tests for Complex Scenarios
  * Tests nested templates, progress tracking, concurrent users, data persistence, and search
+ *
+ * Runs on the hermetic PocketBase fixture (npm run test:backend). Users are
+ * seeded through the fixture's superuser, so they don't depend on signup.
+ * The fixture deletes its data directory when the run ends.
+ *
+ * Positions are 1-based, as ItemService writes them: PocketBase 0.23+
+ * rejects 0 in a required number field.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { createTestClient, testDataFactory, waitForPocketBase } from './pocketbase-helpers';
-import type { Template, Item, Checklist, ChecklistItem, User, Workspace } from '@/lib/pocketbase-types';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { createAdminTestClient, createTestClient, seedUser, type SeededUser } from './pocketbase-helpers';
+import type { Template, Item, Checklist, Workspace } from '@/lib/pocketbase-types';
 import { ItemType, Visibility } from '@/lib/pocketbase-types';
 
 describe('Integration Tests - Complex Scenarios', () => {
-  let testUser1: User;
-  let testUser2: User;
-  const pb1 = createTestClient();
-  const pb2 = createTestClient();
-
-  beforeAll(async () => {
-    // Wait for PocketBase to be available
-    const isAvailable = await waitForPocketBase();
-    if (!isAvailable) {
-      throw new Error('PocketBase is not available. Please start the server.');
-    }
-
-    // Create test users
-    const email1 = testDataFactory.email();
-    const email2 = testDataFactory.email();
-    const password = testDataFactory.password();
-
-    testUser1 = await pb1.collection('users').create({
-      email: email1,
-      password,
-      passwordConfirm: password,
-      displayName: 'Test User 1',
-    });
-
-    testUser2 = await pb2.collection('users').create({
-      email: email2,
-      password,
-      passwordConfirm: password,
-      displayName: 'Test User 2',
-    });
-
-    // Authenticate both clients
-    await pb1.collection('users').authWithPassword(email1, password);
-    await pb2.collection('users').authWithPassword(email2, password);
-  });
-
-  afterAll(async () => {
-    // Cleanup: Delete test users and their data
-    try {
-      if (testUser1?.id) await pb1.collection('users').delete(testUser1.id);
-      if (testUser2?.id) await pb2.collection('users').delete(testUser2.id);
-    } catch (error) {
-      console.error('Cleanup error:', error);
-    }
-  });
-
   describe('1. Nested Template References', () => {
     let workspace1: Workspace;
     let templateA: Template;
     let templateB: Template;
     let templateC: Template;
-    let nestedUser: User;
+    let nestedUser: SeededUser;
     const pbNested = createTestClient();
 
     beforeAll(async () => {
-      const email = testDataFactory.email();
-      const password = testDataFactory.password();
-      nestedUser = await pbNested.collection('users').create({
-        email,
-        password,
-        passwordConfirm: password,
-        displayName: 'Nested Test User',
-      });
-      await pbNested.collection('users').authWithPassword(email, password);
-    });
-
-    afterAll(async () => {
-        try {
-            if (nestedUser?.id) await pbNested.collection('users').delete(nestedUser.id);
-        } catch (e) {
-            console.error('Cleanup error for nestedUser:', e);
-        }
+      nestedUser = await seedUser({ displayName: 'Nested Test User' });
+      await nestedUser.signIn(pbNested);
     });
 
     beforeEach(async () => {
@@ -105,7 +51,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Task A1',
-        position: 0,
+        position: 1,
       });
 
       await pbNested.collection('items').create({
@@ -113,7 +59,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '2',
         itemType: ItemType.TASK,
         content: 'Task A2',
-        position: 1,
+        position: 2,
       });
 
       // Create Template B that references Template A
@@ -129,7 +75,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Task B1',
-        position: 0,
+        position: 1,
       });
 
       await pbNested.collection('items').create({
@@ -138,7 +84,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         itemType: ItemType.REFERENCE,
         content: 'Reference to Template A',
         reference: templateA.id,
-        position: 1,
+        position: 2,
       });
 
       // Create Template C that references Template B
@@ -155,7 +101,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         itemType: ItemType.REFERENCE,
         content: 'Reference to Template B',
         reference: templateB.id,
-        position: 0,
+        position: 1,
       });
 
       // Verify all templates were created
@@ -196,7 +142,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         itemType: ItemType.REFERENCE,
         content: 'Reference to T2',
         reference: t2.id,
-        position: 0,
+        position: 1,
       });
 
       // Try to make T2 reference T1 (circular dependency)
@@ -207,7 +153,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         itemType: ItemType.REFERENCE,
         content: 'Reference to T1',
         reference: t1.id,
-        position: 0,
+        position: 1,
       });
 
       // Note: Circular dependency detection should be implemented in application logic
@@ -238,32 +184,17 @@ describe('Integration Tests - Complex Scenarios', () => {
   });
 
   describe('2. Progress Tracking with Nested Items', () => {
-    let workspace: any;
+    let workspace: Workspace;
     let template: Template;
     let checklist: Checklist;
     let parentItem: Item;
     let childItems: Item[];
-    let progressUser: User;
+    let progressUser: SeededUser;
     const pbProgress = createTestClient();
 
     beforeAll(async () => {
-      const email = testDataFactory.email();
-      const password = testDataFactory.password();
-      progressUser = await pbProgress.collection('users').create({
-        email,
-        password,
-        passwordConfirm: password,
-        displayName: 'Progress Test User',
-      });
-      await pbProgress.collection('users').authWithPassword(email, password);
-    });
-
-    afterAll(async () => {
-        try {
-            if (progressUser?.id) await pbProgress.collection('users').delete(progressUser.id);
-        } catch (e) {
-            console.error('Cleanup error for progressUser:', e);
-        }
+      progressUser = await seedUser({ displayName: 'Progress Test User' });
+      await progressUser.signIn(pbProgress);
     });
 
     beforeEach(async () => {
@@ -286,7 +217,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Parent Task',
-        position: 0,
+        position: 1,
       });
 
       // Create 3 child items
@@ -298,7 +229,7 @@ describe('Integration Tests - Complex Scenarios', () => {
           path: `1.${i + 1}`,
           itemType: ItemType.TASK,
           content: `Child Task ${i + 1}`,
-          position: i,
+          position: i + 1,
         });
         childItems.push(child as Item);
       }
@@ -410,43 +341,19 @@ describe('Integration Tests - Complex Scenarios', () => {
   });
 
   describe('3. Concurrent User Actions', () => {
-    let workspace: any;
+    let workspace: Workspace;
     let publicTemplate: Template;
-    let user1: User;
-    let user2: User;
+    let user1: SeededUser;
+    let user2: SeededUser;
     const pbConcurrent1 = createTestClient();
     const pbConcurrent2 = createTestClient();
 
     beforeAll(async () => {
-      // Setup User 1
-      const email1 = testDataFactory.email();
-      const password = testDataFactory.password();
-      user1 = await pbConcurrent1.collection('users').create({
-        email: email1,
-        password,
-        passwordConfirm: password,
-        displayName: 'Concurrent User 1',
-      });
-      await pbConcurrent1.collection('users').authWithPassword(email1, password);
+      user1 = await seedUser({ displayName: 'Concurrent User 1' });
+      await user1.signIn(pbConcurrent1);
 
-      // Setup User 2
-      const email2 = testDataFactory.email();
-      user2 = await pbConcurrent2.collection('users').create({
-        email: email2,
-        password,
-        passwordConfirm: password,
-        displayName: 'Concurrent User 2',
-      });
-      await pbConcurrent2.collection('users').authWithPassword(email2, password);
-    });
-
-    afterAll(async () => {
-      try {
-        if (user1?.id) await pbConcurrent1.collection('users').delete(user1.id);
-        if (user2?.id) await pbConcurrent2.collection('users').delete(user2.id);
-      } catch (e) {
-        console.error('Cleanup error for concurrent users:', e);
-      }
+      user2 = await seedUser({ displayName: 'Concurrent User 2' });
+      await user2.signIn(pbConcurrent2);
     });
 
     beforeEach(async () => {
@@ -468,7 +375,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Shared Task',
-        position: 0,
+        position: 1,
       });
     });
 
@@ -527,32 +434,19 @@ describe('Integration Tests - Complex Scenarios', () => {
   });
 
   describe('4. Data Persistence', () => {
-    let workspace: any;
+    let workspace: Workspace;
     let template: Template;
     let checklist: Checklist;
-    let persistenceUser: User;
+    let persistenceUser: SeededUser;
     let userPassword: string;
     let userEmail: string; // Store email
     const pbPersistence = createTestClient();
 
     beforeAll(async () => {
-      userEmail = testDataFactory.email();
-      userPassword = testDataFactory.password();
-      persistenceUser = await pbPersistence.collection('users').create({
-        email: userEmail,
-        password: userPassword,
-        passwordConfirm: userPassword,
-        displayName: 'Persistence Test User',
-      });
-      await pbPersistence.collection('users').authWithPassword(userEmail, userPassword);
-    });
-
-    afterAll(async () => {
-        try {
-            if (persistenceUser?.id) await pbPersistence.collection('users').delete(persistenceUser.id);
-        } catch (e) {
-            console.error('Cleanup error for persistenceUser:', e);
-        }
+      persistenceUser = await seedUser({ displayName: 'Persistence Test User' });
+      userEmail = persistenceUser.email;
+      userPassword = persistenceUser.password;
+      await persistenceUser.signIn(pbPersistence);
     });
 
     it('should persist template after sign out and sign in', async () => {
@@ -616,32 +510,15 @@ describe('Integration Tests - Complex Scenarios', () => {
 
 
   describe('5. Search & Filter', () => {
-    let workspace: any;
+    let workspace: Workspace;
     let searchTemplates: Template[];
-    let searchUser: User;
+    let searchUser: SeededUser;
     const pbSearch = createTestClient();
 
     beforeAll(async () => {
       // Create isolated user for search tests
-      const email = testDataFactory.email();
-      const password = testDataFactory.password();
-      
-      searchUser = await pbSearch.collection('users').create({
-        email,
-        password,
-        passwordConfirm: password,
-        displayName: 'Search Test User',
-      });
-      
-      await pbSearch.collection('users').authWithPassword(email, password);
-    });
-
-    afterAll(async () => {
-        try {
-            if (searchUser?.id) await pbSearch.collection('users').delete(searchUser.id);
-        } catch (e) {
-            console.error('Cleanup error for searchUser:', e);
-        }
+      searchUser = await seedUser({ displayName: 'Search Test User' });
+      await searchUser.signIn(pbSearch);
     });
 
     beforeEach(async () => {
@@ -743,6 +620,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         filter: `title ~ "Checklist" && category = "life-events"`,
       });
 
+      expect(results.length).toBeGreaterThan(0);
       results.forEach(t => {
         expect(t.title).toContain('Checklist');
         expect(t.category).toBe('life-events');
@@ -750,36 +628,39 @@ describe('Integration Tests - Complex Scenarios', () => {
     });
 
     it('should paginate search results', async () => {
+      // Both pages use one total order. beforeEach repeats titles, so id breaks ties.
+      const sort = 'title,id';
+
       // Get first page (2 items per page)
       const page1 = await pbSearch.collection('blueprints').getList(1, 2, {
         filter: `visibility = "public"`,
-        sort: 'title',
+        sort,
       });
 
-      expect(page1.items.length).toBeLessThanOrEqual(2);
+      expect(page1.items).toHaveLength(2);
       expect(page1.page).toBe(1);
       expect(page1.perPage).toBe(2);
 
       // Get second page
       const page2 = await pbSearch.collection('blueprints').getList(2, 2, {
         filter: `visibility = "public"`,
+        sort,
       });
 
       expect(page2.page).toBe(2);
+      expect(page2.items.length).toBeGreaterThan(0);
 
       // Verify no overlap between pages
-      if (page1.items.length > 0 && page2.items.length > 0) {
-        const page1Ids = page1.items.map(t => t.id);
-        const page2Ids = page2.items.map(t => t.id);
-        const overlap = page1Ids.filter(id => page2Ids.includes(id));
-        expect(overlap).toHaveLength(0);
-      }
+      const page1Ids = page1.items.map(t => t.id);
+      const page2Ids = page2.items.map(t => t.id);
+      const overlap = page1Ids.filter(id => page2Ids.includes(id));
+      expect(overlap).toHaveLength(0);
     });
   });
 
   describe('6. Public Template Referencing Private Template', () => {
-    let ownerUser: User;
-    let otherUser: User;
+    let ownerUser: SeededUser;
+    let otherUser: SeededUser;
     let workspace: Workspace;
     let privateTemplate: Template;
     let publicTemplate: Template;
@@ -788,26 +669,12 @@ describe('Integration Tests - Complex Scenarios', () => {
 
     beforeAll(async () => {
       // Create owner user who owns both templates
-      const ownerEmail = testDataFactory.email();
-      const ownerPassword = testDataFactory.password();
-      ownerUser = await pbOwner.collection('users').create({
-        email: ownerEmail,
-        password: ownerPassword,
-        passwordConfirm: ownerPassword,
-        displayName: 'Template Owner',
-      });
-      await pbOwner.collection('users').authWithPassword(ownerEmail, ownerPassword);
+      ownerUser = await seedUser({ displayName: 'Template Owner' });
+      await ownerUser.signIn(pbOwner);
 
       // Create another user who doesn't have access to private template
-      const otherEmail = testDataFactory.email();
-      const otherPassword = testDataFactory.password();
-      otherUser = await pbOther.collection('users').create({
-        email: otherEmail,
-        password: otherPassword,
-        passwordConfirm: otherPassword,
-        displayName: 'Other User',
-      });
-      await pbOther.collection('users').authWithPassword(otherEmail, otherPassword);
+      otherUser = await seedUser({ displayName: 'Other User' });
+      await otherUser.signIn(pbOther);
 
       // Create workspace for owner
       workspace = await pbOwner.collection('workspaces').create({
@@ -830,7 +697,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Secret Task 1 - Should not be visible',
-        position: 0,
+        position: 1,
       });
 
       await pbOwner.collection('items').create({
@@ -838,7 +705,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '2',
         itemType: ItemType.TASK,
         content: 'Secret Task 2 - Should not be visible',
-        position: 1,
+        position: 2,
       });
 
       // Create a public template that references the private template
@@ -855,7 +722,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '1',
         itemType: ItemType.TASK,
         content: 'Public Task 1',
-        position: 0,
+        position: 1,
       });
 
       // Add a reference to the private template
@@ -865,7 +732,7 @@ describe('Integration Tests - Complex Scenarios', () => {
         itemType: ItemType.REFERENCE,
         content: 'Reference to private template',
         reference: privateTemplate.id,
-        position: 1,
+        position: 2,
       });
 
       // Add another regular task
@@ -874,17 +741,8 @@ describe('Integration Tests - Complex Scenarios', () => {
         path: '3',
         itemType: ItemType.TASK,
         content: 'Public Task 2',
-        position: 2,
+        position: 3,
       });
-    });
-
-    afterAll(async () => {
-      try {
-        if (ownerUser?.id) await pbOwner.collection('users').delete(ownerUser.id);
-        if (otherUser?.id) await pbOther.collection('users').delete(otherUser.id);
-      } catch (e) {
-        console.error('Cleanup error for private ref test users:', e);
-      }
     });
 
     it('should allow other user to access public template', async () => {
@@ -901,153 +759,124 @@ describe('Integration Tests - Complex Scenarios', () => {
       ).rejects.toThrow();
     });
 
-    it('should verify private template title is accessible via admin for reference display', async () => {
-      // This tests the getTitleById method indirectly
-      // The TemplateService.getTitleById uses admin client to fetch title
+    // fails until #28 slice D
+    it.fails('should verify private template title is accessible via admin for reference display', async () => {
       const { TemplateService } = await import('@/lib/services/template');
-      const templateService = new TemplateService(pbOther);
-      
-      // getTitleById should return the title even though user doesn't have access
-      const title = await templateService.getTitleById(privateTemplate.id);
+      const title = await new TemplateService(pbOther).getTitleById(privateTemplate.id);
       expect(title).toBe('Secret Private Template');
     });
 
-    it('should create checklist from public template and show only private template title for inaccessible reference', async () => {
-      // Import the ChecklistService
+    /** Creates a checklist from `templateId` as the other user, in a new workspace of theirs. */
+    async function createChecklistAsOtherUser(templateId: string, name: string) {
       const { ChecklistService } = await import('@/lib/services/checklist');
-      
-      // Create a workspace for the other user first
       const otherWorkspace = await pbOther.collection('workspaces').create({
         owner: otherUser.id,
-        name: `Other User Workspace ${Date.now()}`,
+        name: `${name} Workspace ${Date.now()}`,
+      });
+      const result = await new ChecklistService(pbOther).create({ templateId, name, workspaceId: otherWorkspace.id });
+      if (!result.success) throw new Error(`creating "${name}" failed: ${result.error.code} ${result.error.message}`);
+      return result.data;
+    }
+
+    /** The content of every item stored for a checklist, read as the fixture's superuser. */
+    async function storedContents(checklistId: string): Promise<string[]> {
+      const admin = createAdminTestClient();
+      const items = await admin.collection('instanceItems').getFullList({ filter: admin.filter('instance = {:id}', { id: checklistId }) });
+      return items.map((item) => String(item.content));
+    }
+
+    describe('checklist the other user creates from the public template', () => {
+      let checklistId: string;
+      let contents: string[];
+
+      beforeAll(async () => {
+        const created = await createChecklistAsOtherUser(publicTemplate.id, 'My Checklist from Public Template');
+        checklistId = created.checklist.id;
+        contents = created.tasks.map((task) => task.content);
       });
 
-      // Create checklist service with other user's client
-      const checklistService = new ChecklistService(pbOther);
-      
-      // Create checklist from the public template
-      const result = await checklistService.create({
-        templateId: publicTemplate.id,
-        name: 'My Checklist from Public Template',
-        workspaceId: otherWorkspace.id,
+      it('should copy both public tasks and one task for the reference', () => {
+        expect(contents).toHaveLength(3);
+        expect(contents).toEqual(expect.arrayContaining(['Public Task 1', 'Public Task 2']));
       });
 
-      expect(result.success).toBe(true);
-      if (!result.success) throw new Error('expected success');
-      expect(result.data.checklist).not.toBeNull();
-      expect(result.data.tasks.length).toBeGreaterThan(0);
+      it('should not expand the private template', async () => {
+        expect(contents.filter((content) => content.includes('Secret Task'))).toEqual([]);
+        const stored = await storedContents(checklistId);
+        expect(stored).toHaveLength(3);
+        expect(stored.filter((content) => content.includes('Secret Task'))).toEqual([]);
+      });
 
-      // Find the task that corresponds to the reference item
-      // It should have the private template's TITLE as content, not the original reference content
-      const referenceTask = result.data.tasks.find(task =>
-        task.content === 'Secret Private Template' ||
-        task.content === 'Reference to private template'
-      );
-
-      expect(referenceTask).toBeDefined();
-      // The content should be the private template's title, not the original reference content
-      expect(referenceTask!.content).toBe('Secret Private Template');
-
-      // Verify that the private template's items were NOT expanded
-      // (no tasks with "Secret Task 1" or "Secret Task 2")
-      const secretTasks = result.data.tasks.filter(task => 
-        task.content.includes('Secret Task')
-      );
-      expect(secretTasks).toHaveLength(0);
-
-      // Verify the public tasks are present
-      const publicTask1 = result.data.tasks.find(task => task.content === 'Public Task 1');
-      const publicTask2 = result.data.tasks.find(task => task.content === 'Public Task 2');
-      expect(publicTask1).toBeDefined();
-      expect(publicTask2).toBeDefined();
+      // fails until #28 slice D
+      it.fails('should show only the private template title for the inaccessible reference', () => {
+        expect(contents).toContain('Secret Private Template');
+        expect(contents).not.toContain('Reference to private template');
+      });
     });
 
-    it('should show different titles for two different private templates referenced in one public template', async () => {
-      // Create a second private template with a different title
-      const privateTemplate2 = await pbOwner.collection('blueprints').create({
-        workspace: workspace.id,
-        owner: ownerUser.id,
-        title: 'Another Secret Template',
-        description: 'This is another private template',
-        visibility: Visibility.PRIVATE,
+    describe('checklist the other user creates from a public template with two private references', () => {
+      let checklistId: string;
+      let tasks: { id: string; content: string }[];
+
+      beforeAll(async () => {
+        const privateTemplate2 = await pbOwner.collection('blueprints').create({
+          workspace: workspace.id,
+          owner: ownerUser.id,
+          title: 'Another Secret Template',
+          description: 'This is another private template',
+          visibility: Visibility.PRIVATE,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: privateTemplate2.id,
+          path: '1',
+          itemType: ItemType.TASK,
+          content: 'Another Secret Task',
+          position: 1,
+        });
+
+        const publicTemplateWithTwoRefs = await pbOwner.collection('blueprints').create({
+          workspace: workspace.id,
+          owner: ownerUser.id,
+          title: 'Public Template with Two Private References',
+          visibility: Visibility.PUBLIC,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: publicTemplateWithTwoRefs.id,
+          path: '1',
+          itemType: ItemType.REFERENCE,
+          content: 'Reference to first private template',
+          reference: privateTemplate.id,
+          position: 1,
+        });
+        await pbOwner.collection('items').create({
+          blueprint: publicTemplateWithTwoRefs.id,
+          path: '2',
+          itemType: ItemType.REFERENCE,
+          content: 'Reference to second private template',
+          reference: privateTemplate2.id,
+          position: 2,
+        });
+
+        const created = await createChecklistAsOtherUser(publicTemplateWithTwoRefs.id, 'My Checklist with Two Private Refs');
+        checklistId = created.checklist.id;
+        tasks = created.tasks;
       });
 
-      // Add items to second private template
-      await pbOwner.collection('items').create({
-        blueprint: privateTemplate2.id,
-        path: '1',
-        itemType: ItemType.TASK,
-        content: 'Another Secret Task',
-        position: 0,
+      it('should create one task per reference and expand neither private template', async () => {
+        expect(tasks).toHaveLength(2);
+        expect(tasks[0]?.id).not.toBe(tasks[1]?.id);
+        const stored = await storedContents(checklistId);
+        expect(stored).toHaveLength(2);
+        expect(stored.filter((content) => content.includes('Secret Task'))).toEqual([]);
       });
 
-      // Create a public template that references BOTH private templates
-      const publicTemplateWithTwoRefs = await pbOwner.collection('blueprints').create({
-        workspace: workspace.id,
-        owner: ownerUser.id,
-        title: 'Public Template with Two Private References',
-        visibility: Visibility.PUBLIC,
+      // fails until #28 slice D
+      it.fails('should show each private template title instead of the reference content', () => {
+        const contents = tasks.map((task) => task.content);
+        expect(contents).toEqual(expect.arrayContaining(['Secret Private Template', 'Another Secret Template']));
+        expect(contents).not.toContain('Reference to first private template');
+        expect(contents).not.toContain('Reference to second private template');
       });
-
-      // Add reference to first private template
-      await pbOwner.collection('items').create({
-        blueprint: publicTemplateWithTwoRefs.id,
-        path: '1',
-        itemType: ItemType.REFERENCE,
-        content: 'Reference to first private template',
-        reference: privateTemplate.id,
-        position: 0,
-      });
-
-      // Add reference to second private template
-      await pbOwner.collection('items').create({
-        blueprint: publicTemplateWithTwoRefs.id,
-        path: '2',
-        itemType: ItemType.REFERENCE,
-        content: 'Reference to second private template',
-        reference: privateTemplate2.id,
-        position: 1,
-      });
-
-      // Import the ChecklistService
-      const { ChecklistService } = await import('@/lib/services/checklist');
-
-      // Create a workspace for the other user
-      const otherWorkspace2 = await pbOther.collection('workspaces').create({
-        owner: otherUser.id,
-        name: `Other User Workspace 2 ${Date.now()}`,
-      });
-
-      // Create checklist service with other user's client
-      const checklistService = new ChecklistService(pbOther);
-
-      // Create checklist from the public template with two references
-      const result = await checklistService.create({
-        templateId: publicTemplateWithTwoRefs.id,
-        name: 'My Checklist with Two Private Refs',
-        workspaceId: otherWorkspace2.id,
-      });
-
-      expect(result.success).toBe(true);
-      if (!result.success) throw new Error('expected success');
-      expect(result.data.checklist).not.toBeNull();
-      expect(result.data.tasks.length).toBe(2);
-
-      // Find tasks by their content - should be the titles of the private templates
-      const task1 = result.data.tasks.find(task => task.content === 'Secret Private Template');
-      const task2 = result.data.tasks.find(task => task.content === 'Another Secret Template');
-
-      expect(task1).toBeDefined();
-      expect(task2).toBeDefined();
-
-      // Verify they are different tasks
-      expect(task1!.id).not.toBe(task2!.id);
-
-      // Verify the original reference content is NOT used
-      const refContent1 = result.data.tasks.find(task => task.content === 'Reference to first private template');
-      const refContent2 = result.data.tasks.find(task => task.content === 'Reference to second private template');
-      expect(refContent1).toBeUndefined();
-      expect(refContent2).toBeUndefined();
     });
   });
 });

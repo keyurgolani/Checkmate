@@ -1,39 +1,41 @@
 /**
  * PocketBase Test Helpers
- * Utilities for testing PocketBase-related functionality
+ *
+ * Backend suites run in the vitest `backend` project, whose global setup
+ * starts a hermetic PocketBase (src/test/fixture) and provides its URL and a
+ * superuser token. These helpers read that, never a developer's server.
  */
 
 import PocketBase from 'pocketbase';
+import { inject } from 'vitest';
+import { adminClient, seedUser as seedFixtureUser, type SeedUserOptions, type SeededUser } from './fixture/client';
 
-// Test PocketBase URL - uses environment variable or defaults to local dev
-const TEST_POCKETBASE_URL = process.env.TEST_POCKETBASE_URL || 'http://127.0.0.1:8090';
+export type { SeedUserOptions, SeededUser };
 
-/**
- * Creates a PocketBase client for testing
- */
+/** The shared fixture's URL and superuser token. Throws outside the backend project. */
+export function backendFixture(): { url: string; adminToken: string } {
+  const provided = inject('pocketbase');
+  if (!provided?.url || !provided.adminToken) {
+    throw new Error('No PocketBase fixture: run backend suites through the vitest "backend" project (npm run test:backend).');
+  }
+  return provided;
+}
+
+/** An unauthenticated client for the shared fixture. */
 export function createTestClient(): PocketBase {
-  return new PocketBase(TEST_POCKETBASE_URL);
+  return new PocketBase(backendFixture().url);
 }
 
-/**
- * Creates an authenticated test client
- * @param email - Test user email
- * @param password - Test user password
- */
-export async function createAuthenticatedTestClient(
-  email: string,
-  password: string
-): Promise<PocketBase> {
-  const pb = createTestClient();
-  await pb.collection('users').authWithPassword(email, password);
-  return pb;
+/** A client authenticated as the fixture's per-run superuser. */
+export function createAdminTestClient(): PocketBase {
+  const { url, adminToken } = backendFixture();
+  return adminClient(url, adminToken);
 }
 
-/**
- * Clears authentication from a PocketBase client
- */
-export function clearAuth(pb: PocketBase): void {
-  pb.authStore.clear();
+/** Creates a user through the superuser, independent of the users create rule. */
+export function seedUser(options?: SeedUserOptions): Promise<SeededUser> {
+  const { url, adminToken } = backendFixture();
+  return seedFixtureUser(url, adminToken, options);
 }
 
 /**
@@ -109,93 +111,4 @@ export interface ItemTestData {
 export interface WorkspaceTestData {
   name: string;
   description: string;
-}
-
-/**
- * Waits for PocketBase to be available
- * Useful for integration tests that need the server running
- */
-export async function waitForPocketBase(
-  maxAttempts = 10,
-  delayMs = 500
-): Promise<boolean> {
-  const pb = createTestClient();
-  
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      await pb.health.check();
-      return true;
-    } catch {
-      if (attempt < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-  }
-  
-  return false;
-}
-
-/**
- * Checks if PocketBase is available
- */
-export async function isPocketBaseAvailable(): Promise<boolean> {
-  const pb = createTestClient();
-  try {
-    await pb.health.check();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Admin credentials from environment variables
- */
-const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD;
-
-/**
- * Checks if admin credentials are configured
- */
-export function hasAdminCredentials(): boolean {
-  return !!(ADMIN_EMAIL && ADMIN_PASSWORD);
-}
-
-/**
- * Creates an admin-authenticated PocketBase client
- * Required for accessing collection metadata via pb.collections API
- * @returns Authenticated PocketBase client or null if credentials not available
- */
-export async function createAdminClient(): Promise<PocketBase | null> {
-  if (!hasAdminCredentials()) {
-    return null;
-  }
-  
-  const pb = createTestClient();
-  try {
-    await pb.admins.authWithPassword(ADMIN_EMAIL!, ADMIN_PASSWORD!);
-    return pb;
-  } catch (error) {
-    console.log('Admin authentication failed:', error);
-    return null;
-  }
-}
-
-/**
- * Authenticates an existing PocketBase client as admin
- * @param pb - PocketBase client to authenticate
- * @returns true if authentication succeeded, false otherwise
- */
-export async function authenticateAsAdmin(pb: PocketBase): Promise<boolean> {
-  if (!hasAdminCredentials()) {
-    return false;
-  }
-  
-  try {
-    await pb.admins.authWithPassword(ADMIN_EMAIL!, ADMIN_PASSWORD!);
-    return true;
-  } catch (error) {
-    console.log('Admin authentication failed:', error);
-    return false;
-  }
 }
