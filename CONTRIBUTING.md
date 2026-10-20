@@ -45,7 +45,9 @@ Fixture failures name the cause and the fix: `FIXTURE_DOWNLOAD_FAILED`, `FIXTURE
 
 For Playwright or other local tools, `npm run fixture -- start` starts a fixture with the baseline schema and prints its URL. Its superuser goes to `.cache/pocketbase/fixture/superuser.json` (mode 0600), and `npm run fixture -- stop` stops it and deletes the file.
 
-A test that fails on a known product defect is marked `it.fails`, with a comment naming the defect and its issue. CI fails on any skipped or todo test.
+A test that fails on a known product defect is marked `it.fails`, with a one-line comment naming the issue that fixes it, such as `// fails until #28 slice D`. CI fails on any skipped or todo test.
+
+A change to an access rule updates its pin in `src/test/access-rule-pins.json` in the same PR. The failing test prints the served digest.
 
 ## Continuous Integration
 
@@ -64,7 +66,7 @@ git clone https://github.com/keyurgolani/Checkmate.git checkmate-ci && cd checkm
   && npm ci && npm run test:backend
 ```
 
-Until the lint baseline lands, CI lints the files a change touches (`node scripts/ci/lint-changed.mjs --base <sha>`), and a change may not add comments that turn ESLint rules off. `npm run build` must pass with both PocketBase URLs pointing at `http://127.0.0.1:9`, where nothing listens.
+Until the lint baseline lands, CI lints the files a change touches (`node scripts/ci/lint-changed.mjs --base <sha>`), and a change may not add comments that turn ESLint rules off or set them inline. `npm run build` must pass with both PocketBase URLs pointing at `http://127.0.0.1:9`, where nothing listens.
 
 Images publish only from the `publish` job, after `aggregate` passes: for a `v*` tag, or for a push to `next` while the owner enables it.
 
