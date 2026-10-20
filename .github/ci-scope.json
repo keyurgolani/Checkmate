@@ -17,7 +17,7 @@
     },
     "unit": {
       "failureClass": "test",
-      "repro": "npm run test:unit"
+      "repro": "npm run test:unit && npx tsc --noEmit -p src/lib/domain/tsconfig.json"
     },
     "backend": {
       "failureClass": "test",
