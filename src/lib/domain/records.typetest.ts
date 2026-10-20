@@ -29,7 +29,7 @@ type Expect<T extends true> = T;
 type OptionalKeys<T> = { [K in keyof T]-?: Record<never, never> extends Pick<T, K> ? K : never }[keyof T];
 type HasIndexSignature<T> = string extends keyof T ? true : false;
 type ShapeFields<K extends RecordKind> = (typeof RECORD_SHAPES)[K]['fields'][number];
-type ShapeOptional<K extends RecordKind> = (typeof RECORD_SHAPES)[K]['optional'][number];
+type ShapeOptional<K extends RecordKind> = keyof (typeof RECORD_SHAPES)[K]['optional'];
 
 declare function read(value: unknown): void;
 declare function accept<T>(value: T): void;

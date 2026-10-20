@@ -1,5 +1,6 @@
 /**
- * CHECKMATE-01.1 · adapter (#29): the one place legacy storage names live.
+ * CHECKMATE-01.1 · adapter (#29): new code names legacy storage values only
+ * through this file.
  *
  * Templates are stored in `blueprints`, template steps in `items`, runs in
  * `instances` and run steps in `instanceItems`. Their relation fields and some
@@ -16,20 +17,36 @@
  */
 
 /**
+ * Where a collection, field or value is declared, spelled like #31's
+ * `presentIn`: the three install variants, schema-init.ts (which adds the
+ * autodates to pb_schema.json's collections), or only code that writes it.
+ */
+export const SCHEMA_SOURCES = ['pb_schema', 'setup-pocketbase', 'create-collections', 'schema-init', 'code-only'] as const;
+export type SchemaSource = (typeof SCHEMA_SOURCES)[number];
+
+/**
  * The three ways a baseline database gets its schema (#31): pb_schema.json,
  * which schema-init.ts and import-schema.ts load, and the two setup scripts,
  * which #81 (CHECKMATE-18.2 · gate 1) retires. Every name here holds in all
- * three unless its entry lists the variants that have it.
+ * three unless its entry says where it is present.
  */
-export const INSTALL_VARIANTS = ['pb-schema', 'setup-pocketbase', 'create-collections'] as const;
+export const INSTALL_VARIANTS = ['pb_schema', 'setup-pocketbase', 'create-collections'] as const satisfies readonly SchemaSource[];
 export type InstallVariant = (typeof INSTALL_VARIANTS)[number];
 
 /** The file each install variant's schema comes from, repo-relative. */
 export const INSTALL_VARIANT_SOURCES: Readonly<Record<InstallVariant, string>> = {
-  'pb-schema': 'docker/pocketbase/pb_schema.json',
+  pb_schema: 'docker/pocketbase/pb_schema.json',
   'setup-pocketbase': 'scripts/setup-pocketbase.ts',
   'create-collections': 'scripts/create-collections.ts',
 };
+
+/**
+ * Fields every row has in every install variant. create-collections.ts
+ * declares the two autodates, schema-init.ts and import-schema.ts add them to
+ * pb_schema.json's collections, and setup-pocketbase.ts writes the pre-0.23
+ * collection format, where every record had them built in.
+ */
+export const ROW_FIELDS = ['id', 'created', 'updated'] as const;
 
 /**
  * Canonical collection name to storage collection. The names in the domain,
@@ -58,7 +75,8 @@ export type StorageCollection = (typeof STORAGE_COLLECTIONS)[CollectionKey];
  * The collection names services use, from pocketbase-types.ts. The first nine
  * keys are the canonical names in constant case. `ITEMS`, `CHECKLISTS` and
  * `CHECKLIST_ITEMS` predate the glossary and stay until 04.1, 05.2 and 07.x
- * rebuild the services that read them.
+ * rebuild the services that read them. The ratchet counts every use of the
+ * three, so their number only goes down.
  */
 export const Collections = {
   USERS: STORAGE_COLLECTIONS.users,
@@ -153,10 +171,10 @@ export interface SelectField {
   /** The stored field name. None of these is renamed. */
   readonly field: string;
   readonly values: ValueMap;
-  /** The variants whose schema has the field, when not all three. */
-  readonly variants?: readonly InstallVariant[];
-  /** Stored values only some variants accept, with those variants. */
-  readonly valueVariants?: Readonly<Record<string, readonly InstallVariant[]>>;
+  /** Where the field is declared, when not in all three install variants. */
+  readonly presentIn?: readonly SchemaSource[];
+  /** Stored values only some variants accept, with where each is declared. */
+  readonly valuePresentIn?: Readonly<Record<string, readonly SchemaSource[]>>;
 }
 
 /** The select fields records.ts reads, with what each install variant accepts. */
@@ -166,14 +184,14 @@ export const SELECT_FIELDS = {
     collection: 'templateSteps',
     field: 'itemType',
     values: STEP_ITEM_TYPES,
-    valueVariants: { phase: ['pb-schema'] },
+    valuePresentIn: { phase: ['pb_schema'] },
   },
-  runStepItemType: { collection: 'runSteps', field: 'itemType', values: STEP_ITEM_TYPES, variants: ['pb-schema'] },
+  runStepItemType: { collection: 'runSteps', field: 'itemType', values: STEP_ITEM_TYPES, presentIn: ['pb_schema'] },
   notificationType: {
     collection: 'notifications',
     field: 'type',
     values: NOTIFICATION_TYPES,
-    valueVariants: { access_request: ['pb-schema'] },
+    valuePresentIn: { access_request: ['pb_schema'] },
   },
   activityResourceType: { collection: 'activityLog', field: 'resourceType', values: ACTIVITY_RESOURCE_TYPES },
   activityAction: { collection: 'activityLog', field: 'action', values: ACTIVITY_ACTIONS },
@@ -204,8 +222,8 @@ export interface StorageName {
   readonly canonical: string;
   /** True when storage keeps a retired word: a legacy name that only this adapter may write. */
   readonly rename: boolean;
-  /** The install variants that have it. */
-  readonly variants: readonly InstallVariant[];
+  /** Where it is declared, as #31's `presentIn`. */
+  readonly presentIn: readonly SchemaSource[];
 }
 
 function storageName(
@@ -213,10 +231,10 @@ function storageName(
   path: string,
   storage: string,
   canonical: string,
-  variants: readonly InstallVariant[] = INSTALL_VARIANTS,
+  presentIn: readonly SchemaSource[] = INSTALL_VARIANTS,
 ): StorageName {
   const mapId = kind === 'value' ? `MAP:enum:${path}` : `MAP:${path}`;
-  return { kind, path, mapId, storage, canonical, rename: storage !== canonical, variants };
+  return { kind, path, mapId, storage, canonical, rename: storage !== canonical, presentIn };
 }
 
 /**
@@ -238,7 +256,7 @@ export const STORAGE_NAMES: readonly StorageName[] = [
         `${STORAGE_COLLECTIONS[select.collection]}.${select.field}.${storage}`,
         storage,
         canonical,
-        select.valueVariants?.[storage] ?? select.variants ?? INSTALL_VARIANTS,
+        select.valuePresentIn?.[storage] ?? select.presentIn ?? INSTALL_VARIANTS,
       ),
     ),
   ),
@@ -254,12 +272,16 @@ function unique(names: Iterable<string>): readonly string[] {
  */
 export const LEGACY_STORAGE_NAMES: readonly string[] = unique(STORAGE_NAMES.filter((name) => name.rename).map((name) => name.storage));
 
-/** The legacy relation field names. The ratchet also counts them as `.name` access and as fields in query strings. */
+/**
+ * The legacy relation field names. The ratchet also counts them as `.name`
+ * reads, object keys, destructured names and type members, and as fields in
+ * query strings.
+ */
 export const LEGACY_FIELD_NAMES: readonly string[] = unique(
   STORAGE_NAMES.filter((name) => name.rename && name.kind === 'field').map((name) => name.storage),
 );
 
-/** The legacy collection names. The ratchet also counts them after `@collection.` in a filter. */
+/** The legacy collection names. The ratchet also counts them in query strings and collection URLs. */
 export const LEGACY_COLLECTION_NAMES: readonly string[] = unique(
   STORAGE_NAMES.filter((name) => name.rename && name.kind === 'collection').map((name) => name.storage),
 );

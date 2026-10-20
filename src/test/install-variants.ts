@@ -8,21 +8,16 @@
  * `schema` or `fields` array of field objects. An object with such an array
  * and no `name` adds fields to the last collection defined before it in the
  * same block, the way create-collections.ts adds the `parent` self-relations.
- * Every variant gets `id` and the two autodates (schema-init.ts and
- * import-schema.ts add them to pb_schema.json collections, and both scripts
- * create them), and PocketBase's built-in `users` collection.
+ * Every variant gets PocketBase's built-in `users` collection, and every
+ * collection gets `ROW_FIELDS` from storage.ts, whose comment says where each
+ * installer's autodates come from.
  */
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
-import { INSTALL_VARIANT_SOURCES, type InstallVariant } from '@/lib/domain/storage';
-
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-
-/** Fields every installer gives a collection. */
-export const ROW_FIELDS = ['id', 'created', 'updated'] as const;
+import { INSTALL_VARIANT_SOURCES, ROW_FIELDS, type InstallVariant } from '@/lib/domain/storage';
+import { REPO_ROOT } from './source-files';
 
 export interface VariantField {
   readonly name: string;
@@ -137,13 +132,8 @@ function fromScript(file: string, text: string): VariantSchema {
 }
 
 /** The schema an install variant creates. */
-export function readInstallVariant(variant: InstallVariant, root: string = REPO_ROOT): VariantSchema {
+export function readInstallVariant(variant: InstallVariant): VariantSchema {
   const file = INSTALL_VARIANT_SOURCES[variant];
-  const text = readFileSync(path.join(root, file), 'utf8');
-  return file.endsWith('.json') ? fromJson(text) : fromScript(file, text);
-}
-
-/** Parses a variant source given as text, for tests of this reader. */
-export function parseInstallVariant(file: string, text: string): VariantSchema {
+  const text = readFileSync(path.join(REPO_ROOT, file), 'utf8');
   return file.endsWith('.json') ? fromJson(text) : fromScript(file, text);
 }

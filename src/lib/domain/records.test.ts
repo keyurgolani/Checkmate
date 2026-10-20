@@ -4,7 +4,8 @@
  * with no field lost, every notification type included. The fixtures are
  * typed with pocketbase-types.ts, so each carries every field the code reads
  * today. Also: unknown select values read as `unknown` and never write back,
- * and a field is optional exactly when some install variant lacks it.
+ * and a field is optional exactly when some install variant lacks it. An
+ * optional field set to `undefined` counts as absent.
  */
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -23,7 +24,7 @@ import {
 } from '@/lib/pocketbase-types';
 import { readInstallVariant } from '@/test/install-variants';
 import { RECORD_SHAPES, UNKNOWN_VALUE, fromStorage, toStorage, type RecordKind } from './records';
-import { INSTALL_VARIANTS, STORAGE_COLLECTIONS, storageField, type SelectField } from './storage';
+import { INSTALL_VARIANTS, STORAGE_COLLECTIONS, storageField, type SchemaSource, type SelectField } from './storage';
 
 const CREATED = '2026-10-01 09:15:00.000Z';
 const UPDATED = '2026-10-02 17:40:12.345Z';
@@ -253,6 +254,17 @@ describe('select values', () => {
     delete fromScript.itemType;
     expect('itemType' in fromStorage('runStep', fromScript as ChecklistItem)).toBe(false);
   });
+
+  it('treats an optional field set to undefined as absent, both ways', () => {
+    const record = fromStorage('runStep', runStep);
+    const written = toStorage('runStep', { ...record, itemType: undefined, resources: undefined });
+    const read = fromStorage('runStep', { ...runStep, itemType: undefined } as unknown as ChecklistItem);
+
+    expect('itemType' in written).toBe(false);
+    expect('resources' in written).toBe(false);
+    expect('itemType' in read).toBe(false);
+    expect(() => toStorage('run', { ...fromStorage('run', run), template: undefined } as never)).toThrow(/record has no template field/);
+  });
 });
 
 describe('guards', () => {
@@ -284,9 +296,8 @@ describe('every row', () => {
       const values = select ? fc.constantFrom(...Object.values(select.values)) : json;
       model[storageField(shape.collection, field)] = nullable ? fc.option(values, { nil: null }) : values;
     }
-    const required = shape.fields
-      .filter((field) => !(shape.optional as readonly string[]).includes(field))
-      .map((field) => storageField(shape.collection, field));
+    const optional = new Set(Object.keys(shape.optional));
+    const required = shape.fields.filter((field) => !optional.has(field)).map((field) => storageField(shape.collection, field));
     return fc.record(model, { requiredKeys: required });
   }
 
@@ -300,22 +311,27 @@ describe('every row', () => {
 });
 
 describe('install variants', () => {
-  /** Fields no install variant declares, which the app writes anyway (#31). */
-  const CODE_ONLY_WRITES = ['instances.workspace'];
-  const schemas = INSTALL_VARIANTS.map((variant) => readInstallVariant(variant));
+  const schemas = INSTALL_VARIANTS.map((variant) => [variant, readInstallVariant(variant)] as const);
 
-  it.each(Object.keys(RECORD_SHAPES) as RecordKind[])('makes a %s field optional exactly when some install variant lacks it', (kind) => {
-    const shape = RECORD_SHAPES[kind];
-    const collection = STORAGE_COLLECTIONS[shape.collection];
-    const wrong = shape.fields.flatMap((field) => {
-      const path = `${collection}.${storageField(shape.collection, field)}`;
-      const present = schemas.filter((schema) => schema.get(collection)?.has(storageField(shape.collection, field))).length;
-      const optional = (shape.optional as readonly string[]).includes(field);
-      if (CODE_ONLY_WRITES.includes(path)) return present === 0 && optional ? [] : [`${path} is a code-only write`];
-      if (present === 0) return [`${path} is in no install variant`];
-      return optional === present < schemas.length ? [] : [`${path} is in ${present} of ${schemas.length} variants`];
-    });
+  it.each(Object.keys(RECORD_SHAPES) as RecordKind[])(
+    "makes a %s field optional exactly when some install variant lacks it, and gives the variants that have it",
+    (kind) => {
+      const shape = RECORD_SHAPES[kind];
+      const optional: Readonly<Record<string, readonly SchemaSource[]>> = shape.optional;
+      const collection = STORAGE_COLLECTIONS[shape.collection];
+      const wrong = shape.fields.flatMap((field) => {
+        const stored = storageField(shape.collection, field);
+        const declared = schemas.filter(([, schema]) => schema.get(collection)?.has(stored)).map(([variant]) => variant);
+        const presentIn = optional[field];
+        if (presentIn === undefined) return declared.length === INSTALL_VARIANTS.length ? [] : [`${collection}.${stored} is required but only in ${declared.join(', ')}`];
+        // A field no variant declares is one only the app writes (#31's code-only writes).
+        const expected: readonly SchemaSource[] = declared.length === 0 ? ['code-only'] : declared;
+        return declared.length < INSTALL_VARIANTS.length && presentIn.join() === expected.join()
+          ? []
+          : [`${collection}.${stored} is present in ${presentIn.join(', ')}, but declared in ${declared.join(', ') || 'no variant'}`];
+      });
 
-    expect(wrong).toEqual([]);
-  });
+      expect(wrong).toEqual([]);
+    },
+  );
 });

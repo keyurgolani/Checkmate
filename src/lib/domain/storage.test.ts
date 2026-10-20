@@ -1,12 +1,15 @@
 /**
  * CHECKMATE-01.1 · adapter (#29): `Collections` derives from the adapter and
- * keeps its values, and every name the adapter maps holds in all three install
- * variants, read from pb_schema.json and the two setup scripts. records.test.ts
- * covers the round trip.
+ * keeps its values, every name the adapter maps holds in all three install
+ * variants, read from pb_schema.json and the two setup scripts, and the other
+ * contract files name the same stored collections. records.test.ts covers the
+ * round trip.
  */
 import { describe, expect, it } from 'vitest';
 import * as pocketbaseTypes from '@/lib/pocketbase-types';
 import { readInstallVariant, type VariantSchema } from '@/test/install-variants';
+import { AGGREGATES } from './lifecycles';
+import { COLLECTIONS, RELATIONS } from './retention';
 import {
   ACTIVITY_RESOURCE_TYPES,
   Collections,
@@ -15,6 +18,7 @@ import {
   LEGACY_COLLECTION_NAMES,
   LEGACY_FIELD_NAMES,
   NOTIFICATION_TYPES,
+  SCHEMA_SOURCES,
   SELECT_FIELDS,
   STORAGE_COLLECTIONS,
   STORAGE_FIELDS,
@@ -25,8 +29,10 @@ import {
   type InstallVariant,
   type SelectField,
 } from './storage';
+import { TERMS, findTerm } from './vocabulary';
 
 const VARIANTS: ReadonlyArray<readonly [InstallVariant, VariantSchema]> = INSTALL_VARIANTS.map((variant) => [variant, readInstallVariant(variant)]);
+const STORED: ReadonlySet<string> = new Set(Object.values(STORAGE_COLLECTIONS));
 
 function constantCase(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
@@ -35,7 +41,7 @@ function constantCase(name: string): string {
 /** The stored values a variant's select accepts, per the adapter. */
 function valuesIn(select: SelectField, variant: InstallVariant): string[] {
   return Object.values(select.values)
-    .filter((stored) => select.valueVariants?.[stored]?.includes(variant) ?? true)
+    .filter((stored) => select.valuePresentIn?.[stored]?.includes(variant) ?? true)
     .sort();
 }
 
@@ -68,6 +74,11 @@ describe('Collections', () => {
 });
 
 describe('install variants', () => {
+  it("spells sources like #31's presentIn", () => {
+    expect(SCHEMA_SOURCES).toEqual(['pb_schema', 'setup-pocketbase', 'create-collections', 'schema-init', 'code-only']);
+    expect(INSTALL_VARIANTS).toEqual(['pb_schema', 'setup-pocketbase', 'create-collections']);
+  });
+
   it.each(VARIANTS)('%s has exactly the collections the adapter maps', (_variant, schema) => {
     expect([...schema.keys()].sort()).toEqual(Object.values(STORAGE_COLLECTIONS).sort());
   });
@@ -85,13 +96,49 @@ describe('install variants', () => {
   it.each(VARIANTS)('%s accepts exactly the stored values the adapter maps for each select', (variant, schema) => {
     for (const [name, select] of Object.entries(SELECT_FIELDS) as Array<[string, SelectField]>) {
       const field = schema.get(STORAGE_COLLECTIONS[select.collection])?.get(select.field);
-      if (select.variants && !select.variants.includes(variant)) {
+      if (select.presentIn && !select.presentIn.includes(variant)) {
         expect(field, `${name} is not in ${variant}`).toBeUndefined();
       } else {
         expect(field?.type, name).toBe('select');
         expect([...(field?.values ?? [])].sort(), `${name} in ${variant}`).toEqual(valuesIn(select, variant));
       }
     }
+  });
+});
+
+describe('the other contract files', () => {
+  it('name the same stored collections for the terms the adapter maps', () => {
+    const expected: Readonly<Record<string, CollectionKey>> = {
+      Account: 'users',
+      Workspace: 'workspaces',
+      Template: 'templates',
+      'Template Draft': 'templates',
+      'Step Definition': 'templateSteps',
+      Module: 'templates',
+      Run: 'runs',
+      'Run Step': 'runSteps',
+      Grant: 'collaborators',
+      Notification: 'notifications',
+    };
+
+    for (const [term, collection] of Object.entries(expected)) expect(findTerm(term)?.storage.name, term).toBe(STORAGE_COLLECTIONS[collection]);
+  });
+
+  it('cite only stored collections in baseline storage, retention and aggregates', () => {
+    const vocabulary = TERMS.filter((term) => term.storage.status === 'baseline').map((term) => (term.storage.name ?? '').split('.')[0] ?? '');
+    const retention = COLLECTIONS.filter((row) => row.status === 'baseline').map((row) => row.collection);
+    const relations = RELATIONS.filter((row) => row.baseline !== 'planned' && row.baseline !== 'new').flatMap((row) => [row.relation.split('.')[0] ?? '', row.references]);
+
+    const draft = AGGREGATES.find((aggregate) => aggregate.name === 'Template Draft');
+    const run = AGGREGATES.find((aggregate) => aggregate.name === 'Run');
+
+    expect(vocabulary.filter((name) => !STORED.has(name))).toEqual([]);
+    expect([...retention].sort()).toEqual([...STORED].sort());
+    expect(relations.filter((name) => !STORED.has(name))).toEqual([]);
+    expect(draft?.root).toBe(STORAGE_COLLECTIONS.templates);
+    expect(draft?.members).toContain(STORAGE_COLLECTIONS.templateSteps);
+    expect(run?.root).toBe(STORAGE_COLLECTIONS.runs);
+    expect(run?.members).toEqual([STORAGE_COLLECTIONS.runs, STORAGE_COLLECTIONS.runSteps]);
   });
 });
 
@@ -154,18 +201,19 @@ describe('names', () => {
     expect(LEGACY_COLLECTION_NAMES).toEqual(['blueprints', 'instanceItems', 'instances', 'items']);
   });
 
-  it('gives variant-only values the variants that have them', () => {
-    const only = STORAGE_NAMES.filter((name) => name.variants.length < INSTALL_VARIANTS.length).map(
-      (name) => `${name.path} ${name.variants.join(',')}`,
+  it('says where each name only some variants have is present', () => {
+    const only = STORAGE_NAMES.filter((name) => name.presentIn.join() !== INSTALL_VARIANTS.join()).map(
+      (name) => `${name.path} ${name.presentIn.join(',')}`,
     );
 
     expect(only).toEqual([
-      'items.itemType.phase pb-schema',
-      'instanceItems.itemType.task pb-schema',
-      'instanceItems.itemType.reference pb-schema',
-      'instanceItems.itemType.phase pb-schema',
-      'notifications.type.access_request pb-schema',
+      'items.itemType.phase pb_schema',
+      'instanceItems.itemType.task pb_schema',
+      'instanceItems.itemType.reference pb_schema',
+      'instanceItems.itemType.phase pb_schema',
+      'notifications.type.access_request pb_schema',
     ]);
+    expect(STORAGE_NAMES.flatMap((name) => name.presentIn).filter((source) => !SCHEMA_SOURCES.includes(source))).toEqual([]);
   });
 
   it('reads back each stored value as one canonical value', () => {
