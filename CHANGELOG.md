@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `POST /api/checklists/[id]/sync` now answers `410 Gone` with code `RUN_SYNC_REMOVED` to every signed-in caller. Anonymous callers still get `401`.
 - The `isSynced` field from run API responses (`GET` and `POST /api/checklists`, `GET` and `PUT /api/checklists/[id]`), and the "Modified" run badge that read it. New runs no longer write it. The database column stays until a later migration drops it; the forthcoming migration map (#31) lists it under `MAP:case:never-written`.
 
+### Fixed
+
+- The step toggle, `GET`, `PUT`, and `DELETE /api/checklists/[id]` (run rename and delete), and the run print page answered the run owner with 404 since `c53d6ea` (#53).
+- A failed step toggle shows "Couldn't mark this step complete." with Retry under the step and announces nothing. Before, the run page announced "marked as complete" whether or not the toggle saved.
+
 ## [1.0.0] - 2025-01-15
 
 ### Added
