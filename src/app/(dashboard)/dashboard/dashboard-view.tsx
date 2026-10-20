@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ExternalLink,
   Pencil,
-  RefreshCw,
   Download,
   Trash2,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import { AISummary } from "@/components/dashboard/ai-summary";
 import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
 import type { User, Checklist, DashboardSummary } from "@/lib/pocketbase-types";
 import { deleteChecklist } from "@/app/(dashboard)/checklists/actions";
-import { bulkSyncChecklists } from "@/app/(dashboard)/checklists/actions";
 
 interface DashboardViewProps {
   user: User | null;
@@ -65,14 +63,6 @@ export function DashboardView({ user, stats, recentChecklists, blueprintMap, llm
       icon: Pencil,
       action: (id) => {
         router.push(`/checklists/${id}`);
-      },
-    },
-    {
-      label: "Sync with Template",
-      icon: RefreshCw,
-      action: async (id) => {
-        await bulkSyncChecklists([id]);
-        router.refresh();
       },
     },
     {

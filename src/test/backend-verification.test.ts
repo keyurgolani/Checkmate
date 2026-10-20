@@ -122,7 +122,6 @@ describe('Backend Setup Verification', () => {
       expect(fields).toContain('blueprint');
       expect(fields).toContain('user');
       expect(fields).toContain('name');
-      expect(fields).toContain('isSynced');
       expect(fields).toContain('progress');
       expect(fields).toContain('completedAt');
     });

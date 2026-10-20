@@ -13,7 +13,7 @@
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
-import { CheckCircle2, Circle, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle2, Circle, Clock } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EntityContextMenu, type ContextMenuItemConfig } from "@/components/shared/entity-context-menu";
@@ -26,7 +26,6 @@ export interface ChecklistCardData {
   templateId: string;
   templateTitle: string;
   progress: number;
-  isSynced: boolean;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -43,21 +42,12 @@ interface ChecklistCardProps {
   onEnterSelectionMode?: (id: string) => void;
 }
 
-function StatusBadge({ isComplete, isSynced }: { isComplete: boolean; isSynced: boolean }) {
+function StatusBadge({ isComplete }: { isComplete: boolean }) {
   if (isComplete) {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-green-500/10 dark:text-green-400 border border-emerald-200 dark:border-green-500/20">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Complete
-      </span>
-    );
-  }
-
-  if (!isSynced) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
-        <RefreshCw className="h-3 w-3" />
-        Modified
       </span>
     );
   }
@@ -110,7 +100,7 @@ export function ChecklistCard({
           <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
             {checklist.name}
           </h3>
-          <StatusBadge isComplete={isComplete} isSynced={checklist.isSynced} />
+          <StatusBadge isComplete={isComplete} />
         </div>
         <p className="text-sm text-muted-foreground truncate">
           From: {checklist.templateTitle}
@@ -163,7 +153,7 @@ export function ChecklistCard({
           <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {checklist.name}
           </h3>
-          <StatusBadge isComplete={isComplete} isSynced={checklist.isSynced} />
+          <StatusBadge isComplete={isComplete} />
         </div>
 
         <p className="text-sm text-muted-foreground mb-4 truncate">

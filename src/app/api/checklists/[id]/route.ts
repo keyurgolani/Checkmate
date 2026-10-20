@@ -30,7 +30,6 @@ interface ChecklistResponse {
     blueprintId: string;
     userId: string;
     name: string;
-    isSynced: boolean;
     progress: number;
     completedAt: string | null;
     description: string | null;
@@ -85,7 +84,6 @@ function formatChecklist(checklist: {
   blueprint: string;
   user: string;
   name: string;
-  isSynced: boolean;
   progress: number;
   completedAt: string | null;
   description: string | null;
@@ -98,7 +96,6 @@ function formatChecklist(checklist: {
     blueprintId: checklist.blueprint,
     userId: checklist.user,
     name: checklist.name,
-    isSynced: checklist.isSynced,
     progress: checklist.progress,
     completedAt: checklist.completedAt,
     description: checklist.description,
@@ -182,12 +179,12 @@ export const GET = withAuth<{ id: string }, ChecklistResponse>(
     let checklistTasks;
     if (includeItems) {
       const tasks = await checklistService.getTasks(id, { sort: 'path,position' });
-      checklistTasks = tasks.map((task) => formatChecklistItem(task as any));
+      checklistTasks = tasks.map((task) => formatChecklistItem(task));
     }
 
     return NextResponse.json<ChecklistResponse>({
       success: true,
-      checklist: formatChecklist(checklist as any),
+      checklist: formatChecklist(checklist),
       ...(checklistTasks && { checklistItems: checklistTasks }),
     });
   }
@@ -255,7 +252,7 @@ export const PUT = withAuth<{ id: string }, ChecklistResponse>(
 
     return NextResponse.json<ChecklistResponse>({
       success: true,
-      checklist: formatChecklist(result.data.checklist as any),
+      checklist: formatChecklist(result.data.checklist),
     });
   }
 );

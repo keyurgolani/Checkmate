@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   Circle,
-  RefreshCw,
   Clock,
   ExternalLink,
   ListChecks,
@@ -64,7 +63,6 @@ interface ChecklistData {
   progress: number;
   totalItems: number;
   completedItems: number;
-  isSynced: boolean;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -79,13 +77,7 @@ interface ChecklistDetailClientProps {
 // Status Badge Component
 // ============================================================================
 
-function StatusBadge({
-  isComplete,
-  isSynced,
-}: {
-  isComplete: boolean;
-  isSynced: boolean;
-}) {
+function StatusBadge({ isComplete }: { isComplete: boolean }) {
   if (isComplete) {
     return (
       <span
@@ -94,18 +86,6 @@ function StatusBadge({
       >
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
         <span>Complete</span>
-      </span>
-    );
-  }
-
-  if (!isSynced) {
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-        title="Has custom changes"
-      >
-        <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>Modified</span>
       </span>
     );
   }
@@ -152,7 +132,6 @@ export function ChecklistDetailClient({
           ...prev,
           progress: event.record.progress,
           completedAt: event.record.completedAt,
-          isSynced: event.record.isSynced,
           description: event.record.description,
           resources: event.record.resources ?? null,
         }));
@@ -404,7 +383,7 @@ export function ChecklistDetailClient({
                   {checklist.name}
                 </h1>
                 <div>
-                  <StatusBadge isComplete={isComplete} isSynced={checklist.isSynced} />
+                  <StatusBadge isComplete={isComplete} />
                 </div>
                 <Button
                     variant="outline"

@@ -167,7 +167,6 @@ describe('Integration Tests - Complex Scenarios', () => {
         blueprint: templateC.id, // DB field name is blueprint
         user: nestedUser.id,
         name: 'Checklist of Template C',
-        isSynced: true,
         progress: 0,
       });
 
@@ -239,7 +238,6 @@ describe('Integration Tests - Complex Scenarios', () => {
         blueprint: template.id, // DB field name
         user: progressUser.id,
         name: 'Test Checklist',
-        isSynced: true,
         progress: 0,
       });
 
@@ -398,7 +396,6 @@ describe('Integration Tests - Complex Scenarios', () => {
         blueprint: publicTemplate.id, // DB field name
         user: user1.id,
         name: 'User 1 Checklist',
-        isSynced: true,
         progress: 0,
       });
 
@@ -410,7 +407,6 @@ describe('Integration Tests - Complex Scenarios', () => {
         blueprint: publicTemplate.id, // DB field name
         user: user2.id,
         name: 'User 2 Checklist',
-        isSynced: true,
         progress: 0,
       });
 
@@ -490,7 +486,6 @@ describe('Integration Tests - Complex Scenarios', () => {
         blueprint: template.id, // DB field name
         user: persistenceUser.id,
         name: 'Persistent Checklist',
-        isSynced: true,
         progress: 50,
       });
 

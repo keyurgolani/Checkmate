@@ -316,7 +316,6 @@ export const checklistArb = fc.record({
   blueprint: fc.uuid(), // DB field remains blueprint
   user: fc.uuid(),
   name: fc.string({ minLength: 1, maxLength: 200 }),
-  isSynced: fc.boolean(),
   progress: fc.float({ min: 0, max: 100, noNaN: true }),
   completedAt: fc.option(timestampArb.map(d => d.toISOString())),
 });

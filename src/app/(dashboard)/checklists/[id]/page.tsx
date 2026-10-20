@@ -94,7 +94,6 @@ export default async function ChecklistDetailPage({
         progress: progress.percentage,
         totalItems: progress.totalItems,
         completedItems: progress.completedItems,
-        isSynced: checklist.isSynced,
         completedAt: checklist.completedAt,
         createdAt: checklist.created,
         updatedAt: checklist.updated,
