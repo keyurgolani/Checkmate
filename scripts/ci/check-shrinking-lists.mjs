@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Lists that may only shrink (#30, CHECKMATE-01.2 · envelope): a change may
- * lower an entry's count or drop the entry, never raise a count or add an
- * entry. Each list is compared with its copy at the merge base.
+ * Lists that may only shrink (#30, CHECKMATE-01.2 · envelope; #29,
+ * CHECKMATE-01.1 · adapter): a change may lower an entry's count or drop the
+ * entry, never raise a count or add an entry. Each list is compared with its
+ * copy at the merge base.
  *
  *   node scripts/ci/check-shrinking-lists.mjs --base <sha> [--head <ref>]
  */
@@ -12,7 +13,7 @@ import { parseArgs } from 'node:util';
 import { isMain, REPO_ROOT } from './lib/actions.mjs';
 
 /** Files holding a `{ 'entry': count }` object literal, one entry per line. */
-export const SHRINKING_LISTS = ['src/lib/api/codeless-error-bodies.ts'];
+export const SHRINKING_LISTS = ['src/lib/api/codeless-error-bodies.ts', 'src/lib/domain/legacy-name-baseline.ts'];
 
 const ENTRY = /^\s*'([^']+)':\s*(\d+),?\s*$/gm;
 
