@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { DECISION_RECORDS, DOMAIN_CONTRACT_VERSION, leafIssue, type LeafId } from './contract';
-import { GLOSSARY_FILE, renderGlossary } from './glossary-markdown';
+import { GLOSSARY_FILE, linkLeaves, renderGlossary } from './glossary-markdown';
 import { AGGREGATES, COMMANDS, IMMUTABLE_RECORDS, MINIMUM_STATES, TRANSITION_TABLES } from './lifecycles';
 import { COLLECTIONS, PURGES, RELATIONS } from './retention';
 import {
@@ -229,29 +229,49 @@ describe('glossary.md', () => {
     expect(row).toContain(term.label ?? 'Not shown');
     expect(row).toContain(`\`${term.domainName}\``);
     if (term.storage.name !== null) expect(row).toContain(`\`${term.storage.name}\``);
-    expect(row).toContain(`[${term.owner}](https://github.com/keyurgolani/Checkmate/issues/${leafIssue(term.owner)})`);
+    const issue = leafIssue(term.owner);
+    expect(row).toContain(`[#${issue}](https://github.com/keyurgolani/Checkmate/issues/${issue}) (CHECKMATE-${term.owner})`);
+  });
+
+  it('links leaf IDs outside code spans, and refuses an ID that is not a filed leaf', () => {
+    expect(linkLeaves('Frozen by 03.1. Pinned to `03.1`.')).toBe(
+      'Frozen by [#35](https://github.com/keyurgolani/Checkmate/issues/35) (CHECKMATE-03.1). Pinned to `03.1`.',
+    );
+    expect(linkLeaves('PocketBase 0.25.9, contract 1.0.0, CHECKMATE-04.1, 12.30 and #29')).toBe(
+      'PocketBase 0.25.9, contract 1.0.0, CHECKMATE-04.1, 12.30 and #29',
+    );
+    expect(() => linkLeaves('Owned by 05.4.')).toThrow(RangeError);
   });
 });
 
 describe('decision records', () => {
   const DIRECTORY = 'docs/architecture/decisions';
+  const files = fs.readdirSync(path.join(ROOT, DIRECTORY)).filter((file) => file.endsWith('.md'));
 
-  it('has the records #29 lists', () => {
+  it('has the records #29 lists, named by topic like the other leaves\' records', () => {
     expect(DECISION_RECORDS.map((record) => record.id)).toEqual([
-      '01.1-run',
-      '01.1-blueprint',
-      '01.1-step-and-task',
-      '01.1-section-and-reference',
-      '01.1-step-key',
-      '01.1-aggregates',
-      '01.1-revision-store',
-      '01.1-retention',
-      '01.1-ia-map',
-      '01.1-visibility',
-      '01.1-personal-presentation',
+      'run',
+      'blueprint',
+      'step-and-task',
+      'section-and-reference',
+      'step-key',
+      'aggregates',
+      'revision-store',
+      'retention',
+      'ia-map',
+      'visibility',
+      'personal-presentation',
     ]);
-    const files = fs.readdirSync(path.join(ROOT, DIRECTORY)).filter((file) => file.startsWith('01.1-'));
-    expect(files.sort()).toEqual(DECISION_RECORDS.map((record) => `${record.id}.md`).sort());
+    for (const record of DECISION_RECORDS) expect(files, record.id).toContain(`${record.id}.md`);
+    for (const file of files) expect(file, 'one naming convention').toMatch(/^[a-z][a-z0-9]*(-[a-z0-9]+)*\.md$/);
+  });
+
+  it.each(files)('%s has a status and superseded clauses', (file) => {
+    const text = read(`${DIRECTORY}/${file}`);
+    expect(text).toMatch(/^# .+\n/);
+    expect(text).toMatch(/^- Status: (Accepted|Proposed|Superseded)$/m);
+    expect(text).toMatch(/^- Supersedes: .+$/m);
+    expect(text).toMatch(/^- Superseded by: .+$/m);
   });
 
   it.each(DECISION_RECORDS.map((record) => [record.id, record] as const))('%s has a title, status, contract and superseded clauses', (_id, record) => {

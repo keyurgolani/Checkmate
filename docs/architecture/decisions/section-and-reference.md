@@ -14,7 +14,7 @@ Steps have three item types: `task`, `reference` and `phase`. A reference step r
 1. Phase becomes Section, the `section@1` kind. Sections never count toward progress.
 2. A reference becomes `legacy-reference@1`. Run creation resolves it to the target's current published revision ([04.1](https://github.com/keyurgolani/Checkmate/issues/38)), and the run keeps that revision.
 3. A legacy reference is never a Module Include. Converting one is an explicit [06.1](https://github.com/keyurgolani/Checkmate/issues/44) action, and it is lossy.
-4. A legacy reference counts toward progress only when it has no child steps.
+4. A legacy reference counts toward progress only when it has no included child steps. Excluded and retired children aren't in the run, so a reference left with only those is checkable itself.
 
 ## Consequences
 

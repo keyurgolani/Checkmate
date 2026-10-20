@@ -28,19 +28,26 @@ export const DRAFT_COMMANDS = [
   'SetHeaderField',
 ] as const;
 
-/** Every command #29 names, with the leaf that builds it. #30's matrix rows use these names. */
+/**
+ * Every command the transition tables, retention and action labels name, plus
+ * the run upgrade commands #29 names for #30, with the leaf that builds each.
+ * #30's matrix rows use these names.
+ */
 export const COMMANDS = {
   DeleteAccount: { owner: '02.1', note: 'Soft delete. The account purge follows the grace period.' },
   DeleteWorkspace: { owner: '03.1', note: 'Soft delete. The workspace purge follows the grace period.' },
-  TransferOwnership: { owner: '03.1' },
   CreateShareCapability: { owner: '03.3' },
   RevokeShareCapability: { owner: '03.3' },
-  RevokeAllShareCapabilities: { owner: '03.3', note: 'For a workspace, or the whole deployment.' },
+  RevokeAllShareCapabilities: {
+    owner: '03.3',
+    note: 'One command for both revoke-all surfaces: a workspace, and the whole deployment on the operator surface. 01.2 gives it a matrix row per surface.',
+  },
   CreateTemplateDraft: { owner: '04.1', note: 'Create, copy, duplicate, import and fork.' },
-  DraftCommand: { owner: '04.1', note: `Any of 04.1's draft ops: ${DRAFT_COMMANDS.join(', ')}.` },
+  DraftCommand: { owner: '04.1', note: `Any one of the draft ops: ${DRAFT_COMMANDS.map((op) => `\`${op}\``).join(', ')}.` },
   PublishRevision: { owner: '04.1', note: 'Shown as "Release revision N".' },
   DeprecateRevision: { owner: '04.3' },
   UndeprecateRevision: { owner: '04.3' },
+  RestoreRevisionToDraft: { owner: '04.3', note: 'Replays an older revision into the draft, alone or as part of a rollback.' },
   ArchiveTemplate: { owner: '04.3', note: 'Soft delete. The template is purged with its workspace.' },
   CreateRun: { owner: '07.1' },
   StartRunFromDraft: { owner: '07.1', note: 'Releases revision N and starts a run in one attributed command.' },
@@ -155,6 +162,8 @@ export const TEMPLATE_DRAFT: Lifecycle<DraftState> = {
     { from: 'dirty', to: 'clean', cause: by('PublishRevision') },
     { from: 'new', to: 'clean', cause: by('StartRunFromDraft') },
     { from: 'dirty', to: 'clean', cause: by('StartRunFromDraft') },
+    { from: 'clean', to: 'dirty', cause: by('RestoreRevisionToDraft', 'an older revision replaces the draft') },
+    { from: 'dirty', to: 'clean', cause: by('RestoreRevisionToDraft', 'as part of a rollback, which leaves the draft equal to the new revision') },
   ],
 };
 
@@ -183,7 +192,7 @@ export const RUN: Lifecycle<RunStatus> = {
   initial: [
     { state: 'active', cause: by('CreateRun') },
     { state: 'active', cause: by('StartRunFromDraft') },
-    { state: 'scheduled', cause: by('CreateRun', 'for an 08.2 schedule occurrence') },
+    { state: 'scheduled', cause: by('CreateRun', 'for a schedule occurrence') },
   ],
   terminal: ['cancelled'],
   transitions: [
@@ -193,6 +202,7 @@ export const RUN: Lifecycle<RunStatus> = {
       to: 'completed',
       cause: by('CompleteRun', 'fires by itself only when a step moves to completed and done reaches executable'),
     },
+    { from: 'scheduled', to: 'completed', cause: by('CompleteRun', 'a run with no executable steps offers it before any step changes') },
     { from: 'completed', to: 'active', cause: by('ReopenRun') },
     { from: 'scheduled', to: 'cancelled', cause: by('CancelRun') },
     { from: 'active', to: 'cancelled', cause: by('CancelRun') },
@@ -213,15 +223,18 @@ export const RUN_STEP_STATE: Lifecycle<StepState> = {
   transitions: [
     { from: 'pending', to: 'completed', cause: by('SetStepState') },
     { from: 'pending', to: 'awaiting_approval', cause: by('SetStepState', 'requests approval') },
-    { from: 'pending', to: 'excepted', cause: by('SetStepState', "with one of 08.3's exception kinds") },
+    { from: 'pending', to: 'excepted', cause: by('SetStepState', 'with an exception kind: skip, not-applicable or deviation') },
     { from: 'awaiting_approval', to: 'completed', cause: by('DecideApproval', 'approve') },
     { from: 'awaiting_approval', to: 'pending', cause: by('DecideApproval', 'reject, with a rework reason') },
     ...(['completed', 'excepted'] as const).flatMap((from): Transition<StepState>[] => [
       { from, to: 'pending', cause: by('SetStepState', 'reopen') },
-      { from, to: 'invalidated', cause: by('ApplyRunUpgrade') },
-      { from, to: 'invalidated', cause: by('SetStepState', 'a subject step reopens') },
-      { from, to: 'invalidated', cause: by('DecideApproval', 'rescind') },
+      { from, to: 'pending', cause: by('DecideApproval', 'a rejected approval reopens the subject steps it names') },
+      { from, to: 'pending', cause: by('ApplyRunUpgrade', 'reconfirm reopens a changed done step, until 10.2 makes it invalidate') },
+      { from, to: 'invalidated', cause: by('ApplyRunUpgrade', 'reconfirm, once 10.2 lands') },
     ]),
+    // Only an approval step is invalidated by these, and an approval step can't be excepted.
+    { from: 'completed', to: 'invalidated', cause: by('SetStepState', 'a subject step of the approval reopens') },
+    { from: 'completed', to: 'invalidated', cause: by('DecideApproval', 'rescind') },
     { from: 'invalidated', to: 'pending', cause: by('SetStepState', 'reopen') },
   ],
 };
@@ -235,15 +248,16 @@ export const RUN_STEP_INCLUSION: Lifecycle<StepInclusion> = {
     { state: 'included', cause: by('CreateRun') },
     { state: 'included', cause: by('StartRunFromDraft') },
     { state: 'included', cause: by('ApplyRunUpgrade', 'a step the upgrade adds') },
-    { state: 'excluded', cause: by('CreateRun', 'its 08.3 condition is false') },
-    { state: 'excluded', cause: by('ApplyRunUpgrade', "an added step's 08.3 condition is false") },
+    { state: 'excluded', cause: by('CreateRun', 'its condition is false') },
+    { state: 'excluded', cause: by('ApplyRunUpgrade', "an added step's condition is false") },
   ],
   terminal: [],
   transitions: [
     { from: 'included', to: 'retired', cause: by('ApplyRunUpgrade', 'the new revision drops the step, which keeps its state and history') },
     { from: 'retired', to: 'included', cause: by('ApplyRunUpgrade', 'a reversal plan brings the step back') },
-    { from: 'included', to: 'excluded', cause: by('ApplyRunUpgrade', "a pending step's 08.3 condition turns false") },
-    { from: 'excluded', to: 'included', cause: by('ApplyRunUpgrade', 'its 08.3 condition turns true') },
+    { from: 'included', to: 'excluded', cause: by('ApplyRunUpgrade', "a pending step's condition turns false") },
+    { from: 'excluded', to: 'included', cause: by('ApplyRunUpgrade', 'its condition turns true') },
+    { from: 'excluded', to: 'retired', cause: by('ApplyRunUpgrade', 'the new revision drops the step') },
   ],
 };
 
@@ -279,18 +293,15 @@ export const LIFECYCLES = {
   shareCapability: SHARE_CAPABILITY,
 } as const;
 
-/** Every transition table, both Run Step fields included. */
-export const TRANSITION_TABLES: readonly Lifecycle[] = [
-  TEMPLATE_DRAFT,
-  TEMPLATE_REVISION,
-  RUN,
-  RUN_STEP_STATE,
-  RUN_STEP_INCLUSION,
-  SHARE_CAPABILITY,
-];
+/** Every transition table in `LIFECYCLES`, both Run Step fields included. */
+export const TRANSITION_TABLES: readonly Lifecycle[] = Object.values(LIFECYCLES).flatMap(
+  (entry): readonly Lifecycle[] => ('states' in entry ? [entry] : [entry.state, entry.inclusion]),
+);
 
 export interface MinimumStates {
   readonly entity: string;
+  /** Where the state lives, when the owner names the field. */
+  readonly field?: string;
   readonly states: readonly string[];
   readonly owner: LeafId;
   readonly note?: string;
@@ -299,7 +310,7 @@ export interface MinimumStates {
 /** The states other entities start with. Owners extend them and never contradict them. */
 export const MINIMUM_STATES: readonly MinimumStates[] = [
   { entity: 'Account', states: ['active', 'deletion_pending', 'purged'], owner: '02.1' },
-  { entity: 'Secret Reference', states: ['active', 'unusable', 'revoked'], owner: '02.2' },
+  { entity: 'Secret Reference', field: 'secret_references.state', states: ['active', 'unusable', 'revoked'], owner: '02.2' },
   {
     entity: 'Workspace',
     states: ['active', 'archived', 'deletion_pending', 'purged'],
@@ -308,25 +319,49 @@ export const MINIMUM_STATES: readonly MinimumStates[] = [
   },
   {
     entity: 'Invitation',
+    field: 'invitations.status',
     states: ['pending', 'accepted', 'expired', 'revoked'],
     owner: '03.1',
     note: 'Baseline `collaborators.acceptedAt`.',
   },
-  { entity: 'Participant', states: ['active', 'suspended', 'revoked', 'expired'], owner: '03.2' },
-  { entity: 'Template', states: ['active', 'deprecated', 'archived'], owner: '04.3', note: '`archived` is read-only.' },
+  { entity: 'Participant', field: 'runParticipants.status', states: ['active', 'suspended', 'revoked', 'expired'], owner: '03.2' },
+  {
+    entity: 'Template',
+    field: 'blueprints.lifecycleState',
+    states: ['active', 'deprecated', 'archived'],
+    owner: '04.3',
+    note: '`archived` is read-only.',
+  },
   {
     entity: 'Update Notice',
+    field: 'updateNotices.state',
     states: ['open', 'deferred', 'applied', 'superseded'],
     owner: '01.1',
     note: '06.3 creates the collection. When a deferral expires, the notice is open again.',
   },
-  { entity: 'Assignment', states: ['assigned', 'claimed', 'released', 'unassigned', 'closed'], owner: '08.1' },
-  { entity: 'Schedule', states: ['active', 'paused', 'ended'], owner: '08.2' },
-  { entity: 'Evidence', states: ['attached', 'superseded'], owner: '10.1' },
-  { entity: 'Comment', states: [], owner: '10.1', note: '10.1 defines its states.' },
-  { entity: 'Catalog Package', states: ['listed', 'unlisted'], owner: '13.1', note: 'The listing state of each version.' },
-  { entity: 'Installation', states: ['installed', 'quarantined', 'removed'], owner: '13.3' },
-  { entity: 'Automation Definition', states: ['inactive', 'active', 'paused', 'suspended', 'archived'], owner: '15.3' },
+  {
+    entity: 'Assignment',
+    field: 'assignments.state',
+    states: ['assigned', 'claimed', 'released', 'unassigned', 'closed'],
+    owner: '08.1',
+  },
+  { entity: 'Schedule', field: 'schedules.state', states: ['active', 'paused', 'ended'], owner: '08.2' },
+  { entity: 'Evidence', field: 'evidence.state', states: ['attached', 'superseded'], owner: '10.1' },
+  { entity: 'Comment', field: 'comments.state', states: [], owner: '10.1', note: 'Left to the owner, which plans `visible` and `deleted`.' },
+  {
+    entity: 'Catalog Package',
+    field: 'catalogListings.state',
+    states: ['listed', 'unlisted'],
+    owner: '13.1',
+    note: 'The listing state of each version.',
+  },
+  { entity: 'Installation', field: 'installations.state', states: ['installed', 'quarantined', 'removed'], owner: '13.3' },
+  {
+    entity: 'Automation Definition',
+    field: 'automations.status',
+    states: ['inactive', 'active', 'paused', 'suspended', 'archived'],
+    owner: '15.3',
+  },
 ];
 
 export interface ImmutableRecord {
@@ -374,18 +409,44 @@ export const AGGREGATES: readonly Aggregate[] = [
   { name: 'Schedule', root: 'schedules', owner: '08.2', members: ['schedules'], excludes: [] },
 ];
 
-/**
- * Commands that check `aggregateRevision` before they write. `MoveStep` is
- * the reorder op. 11.1 bumps the counter once per accepted command.
- */
-export const AGGREGATE_REVISION_CHECKS = [
-  'PublishRevision',
-  'CompleteRun',
-  'ReopenRun',
-  'CancelRun',
-  'ApplyRunUpgrade',
-  'MoveStep',
-] as const satisfies readonly (CommandName | (typeof DRAFT_COMMANDS)[number])[];
+export type DraftOp = (typeof DRAFT_COMMANDS)[number];
 
-/** Step commands check `stepRevision` and bump both counters. */
-export const STEP_REVISION_CHECKS = ['SetStepState', 'DecideApproval'] as const satisfies readonly CommandName[];
+interface PreconditionClass {
+  readonly commands: readonly (CommandName | DraftOp)[];
+  readonly note: string;
+}
+
+/**
+ * What each command checks before it writes (04.1, 11.1), besides its
+ * idempotency key. `aggregateRevision` and `stepRevision` are the two
+ * counters, which 11.1 bumps on every accepted command. `SetInclude` and
+ * `SetLock` are refused until 06.1, which sets their check. A command not
+ * listed here gets its check from its owner.
+ */
+export const PRECONDITIONS = {
+  aggregateRevision: {
+    commands: [
+      'PublishRevision',
+      'StartRunFromDraft',
+      'RestoreRevisionToDraft',
+      'CompleteRun',
+      'ReopenRun',
+      'CancelRun',
+      'ApplyRunUpgrade',
+      'MoveStep',
+    ],
+    note: 'A draft call with several ops checks it too, whatever the ops are.',
+  },
+  stepRevision: {
+    commands: ['SetStepState', 'DecideApproval', 'UpdateStep', 'RemoveStep'],
+    note: 'Edits to different steps never conflict.',
+  },
+  lastSeenValue: {
+    commands: ['SetHeaderField', 'SetQuestion'],
+    note: 'The caller sends the value it last saw, and the write fails only if that field changed.',
+  },
+  none: {
+    commands: ['AddStep', 'CreateTemplateDraft', 'CreateRun'],
+    note: 'Nothing but the idempotency key.',
+  },
+} as const satisfies Record<string, PreconditionClass>;

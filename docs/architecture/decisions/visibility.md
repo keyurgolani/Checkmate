@@ -13,7 +13,7 @@ One `visibility` select (`private`, `public`, `shared`) decides both who can wor
 
 1. Sharing and catalog listing are separate decisions with separate records. Sharing is a Membership or Grant ([03.1](https://github.com/keyurgolani/Checkmate/issues/35)) or a share link ([03.3](https://github.com/keyurgolani/Checkmate/issues/37)). Listing is `PublishToCatalog` ([13.1](https://github.com/keyurgolani/Checkmate/issues/65)).
 2. `visibility` stays until 03.1 turns `shared` into Grants and 13.1 replaces `public` with `PublishToCatalog`.
-3. A template can be private, shared with a workspace, shared by link, published to the catalog, installed and forked. Each has its own authority, per PRODUCT.md's sharability model.
+3. Per PRODUCT.md's sharability model, a template can be private, workspace-shared, link-shared, catalog-published, installed, forked and upgraded. Each has its own authority.
 
 ## Consequences
 

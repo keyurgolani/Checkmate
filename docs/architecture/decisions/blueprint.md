@@ -12,10 +12,10 @@ Templates are stored in `blueprints`, and other rows point at them through `blue
 ## Decision
 
 1. Template is the entity, domain, API and UI term. Blueprint is retired as an entity word.
-2. "Blueprint" survives only as the name of [16.3](https://github.com/keyurgolani/Checkmate/issues/76)'s file form, a workflow document written as YAML or JSON text.
-3. `blueprints` and `blueprint` stay storage names behind the 01.1 adapter. The adapter maps the canonical `template_updated` notification type and the activity resource types to their stored values.
+2. "Blueprint" survives only as the name of the file form that [16.3](https://github.com/keyurgolani/Checkmate/issues/76) adds, a workflow document written as YAML or JSON text.
+3. `blueprints` and `blueprint` stay storage names behind one adapter, which the next pull request for [01.1](https://github.com/keyurgolani/Checkmate/issues/29) adds. The adapter maps the canonical `template_updated` notification type and the activity resource types to their stored values.
 
 ## Consequences
 
-- `01.1 · adapter` adds the mapping, and its ratchet stops new code from adding legacy names outside `src/lib/domain/`.
-- [#1](https://github.com/keyurgolani/Checkmate/issues/1) has the matching exit criterion. Blueprint, Instance and InstanceItem leave the UI and API as entity names, and "blueprint" survives only as 16.3's file form.
+- The adapter pull request adds the mapping and a ratchet test, which fails when new code adds a legacy name outside `src/lib/domain/`.
+- [#1](https://github.com/keyurgolani/Checkmate/issues/1) has the matching exit criterion. Blueprint, Instance and InstanceItem leave the UI and API as entity names, and "blueprint" survives only as the 16.3 file form.

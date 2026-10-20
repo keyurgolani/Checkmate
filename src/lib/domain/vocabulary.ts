@@ -55,7 +55,8 @@ export const ENTITIES: readonly Term[] = [
   },
   {
     name: 'Secret Reference',
-    label: 'Credential',
+    label: null,
+    labelNote: 'Settings lists each one under its own label, which defaults to the provider name.',
     domainName: 'SecretReference',
     storage: planned('secret_references', { addedBy: '00.2' }),
     owner: '02.2',
@@ -92,7 +93,7 @@ export const ENTITIES: readonly Term[] = [
     domainName: 'TemplateRevision',
     storage: planned('templateRevisions'),
     owner: '04.1',
-    meaning: 'An immutable, numbered release of a draft. It can be addressed, diffed and rolled back to.',
+    meaning: 'An immutable, numbered release of a draft. It can be published, addressed, diffed and rolled back to.',
   },
   {
     name: 'Step Definition',
@@ -110,7 +111,8 @@ export const ENTITIES: readonly Term[] = [
     domainName: 'ModuleInclude',
     storage: planned('moduleLocks', { note: 'The include is a `module-include@1` step; the lock pins its revision.' }),
     owner: '06.1',
-    meaning: "Includes one published revision of another template, with parameters and role slots, and keeps that revision's provenance.",
+    meaning:
+      'Binds one published revision of another template, or a compatible revision range, with parameters and role slots, without copying away its provenance.',
   },
   {
     name: 'Run',
@@ -201,7 +203,8 @@ export const ENTITIES: readonly Term[] = [
     domainName: 'ShareCapability',
     storage: planned('shareCapabilities'),
     owner: '03.3',
-    meaning: 'A revocable, expiring link that grants one declared view and its actions on a template, run, progress view or completion record.',
+    meaning:
+      'A revocable, expiring, optionally authenticated link that grants one declared view and its actions on a template, run, progress view or completion record.',
   },
   {
     name: 'Catalog Package',
@@ -209,7 +212,8 @@ export const ENTITIES: readonly Term[] = [
     domainName: 'CatalogPackage',
     storage: planned('packageVersions'),
     owner: '13.1',
-    meaning: 'Signed, versioned template revisions with their dependencies, permissions, compatibility and provenance.',
+    meaning:
+      'Signed, versioned template revisions with their dependencies, permissions, compatibility, provenance and reviewable upgrade behavior.',
   },
   {
     name: 'Schedule',
@@ -233,7 +237,7 @@ export const ENTITIES: readonly Term[] = [
     domainName: 'CompletionRecord',
     storage: planned('completionRecords'),
     owner: '10.3',
-    meaning: 'Immutable, portable proof of a completed run: its revision, inputs, decisions, evidence, actors and events.',
+    meaning: 'Immutable, portable proof of a completed run: its revision, inputs, decisions, evidence, actors and event chain.',
   },
 ];
 
@@ -249,7 +253,8 @@ export const SUPPORTING_TERMS: readonly Term[] = [
   },
   {
     name: 'Grant',
-    label: 'Shared access',
+    label: null,
+    labelNote: 'Screens list each person with a role, and 03.1 sums them up as "Shared with N people".',
     domainName: 'Grant',
     storage: baseline('collaborators', { movesTo: { name: 'memberships', by: '03.1' } }),
     owner: '03.1',
@@ -358,7 +363,7 @@ export const SUPPORTING_TERMS: readonly Term[] = [
   },
   {
     name: 'Account Preferences',
-    label: 'Preferences',
+    label: 'Account settings',
     domainName: 'AccountPreferences',
     storage: baseline('users.preferences', { movesTo: { name: 'accountPreferences', by: '17.1' } }),
     owner: '17.1',
@@ -377,7 +382,7 @@ export const SUPPORTING_TERMS: readonly Term[] = [
     name: 'Step Key',
     label: 'Step key',
     domainName: 'stepKey',
-    storage: planned('items.stepKey', { addedBy: '04.1', note: 'Run steps keep it in `instanceItems.stepKey` (07.2).' }),
+    storage: planned('items.stepKey', { addedBy: '04.1', note: 'Run steps keep it in `instanceItems.stepKey`, which 07.2 adds.' }),
     owner: '01.1',
     meaning: "A step's stable, opaque identity across edits, revisions, copies, forks, exports and runs.",
   },
@@ -429,7 +434,7 @@ export const SUPPORTING_TERMS: readonly Term[] = [
     label: null,
     labelNote: 'Screens show its content.',
     domainName: 'Projection',
-    storage: notStored('A read model, by default a bounded indexed query (18.1).'),
+    storage: notStored('A read model, by default a bounded indexed query from 18.1.'),
     owner: '01.1',
     meaning: 'An authorized server read model. Only audit, reports and catalog aggregates are built from events.',
   },
@@ -477,7 +482,7 @@ export const RETIRED_WORDS: readonly RetiredWord[] = [
   {
     word: 'Blueprint',
     use: 'Template',
-    note: 'Survives only as the name of the YAML or JSON file form (16.3).',
+    note: 'Survives only as the name of the YAML or JSON file form that 16.3 adds.',
   },
   {
     word: 'Checklist',
@@ -542,8 +547,8 @@ export interface RouteMove {
 
 /**
  * Permanent 308 redirects. Each covers the path and every path under it,
- * print routes included. 21.2 adds all but `/dashboard`, which 08.1 slice 0
- * adds with Today.
+ * print routes included. 21.2 adds all but `/dashboard`, which 08.1 adds when
+ * it ships Today.
  */
 export const ROUTE_MOVES: readonly RouteMove[] = [
   { from: '/dashboard', to: '/today', by: '08.1' },

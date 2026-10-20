@@ -9,15 +9,14 @@ import { describe, expect, it } from 'vitest';
 import { leafIssue } from './contract';
 import {
   AGGREGATES,
-  AGGREGATE_REVISION_CHECKS,
   COMMANDS,
   DRAFT_COMMANDS,
   IMMUTABLE_RECORDS,
   LIFECYCLES,
   MINIMUM_STATES,
+  PRECONDITIONS,
   RUN_FACETS,
   STATELESS_FIELDS,
-  STEP_REVISION_CHECKS,
   TRANSITION_TABLES,
   type CommandName,
   type Lifecycle,
@@ -119,7 +118,12 @@ describe('Template Draft and Revision', () => {
     expect(causes(draft, 'new', 'clean')).toContain('PublishRevision');
     expect(causes(draft, 'dirty', 'clean')).toContain('PublishRevision');
     expect(causes(draft, 'new', 'dirty')).toEqual(['DraftCommand']);
-    expect(causes(draft, 'clean', 'dirty')).toEqual(['DraftCommand']);
+    expect(causes(draft, 'clean', 'dirty')).toEqual(['DraftCommand', 'RestoreRevisionToDraft']);
+  });
+
+  it('lets a rollback restore leave the draft clean (04.3)', () => {
+    expect(causes(draft, 'dirty', 'clean')).toEqual(['PublishRevision', 'StartRunFromDraft', 'RestoreRevisionToDraft']);
+    expect(COMMANDS.RestoreRevisionToDraft.owner).toBe('04.3');
   });
 
   it('keeps a revision published or deprecated', () => {
@@ -139,9 +143,15 @@ describe('Run', () => {
     const into = run.transitions.filter((transition) => transition.to === 'completed');
     expect(into.map((transition) => (transition.cause.kind === 'command' ? transition.cause.command : transition.cause.kind))).toEqual([
       'CompleteRun',
+      'CompleteRun',
     ]);
     expect(exits(run, 'completed')).toEqual(['active']);
     expect(causes(run, 'completed', 'active')).toEqual(['ReopenRun']);
+  });
+
+  it('lets a scheduled run with no executable steps complete without starting', () => {
+    expect(causes(run, 'scheduled', 'completed')).toEqual(['CompleteRun']);
+    expect(causes(run, 'active', 'completed')).toEqual(['CompleteRun']);
   });
 
   it('makes cancelled terminal through CancelRun', () => {
@@ -185,16 +195,27 @@ describe('Run Step', () => {
     expect(causes(state, 'awaiting_approval', 'completed')).toEqual(['DecideApproval']);
     expect(causes(state, 'awaiting_approval', 'pending')).toEqual(['DecideApproval']);
     for (const from of ['completed', 'excepted']) {
-      expect(causes(state, from, 'pending')).toEqual(['SetStepState']);
-      expect(causes(state, from, 'invalidated').sort()).toEqual(['ApplyRunUpgrade', 'DecideApproval', 'SetStepState']);
+      // A reopen, a rejected approval's subject reopen, or an upgrade's reconfirm (#49, #57).
+      expect(causes(state, from, 'pending').sort()).toEqual(['ApplyRunUpgrade', 'DecideApproval', 'SetStepState']);
     }
+    expect(causes(state, 'completed', 'invalidated').sort()).toEqual(['ApplyRunUpgrade', 'DecideApproval', 'SetStepState']);
     expect(exits(state, 'invalidated')).toEqual(['pending']);
     expect(causes(state, 'invalidated', 'pending')).toEqual(['SetStepState']);
+  });
+
+  it('invalidates an excepted step only through an upgrade, since an approval step is never excepted (#57)', () => {
+    expect(causes(state, 'excepted', 'invalidated')).toEqual(['ApplyRunUpgrade']);
   });
 
   it('keeps inclusion included, retired (07.3) or excluded (08.3)', () => {
     expect(inclusion.states).toEqual(['included', 'retired', 'excluded']);
     expect(inclusion.owner).toBe('07.3');
+  });
+
+  it('retires a step the new revision drops, whether it was included or excluded (#49)', () => {
+    expect(causes(inclusion, 'included', 'retired')).toEqual(['ApplyRunUpgrade']);
+    expect(causes(inclusion, 'excluded', 'retired')).toEqual(['ApplyRunUpgrade']);
+    expect(exits(inclusion, 'excluded')).toEqual(['included', 'retired']);
   });
 });
 
@@ -285,10 +306,38 @@ describe('aggregates and counters', () => {
     expect(draft?.excludes).toEqual(['owner', 'workspace', 'tags', 'category', 'visibility', 'instanceCount', 'ratingSum', 'ratingCount']);
   });
 
-  it('checks aggregateRevision on publish, complete, reopen, cancel, upgrade and reorder, and stepRevision on step commands', () => {
+  const checked = Object.values(PRECONDITIONS).flatMap((entry): string[] => [...entry.commands]);
+
+  it('names known commands, each under one check', () => {
     const known = new Set<string>([...Object.keys(COMMANDS), ...DRAFT_COMMANDS]);
-    for (const name of AGGREGATE_REVISION_CHECKS) expect(known.has(name), name).toBe(true);
-    expect([...AGGREGATE_REVISION_CHECKS]).toEqual(['PublishRevision', 'CompleteRun', 'ReopenRun', 'CancelRun', 'ApplyRunUpgrade', 'MoveStep']);
-    expect([...STEP_REVISION_CHECKS]).toEqual(['SetStepState', 'DecideApproval']);
+    for (const name of checked) expect(known.has(name), name).toBe(true);
+    expect(new Set(checked).size, 'a command has one check').toBe(checked.length);
+  });
+
+  it('checks aggregateRevision on publish, start from draft, restore, complete, reopen, cancel, upgrade and reorder (#38, #40, #47)', () => {
+    expect([...PRECONDITIONS.aggregateRevision.commands]).toEqual([
+      'PublishRevision',
+      'StartRunFromDraft',
+      'RestoreRevisionToDraft',
+      'CompleteRun',
+      'ReopenRun',
+      'CancelRun',
+      'ApplyRunUpgrade',
+      'MoveStep',
+    ]);
+    expect(PRECONDITIONS.aggregateRevision.note).toMatch(/several ops/);
+  });
+
+  it('checks stepRevision on the commands that change one step, and the last-seen value on header fields (#38, #59)', () => {
+    expect([...PRECONDITIONS.stepRevision.commands]).toEqual(['SetStepState', 'DecideApproval', 'UpdateStep', 'RemoveStep']);
+    expect([...PRECONDITIONS.lastSeenValue.commands]).toEqual(['SetHeaderField', 'SetQuestion']);
+    expect([...PRECONDITIONS.none.commands]).toEqual(['AddStep', 'CreateTemplateDraft', 'CreateRun']);
+  });
+
+  it('gives every draft op a check, except the two 06.1 enables', () => {
+    for (const op of DRAFT_COMMANDS) {
+      if (op === 'SetInclude' || op === 'SetLock') expect(checked, op).not.toContain(op);
+      else expect(checked, op).toContain(op);
+    }
   });
 });

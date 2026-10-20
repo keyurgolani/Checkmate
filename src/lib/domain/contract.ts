@@ -41,17 +41,17 @@ export interface DecisionRecord {
   readonly title: string;
 }
 
-/** The records #29 requires, in glossary order. */
+/** The records #29 requires, in glossary order. Records from other leaves share the folder. */
 export const DECISION_RECORDS: readonly DecisionRecord[] = [
-  { id: '01.1-run', title: 'Run' },
-  { id: '01.1-blueprint', title: 'Blueprint' },
-  { id: '01.1-step-and-task', title: 'Step and Task' },
-  { id: '01.1-section-and-reference', title: 'Section and reference' },
-  { id: '01.1-step-key', title: 'Step Key' },
-  { id: '01.1-aggregates', title: 'Aggregates and counters' },
-  { id: '01.1-revision-store', title: 'One revision store' },
-  { id: '01.1-retention', title: 'Retention' },
-  { id: '01.1-ia-map', title: 'Navigation and route map' },
-  { id: '01.1-visibility', title: 'Visibility split' },
-  { id: '01.1-personal-presentation', title: 'Personal presentation' },
+  { id: 'run', title: 'Run' },
+  { id: 'blueprint', title: 'Blueprint' },
+  { id: 'step-and-task', title: 'Step and Task' },
+  { id: 'section-and-reference', title: 'Section and reference' },
+  { id: 'step-key', title: 'Step Key' },
+  { id: 'aggregates', title: 'Aggregates and counters' },
+  { id: 'revision-store', title: 'One revision store' },
+  { id: 'retention', title: 'Retention' },
+  { id: 'ia-map', title: 'Navigation and route map' },
+  { id: 'visibility', title: 'Visibility split' },
+  { id: 'personal-presentation', title: 'Personal presentation' },
 ];

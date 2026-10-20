@@ -12,11 +12,13 @@ import { leafIssue } from './contract';
 import {
   CLASS_RULES,
   COLLECTIONS,
+  PERMANENT_PROOF,
   PURGES,
   RELATIONS,
   RETENTION_CLASSES,
   classOf,
   mayDeleteRevision,
+  purgeEffect,
   type PurgeKind,
   type RelationRetention,
 } from './retention';
@@ -95,13 +97,17 @@ function behaviorOf(relation: SchemaRelation): 'cascade' | 'required' | 'optiona
   return relation.required ? 'required' : 'optional';
 }
 
-/** Whether the schema already has a relation the way #29's target wants it. */
+/**
+ * Whether the schema already has a relation the way #29's target wants it.
+ * A restrict relation is required, so PocketBase refuses the delete, unless
+ * its row says the owner made it nullable.
+ */
 function matchesTarget(row: RelationRetention, relation: SchemaRelation): boolean {
   switch (row.target) {
     case 'cascade':
       return relation.cascade;
     case 'restrict':
-      return !relation.cascade;
+      return !relation.cascade && (relation.required || row.nullable === true);
     case 'detach':
       return !relation.cascade && !relation.required;
     case 'text-id':
@@ -160,9 +166,29 @@ describe('relations', () => {
       ['blueprints.baseRevision', '04.1'],
       ['instances.templateRevision', '04.1'],
       ['instances.currentRunSource', '07.2'],
+      ['runSources.run', '07.2'],
       ['completionRecords.run', '10.3'],
       ['completionRecords.workspace', '10.3'],
     ]);
+  });
+
+  it('marks only restrict relations nullable, and keeps the rest of them required', () => {
+    for (const row of RELATIONS.filter((candidate) => candidate.nullable)) expect(row.target, row.relation).toBe('restrict');
+    expect(RELATIONS.filter((row) => row.target === 'restrict' && !row.nullable).map((row) => row.relation)).toEqual([
+      'workspaces.owner',
+      'blueprints.workspace',
+      'templateRevisions.template',
+    ]);
+  });
+
+  it('rejects an optional field where a required restrict relation belongs', () => {
+    const owner = rowFor('workspaces.owner');
+    const workspace = rowFor('instances.workspace');
+    if (owner === undefined || workspace === undefined) throw new Error('missing rows');
+    const optional = { relation: 'x.y', references: 'users', required: false, cascade: false };
+    expect(matchesTarget(owner, optional)).toBe(false);
+    expect(matchesTarget(owner, { ...optional, required: true })).toBe(true);
+    expect(matchesTarget(workspace, optional)).toBe(true);
   });
 
   it("matches each relation in pb_schema.json as it was at baseline, or as #29's target once its executor has run", () => {
@@ -258,9 +284,24 @@ describe('purge rules', () => {
     expect(COLLECTIONS.filter((row) => row.class === 'tombstone').map((row) => row.collection)).toEqual(['users', 'workspaces', 'blueprints']);
   });
 
-  it('only detaches history on account and template purges, and keeps proof', () => {
+  it('only detaches history on account and template purges, and keeps referenced proof', () => {
     expect(CLASS_RULES.history.onPurge).toEqual({ account: 'detach', workspace: 'delete', template: 'detach' });
     expect(CLASS_RULES.proof.onPurge).toEqual({ account: 'keep', workspace: 'keep', template: 'keep' });
+  });
+
+  it('treats a proof row nothing references as history, except revisions and completion records', () => {
+    expect([...PERMANENT_PROOF]).toEqual(['templateRevisions', 'completionRecords']);
+    for (const kind of PURGE_KINDS) {
+      expect(purgeEffect('runSources', kind, { referenced: true }), kind).toBe('keep');
+      expect(purgeEffect('runSources', kind, { referenced: false }), kind).toBe(CLASS_RULES.history.onPurge[kind]);
+      for (const permanent of PERMANENT_PROOF) {
+        expect(purgeEffect(permanent, kind, { referenced: false }), `${permanent} ${kind}`).toBe('keep');
+      }
+      // Other classes don't depend on references.
+      expect(purgeEffect('items', kind, { referenced: true })).toBe('delete');
+      expect(purgeEffect('users', kind, { referenced: false })).toBe('tombstone');
+    }
+    expect(() => purgeEffect('widgets', 'account', { referenced: false })).toThrow(RangeError);
   });
 
   it('never cascades a history or proof relation outside its run', () => {
