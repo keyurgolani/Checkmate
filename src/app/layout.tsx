@@ -1,29 +1,40 @@
 import type { Metadata } from "next";
-import { Outfit, Plus_Jakarta_Sans, Inter, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { StatusAnnouncerProvider } from "@/components/ui/live-region";
 import { UnifiedThemeProvider } from "@/components/providers/unified-theme-provider";
 import { UnifiedGrain, UnifiedBackground, ThemePopup } from "@/components/theme";
 import "./globals.css";
 
-const outfit = Outfit({
+// Vendored under public/fonts by scripts/fonts/fetch-fonts.mjs, over the same
+// weight ranges as before. Each @font-face keeps the family's own name, since
+// that is the name its font-themes.ts entry renders.
+const outfit = localFont({
+  src: "../../public/fonts/outfit/outfit-latin-wght-normal.woff2",
+  weight: "100 900",
   variable: "--font-outfit",
-  subsets: ["latin"],
+  declarations: [{ prop: "font-family", value: "Outfit" }],
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
+const plusJakarta = localFont({
+  src: "../../public/fonts/plusJakarta/plusJakarta-latin-wght-normal.woff2",
+  weight: "200 800",
   variable: "--font-plus-jakarta",
-  subsets: ["latin"],
+  declarations: [{ prop: "font-family", value: "Plus Jakarta Sans" }],
 });
 
-const inter = Inter({
+const inter = localFont({
+  src: "../../public/fonts/inter/inter-latin-wght-normal.woff2",
+  weight: "100 900",
   variable: "--font-inter",
-  subsets: ["latin"],
+  declarations: [{ prop: "font-family", value: "Inter" }],
 });
 
-const manrope = Manrope({
+const manrope = localFont({
+  src: "../../public/fonts/manrope/manrope-latin-wght-normal.woff2",
+  weight: "200 800",
   variable: "--font-manrope",
-  subsets: ["latin"],
+  declarations: [{ prop: "font-family", value: "Manrope" }],
 });
 
 export const metadata: Metadata = {

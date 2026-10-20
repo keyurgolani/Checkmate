@@ -97,6 +97,12 @@ export interface FontTheme {
   name: string;
   fontFamily: string;
   category: FontCategory;
+  /**
+   * The family's @font-face stylesheet on this origin, public/fonts/<id>/<id>.css,
+   * linked when the font is selected. The name predates the vendored files, and
+   * #78 replaces it with next/font/local. The four fonts the root layout loads
+   * have none, and neither does `system`.
+   */
   googleFontUrl?: string;
 }
 
