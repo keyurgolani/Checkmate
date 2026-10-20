@@ -133,13 +133,14 @@ interface ToggleErrorProps {
 
 /**
  * Shown under a step whose toggle failed, until a retry is confirmed. It is
- * not a live region, since only confirmed changes are announced.
+ * not a live region, since only confirmed changes are announced. `id` names
+ * the message, which the step's controls use as their description.
  */
 function ToggleError({ id, stepContent, attempted, disabled, onRetry }: ToggleErrorProps) {
   return (
-    <div id={id} className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-destructive">
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-destructive">
       <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span>{`Couldn't mark this step ${attempted}.`}</span>
+      <span id={id}>{`Couldn't mark this step ${attempted}.`}</span>
       <button
         type="button"
         onClick={(e) => {
@@ -149,7 +150,7 @@ function ToggleError({ id, stepContent, attempted, disabled, onRetry }: ToggleEr
         disabled={disabled}
         aria-label={`Retry marking ${stepContent} ${attempted}`}
         className={cn(
-          "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-3 font-medium transition-colors",
+          "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-3 font-medium transition-colors",
           "hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40",
           "disabled:cursor-wait disabled:opacity-60"
         )}

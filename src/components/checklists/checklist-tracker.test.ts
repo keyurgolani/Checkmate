@@ -70,6 +70,8 @@ describe('ChecklistTracker step toggle', () => {
     expect(screen.getByText("Couldn't mark this step complete.")).toBeTruthy();
     expect(liveRegion().textContent).toBe('');
     expect(checkbox('Unlock the doors').getAttribute('aria-checked')).toBe('false');
+    const describedBy = checkbox('Unlock the doors').getAttribute('aria-describedby') ?? '';
+    expect(document.getElementById(describedBy)?.textContent).toBe("Couldn't mark this step complete.");
   });
 
   it('announces the state the server confirmed', async () => {
