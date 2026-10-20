@@ -49,6 +49,8 @@ A test that fails on a known product defect is marked `it.fails`, with a one-lin
 
 A change to an access rule updates its pin in `src/test/access-rule-pins.json` in the same PR. The failing test prints the served digest.
 
+Legacy storage names (the `blueprints`, `items`, `instances` and `instanceItems` collections, the `blueprint`, `instance` and `sourceItem` fields, and the stored values built on them) live only in `src/lib/domain/storage.ts`. Name collections through `Collections` and read rows through `src/lib/domain/records.ts`. A ratchet test counts legacy names and deprecated alias imports per file against `src/lib/domain/legacy-name-baseline.ts`. When you remove one, lower that file's entry; CI fails a change that raises an entry or adds one. `npx tsc --noEmit -p src/lib/domain/tsconfig.json` runs the record type test.
+
 ## Continuous Integration
 
 Every pull request to `main` or `next` runs `.github/workflows/ci.yml`, and its `aggregate` check is the one that must pass. The `scope` job classifies the changed files with `.github/ci-scope.json`:
