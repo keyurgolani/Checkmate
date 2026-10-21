@@ -94,7 +94,11 @@ beforeEach(() => {
   consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // A confirmed toggle starts import('@/lib/confetti') without awaiting it. If
+  // it is still loading when the next test starts its own, vitest hands the
+  // second import the real module, and canvas-confetti throws in jsdom.
+  await vi.dynamicImportSettled();
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
