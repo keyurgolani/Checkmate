@@ -28,6 +28,10 @@ jobs:
             context: .
             file: ./Dockerfile
             image-name: checkmate-app
+            # Next.js bakes NEXT_PUBLIC_* into the browser bundle at build time.
+            # A repository variable NEXT_PUBLIC_POCKETBASE_URL overrides the default.
+            build-args: |
+              NEXT_PUBLIC_POCKETBASE_URL=${{ vars.NEXT_PUBLIC_POCKETBASE_URL || 'https://checkmate-api.keyurgolani.name' }}
           - name: pocketbase
             context: ./docker/pocketbase
             file: ./docker/pocketbase/Dockerfile
@@ -78,5 +82,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.image.build-args }}
           cache-from: type=gha,scope=${{ matrix.image.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
