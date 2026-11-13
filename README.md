@@ -172,6 +172,14 @@ Key environment variables (see `.env.example` for full list):
 | `POCKETBASE_URL`             | Internal URL for server-side requests |
 | `CLOUDFLARE_TUNNEL_TOKEN`    | Cloudflare Tunnel token (for homelab) |
 
+`NEXT_PUBLIC_POCKETBASE_URL` is compiled into the browser bundle when the app is
+built, so it has to be known at build time: `docker build --build-arg
+NEXT_PUBLIC_POCKETBASE_URL=https://api.example.com .` (or a `.env` in the build
+context). Setting it only on the running container changes server-side code but
+not the browser. The published `checkmate-app` image is built with
+`https://checkmate-api.keyurgolani.name`, or with the repository variable
+`NEXT_PUBLIC_POCKETBASE_URL` when it is set (see `.github/workflows/publish-images.yml`).
+
 ## Scripts
 
 ```bash

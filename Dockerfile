@@ -42,6 +42,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Enable standalone output for Docker builds
 ENV DOCKER_BUILD=true
 
+# Public PocketBase URL for the browser bundle. Next.js inlines NEXT_PUBLIC_*
+# variables at build time, so setting it only when the container runs reaches
+# server code but not the browser (which then falls back to 127.0.0.1:8090).
+# Pass it with --build-arg NEXT_PUBLIC_POCKETBASE_URL=https://api.example.com.
+# Deliberately an ARG without ENV: when it isn't passed it stays unset, so a
+# NEXT_PUBLIC_POCKETBASE_URL in a .env inside the build context still applies.
+ARG NEXT_PUBLIC_POCKETBASE_URL
+
 # Build the application with standalone output
 RUN npm run build
 
